@@ -17,7 +17,7 @@ sequenceDiagram
     Client->>Server: WS connect wss://.../offscreen?applicationKey=...
     Client->>Server: {type: "authenticate", myscript-client-name, myscript-client-version}
     Server-->>Client: {type: "hmacChallenge", hmacChallenge, iinkSessionId}
-    Client->>Client: computeHmac(hmacChallenge, applicationKey, hmacKey)
+    Client->>Client: server.sign(hmacChallenge) or computeHmac(hmacChallenge, applicationKey, hmacKey)
     Client->>Server: {type: "hmac", hmac}
     Server-->>Client: {type: "authenticated"}
 

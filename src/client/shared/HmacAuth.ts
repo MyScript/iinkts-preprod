@@ -2,25 +2,19 @@ import { computeHmac } from "./crypto"
 import type { TServerHTTPConfiguration } from "./ServerConfiguration"
 
 /**
- * Resolves the server configuration's `hmacKey` (a literal string or an async resolver
- * function) and computes the HMAC signature for `data`, or returns `undefined` if no HMAC key
- * is configured.
+ * Resolves the HMAC signature of `message`: from the server configuration's `sign` function when
+ * set, otherwise computed from its `hmacKey`. Returns `undefined` when neither yields a signature.
  * @group Client
  */
 export async function resolveHmac(server: TServerHTTPConfiguration, message: string): Promise<string | undefined> {
+  if (server.sign) {
+    return (await server.sign(message, server.applicationKey)) || undefined
+  }
   if (!server.hmacKey) {
     return undefined
   }
-  let hmacKey: string
-  if (typeof server.hmacKey === "string") {
-    hmacKey = server.hmacKey
-  } else if (typeof server.hmacKey === "function") {
-    hmacKey = await server.hmacKey(server.applicationKey)
-  } else {
-    throw new Error("HMAC key is not a string nor a function")
+  if (typeof server.hmacKey !== "string") {
+    throw new Error("server.hmacKey must be a string, use server.sign to sign on a server")
   }
-  if (!hmacKey) {
-    return undefined
-  }
-  return computeHmac(message, server.applicationKey, hmacKey)
+  return computeHmac(message, server.applicationKey, server.hmacKey)
 }

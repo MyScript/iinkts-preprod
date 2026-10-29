@@ -75,17 +75,17 @@ describe("WebSocketSSRClient.ts", () => {
       mockServer.close()
     })
 
-    test("should reject init when the HMAC key cannot be resolved", async () => {
+    test("should reject init when the HMAC signature cannot be resolved", async () => {
       const failingConf = structuredClone(customConf)
       failingConf.server.host = "init-hmac-failure-test"
       const client = new WebSocketSSRClient({
         ...failingConf,
-        server: { ...failingConf.server, hmacKey: () => Promise.reject(new Error("token endpoint down")) },
+        server: { ...failingConf.server, sign: () => Promise.reject(new Error("signing endpoint down")) },
       })
       client.event.emitError = jest.fn()
       const server = new ServerWebSocketSSRMock(client.url)
       server.init(true)
-      await expect(client.init(height, width)).rejects.toThrow("token endpoint down")
+      await expect(client.init(height, width)).rejects.toThrow("signing endpoint down")
       client.destroy()
       server.close()
     })

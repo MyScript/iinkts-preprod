@@ -251,12 +251,6 @@ export class WebSocketSSRClient {
       ackMessage,
     })
     if (ackMessage.hmacChallenge) {
-      if (
-        typeof this.configuration.server.hmacKey !== "function" &&
-        typeof this.configuration.server.hmacKey !== "string"
-      ) {
-        return this.initialized.reject(new Error("HMAC key is not a string nor a function"))
-      }
       this.send({
         type: "hmac",
         hmac: await resolveHmac(this.configuration.server, ackMessage.hmacChallenge),

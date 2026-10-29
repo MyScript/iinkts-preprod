@@ -1,5 +1,7 @@
 # Migration Guide
 
+iinkTS follows [semantic versioning](https://semver.org) for the API the guides on the Developer website describe: `Canvas.load`, the configuration, the canvas methods and events, and the classes `options.override` accepts. The [API Reference](https://myscript.github.io/iinkTS/docs/) lists everything the package exports; the rest of it (managers, renderers, internal helpers) may change in a minor release, and so may subclassing a class `options.override` does not accept. This guide covers the documented API only.
+
 ## v4.x → v5.0.0
 
 ### Exports: nine methods become two
@@ -158,6 +160,30 @@ configuration: { server: { websocket: { autoReconnect: false } } }
 
 `maxRetryCount` no longer affects `WebSocketClient`, which retries up to `maxReconnectAttempts` every
 `reconnectDelay` ms; it is still read by `WebSocketSSRClient`.
+
+### `hmacKey` is a string only: sign on your server with `server.sign`
+
+The function form of `hmacKey` is removed: it fetched the key and still handed it to the browser. Return
+the signature instead of the key, from a server that holds it:
+
+```ts
+// v4
+server: { applicationKey, hmacKey: async () => (await fetch("/hmac-key")).text() }
+// v5
+server: {
+  applicationKey,
+  hmacKey: "",
+  sign: async (message) => (await (await fetch("/sign", { method: "POST", body: JSON.stringify({ message }) })).json()).signature,
+}
+```
+
+The server computes HMAC-SHA512 of `message`, keyed by `applicationKey + hmacKey`, as lowercase hex
+(Node: `createHmac("sha512", applicationKey + hmacKey).update(message).digest("hex")`). See
+`examples/server-signing/`. A string `hmacKey` still works, for development.
+
+### `CanvasEventName.POINTEREVENTS` is removed
+
+Nothing ever emitted it.
 
 ### The math solver defaults to radians
 

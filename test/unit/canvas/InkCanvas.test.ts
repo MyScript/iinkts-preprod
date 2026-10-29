@@ -20,7 +20,6 @@ describe("InkCanvas.ts", () => {
       name = "custom-client"
     }
     const customBehaviorsOptions = structuredClone(DefaultInkCanvasRestClientOptions)
-    //@ts-ignore
     customBehaviorsOptions.override = { client: CustomClient }
     //@ts-ignore IIC-1006 Type instantiation is excessively deep and possibly infinite.
     const canvas = new InkCanvas(document.createElement("div"), customBehaviorsOptions)

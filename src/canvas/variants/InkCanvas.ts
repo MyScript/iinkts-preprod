@@ -1,7 +1,6 @@
 import type { TExport, TExportV2 } from "@/client"
 import { HTTPClientV2 } from "@/client"
 import type { TPartialDeep } from "@/core"
-import type { PointerEventGrabber } from "@/grabber"
 import type { TIHistoryChanges } from "@/history"
 import { IHistoryManager } from "@/history"
 import {
@@ -36,8 +35,8 @@ export type TInkCanvasOptions = TPartialDeep<
   }
 > & {
   override?: {
-    grabber?: PointerEventGrabber
-    client?: HTTPClientV2
+    /** An `HTTPClientV2` subclass, instantiated by the canvas with its configuration */
+    client?: typeof HTTPClientV2
   }
   /** Content added at load, so it is there from the first render (functions: hence not in `configuration`) */
   extend?: {
@@ -81,12 +80,8 @@ export class InkCanvas extends AbstractCanvas implements TInkCanvas {
 
     this.#penStyle = Object.assign({}, this.#configuration.penStyle)
 
-    if (options?.override?.client) {
-      const CustomRecognizer = options.override.client as unknown as typeof HTTPClientV2
-      this.client = new CustomRecognizer(this.#configuration)
-    } else {
-      this.client = new HTTPClientV2(this.#configuration)
-    }
+    const Client = options?.override?.client ?? HTTPClientV2
+    this.client = new Client(this.#configuration)
     this.renderer = new SVGRenderer(this.#configuration.rendering)
 
     this.#model = new IModel()

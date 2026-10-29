@@ -449,12 +449,6 @@ export class WebSocketClient {
   }
 
   protected async manageHMACChallenge(hmacChallengeMessage: TWebSocketClientMessageHMACChallenge): Promise<void> {
-    if (
-      typeof this.configuration.server.hmacKey !== "function" &&
-      typeof this.configuration.server.hmacKey !== "string"
-    ) {
-      return this.initialized.reject(new Error("HMAC key is not a string nor a function"))
-    }
     const socket = this.socket
     const hmac = await resolveHmac(this.configuration.server, hmacChallengeMessage.hmacChallenge)
     // The HMAC may take a while: if this socket closed or was replaced meanwhile, its close event
