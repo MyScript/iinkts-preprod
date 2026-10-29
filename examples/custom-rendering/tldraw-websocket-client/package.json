@@ -16,7 +16,6 @@
     "iink-ts": "^3.2.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-json-view": "^1.21.3",
     "react-portal": "^4.3.0",
     "react-redux": "^9.2.0",
     "tldraw": "^3.15.6"
