@@ -20,7 +20,7 @@ import { resolveHmac } from "../shared/HmacAuth"
 import { ensureServerVersion } from "../shared/infos"
 import { redactServerSecrets, serverUrl } from "../shared/ServerConfiguration"
 import type { TRecognitionStroke, TWireStroke } from "../shared/StrokeSerializer"
-import { toWireStroke } from "../shared/StrokeSerializer"
+import { supportsRelativeTimestamps, toWireStroke } from "../shared/StrokeSerializer"
 import type { TWebSocketClientConfiguration } from "./WebSocketClientConfiguration"
 import { WebSocketClientConfiguration } from "./WebSocketClientConfiguration"
 import type {
@@ -714,6 +714,10 @@ export class WebSocketClient {
     }
   }
 
+  // Read per stroke, not once: the server version is only known after the first connection
+  protected toWire = (stroke: TRecognitionStroke): TWireStroke =>
+    toWireStroke(stroke, { relativeTimestamps: supportsRelativeTimestamps(this.configuration.server.version) })
+
   protected buildAddStrokesMessage(strokes: TWireStroke[], processGestures = true): TWebSocketClientMessage {
     return { type: "addStrokes", processGestures, strokes }
   }
@@ -728,7 +732,7 @@ export class WebSocketClient {
     }
     const _processGestures = processGestures && strokes.length < 3
     // Converted once: measuring the groups and sending them read the same wire strokes
-    const groups = this.chunkBySize(strokes.map(toWireStroke), wireStrokeSize, 1000)
+    const groups = this.chunkBySize(strokes.map(this.toWire), wireStrokeSize, 1000)
     await Promise.all(groups.map((part) => this.sendChange(this.buildAddStrokesMessage(part, _processGestures))))
   }
 
@@ -854,7 +858,7 @@ export class WebSocketClient {
     }
     // The first group goes with the replacement, the others as plain additions: same content, and
     // no frame over the budget.
-    const [first = [], ...rest] = this.chunkBySize(newStrokes.map(toWireStroke), wireStrokeSize, 1000)
+    const [first = [], ...rest] = this.chunkBySize(newStrokes.map(this.toWire), wireStrokeSize, 1000)
     await Promise.all([
       this.sendChange(this.buildReplaceStrokesMessage(oldStrokeIds, first)),
       ...rest.map((strokes) => this.sendChange(this.buildAddStrokesMessage(strokes, false))),
@@ -915,7 +919,7 @@ export class WebSocketClient {
       type: "contextlessGesture",
       scaleX: PX_TO_MM_RATIO,
       scaleY: PX_TO_MM_RATIO,
-      stroke: toWireStroke(stroke),
+      stroke: this.toWire(stroke),
     })
     return this.waitForAnswer<TWebSocketClientMessageContextlessGesture>(`gesture:${stroke.id}`, {
       type: TWebSocketClientMessageType.ContextlessGesture,
@@ -934,14 +938,14 @@ export class WebSocketClient {
   protected buildUndoRedoChanges(changes: TIIHistoryBackendChanges): TWebSocketClientMessage[] {
     const changesMessages: TWebSocketClientMessage[] = []
     if (changes.added?.length) {
-      changesMessages.push(this.buildAddStrokesMessage(changes.added.map(toWireStroke), false))
+      changesMessages.push(this.buildAddStrokesMessage(changes.added.map(this.toWire), false))
     }
     if (changes.erased?.length) {
       changesMessages.push(this.buildEraseStrokesMessage(changes.erased.map((s) => s.id)))
     }
     if (changes.replaced?.newStrokes.length) {
       const oldIds = changes.replaced.oldStrokes.map((s) => s.id)
-      changesMessages.push(this.buildReplaceStrokesMessage(oldIds, changes.replaced.newStrokes.map(toWireStroke)))
+      changesMessages.push(this.buildReplaceStrokesMessage(oldIds, changes.replaced.newStrokes.map(this.toWire)))
     }
     return changesMessages
   }
