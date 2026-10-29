@@ -6,13 +6,25 @@ import helloStrike from "../__dataset__/helloStrike"
 import threeScratchOut from "../__dataset__/threeScratchOut"
 import rectangleShape from "../__dataset__/rectangleShape"
 
-// Keeps the strokes clear of the toolbar on top and of the pen properties panel on the left
-const OFFSET = { x: 250, y: 150 }
+// Widest dataset written here (the surround), in canvas pixels once shifted by the offset
+const WIDEST_STROKES_RIGHT = 480
 
-const shift = (strokes) => strokes.map(s => ({
-  ...s,
-  pointers: s.pointers.map(p => ({ ...p, x: p.x + OFFSET.x, y: p.y + OFFSET.y }))
-}))
+// Keeps the strokes clear of the toolbar on top and of the pen properties panel on the left.
+// Between the example's side panels the canvas is narrower: Excalidraw then folds that panel away,
+// and the strokes are pulled left so the widest dataset still fits
+const offsetOf = async (page) => {
+  const { width } = await page.locator("#rootEl").boundingBox()
+  return { x: Math.min(250, width - WIDEST_STROKES_RIGHT), y: 150 }
+}
+
+// Pointers are relative to the canvas: writeStrokes adds the canvas position on the page
+const shift = async (page, strokes) => {
+  const offset = await offsetOf(page)
+  return strokes.map(s => ({
+    ...s,
+    pointers: s.pointers.map(p => ({ ...p, x: p.x + offset.x, y: p.y + offset.y }))
+  }))
+}
 
 // No dataset holds an underline: a straight stroke just below "hello"
 const underline = {
@@ -21,7 +33,7 @@ const underline = {
 
 // Excalidraw draws on a canvas: the scene is read through the API the example exposes
 const readScene = (page) => page.evaluate(() => ({
-  elements: window.excalidrawAPI.getSceneElements().map(e => ({ id: e.id, type: e.type, text: e.text, strokeWidth: e.strokeWidth })),
+  elements: window.excalidrawAPI.getSceneElements().map(e => ({ id: e.id, type: e.type, text: e.text, strokeWidth: e.strokeWidth, strokeColor: e.strokeColor })),
   selectedIds: Object.keys(window.excalidrawAPI.getAppState().selectedElementIds),
 }))
 
@@ -46,10 +58,10 @@ const countContentChanged = (page) => {
 const writeContentThenGesture = async (page, strokes) => {
   const content = strokes.slice(0, -1)
   const before = contentChangedCounts.get(page)
-  await writeStrokes(page, shift(content))
+  await writeStrokes(page, await shift(page, content))
   await expect.poll(() => countOf(page, "freedraw")).toBe(content.length)
   await expect.poll(() => contentChangedCounts.get(page) - before, { timeout: 15_000 }).toBeGreaterThanOrEqual(content.length)
-  await writeStrokes(page, shift(strokes.slice(-1)))
+  await writeStrokes(page, await shift(page, strokes.slice(-1)))
 }
 
 test.describe("Excalidraw WebSocket client", { tag: "@touch" }, () => {
@@ -65,8 +77,38 @@ test.describe("Excalidraw WebSocket client", { tag: "@touch" }, () => {
     await expect(page.getByTestId("convert-button")).toBeEnabled({ timeout: 10_000 })
   })
 
+  test("should list what the server recognized in the recognition panel", async ({ page }) => {
+    // Below 1200px the panel is an overlay, closed until its header button opens it
+    const resultsToggle = page.locator('button[aria-controls="results-panel"]')
+    if (await resultsToggle.isVisible()) {
+      await resultsToggle.click()
+    }
+
+    await writeStrokes(page, await shift(page, helloOneStroke.strokes))
+
+    await expect(page.locator("#recognition-elements")).toContainText("hello", { timeout: 15_000 })
+    await expect(page.locator("#recognition-jiix")).toContainText('"type": "Raw Content"')
+  })
+
+  test("should highlight the strokes of the hovered recognized element", async ({ page }) => {
+    const resultsToggle = page.locator('button[aria-controls="results-panel"]')
+    if (await resultsToggle.isVisible()) {
+      await resultsToggle.click()
+    }
+    await writeStrokes(page, await shift(page, helloOneStroke.strokes))
+    const item = page.locator("#recognition-elements li", { hasText: "hello" })
+    await expect(item).toBeVisible({ timeout: 15_000 })
+    const [hello] = (await readScene(page)).elements
+
+    await item.hover()
+    await expect.poll(async () => (await readScene(page)).elements[0].strokeColor).not.toBe(hello.strokeColor)
+
+    await page.locator("#recognition-jiix").hover()
+    await expect.poll(async () => (await readScene(page)).elements[0].strokeColor).toBe(hello.strokeColor)
+  })
+
   test("should convert handwriting into a text element", async ({ page }) => {
-    await writeStrokes(page, shift(helloOneStroke.strokes))
+    await writeStrokes(page, await shift(page, helloOneStroke.strokes))
     await expect.poll(() => countOf(page, "freedraw")).toBe(1)
 
     await page.getByTestId("convert-button").click()
@@ -77,7 +119,7 @@ test.describe("Excalidraw WebSocket client", { tag: "@touch" }, () => {
   })
 
   test("should convert a drawn rectangle into a rectangle element", async ({ page }) => {
-    await writeStrokes(page, shift(rectangleShape.strokes))
+    await writeStrokes(page, await shift(page, rectangleShape.strokes))
     await expect.poll(() => countOf(page, "freedraw")).toBe(rectangleShape.strokes.length)
 
     await page.getByTestId("convert-button").click()
@@ -98,11 +140,11 @@ test.describe("Excalidraw WebSocket client", { tag: "@touch" }, () => {
   })
 
   test("should thicken the strokes above an underline", async ({ page }) => {
-    await writeStrokes(page, shift(helloOneStroke.strokes))
+    await writeStrokes(page, await shift(page, helloOneStroke.strokes))
     await expect.poll(() => countOf(page, "freedraw")).toBe(1)
     const [hello] = (await readScene(page)).elements
 
-    await writeStrokes(page, shift([underline]))
+    await writeStrokes(page, await shift(page, [underline]))
 
     await expect.poll(async () => (await readScene(page)).elements, { timeout: 5_000 }).toEqual([
       expect.objectContaining({ id: hello.id, strokeWidth: hello.strokeWidth * 2 })

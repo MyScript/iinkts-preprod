@@ -26,7 +26,7 @@ export type TConversion = {
 /**
  * Every stroke id a JIIX element was recognized from, text words and chars included
  */
-const strokeIdsOf = (element: TJIIXElement): string[] =>
+export const strokeIdsOf = (element: TJIIXElement): string[] =>
 {
   const items = [...(element.items ?? [])]
   if (element.type === JIIXElementType.Text) {

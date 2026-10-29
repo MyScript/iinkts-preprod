@@ -30,3 +30,27 @@ export const updateScene = (api: ExcalidrawImperativeAPI, update: TSceneUpdate):
     captureUpdate: CaptureUpdateAction.IMMEDIATELY,
   })
 }
+
+/**
+ * Recolors strokes to point at them, outside the undo history; returns what puts their colors back
+ */
+export const highlightStrokes = (api: ExcalidrawImperativeAPI, ids: string[], color: string): (() => void) =>
+{
+  const targets = new Set(ids)
+  const originalColors = new Map<string, string>()
+  const recolor = (colorOf: (element: ExcalidrawElement) => string | undefined) => api.updateScene({
+    elements: api.getSceneElementsIncludingDeleted().map(e =>
+    {
+      const strokeColor = colorOf(e)
+      return strokeColor === undefined ? e : newElementWith(e, { strokeColor })
+    }),
+    captureUpdate: CaptureUpdateAction.NEVER,
+  })
+  recolor(e =>
+  {
+    if (!targets.has(e.id)) return
+    originalColors.set(e.id, e.strokeColor)
+    return color
+  })
+  return () => recolor(e => originalColors.get(e.id))
+}
