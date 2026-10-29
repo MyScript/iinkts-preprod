@@ -56,7 +56,7 @@ Auth is a **message-field challenge/response**, not an HTTP header (that's HTTP-
 ← { type: 'sessionDescription', ... }
 ```
 
-**HMAC computation**: [src/client/shared/crypto.ts](src/client/shared/crypto.ts) — `computeHmac(message, applicationKey, hmacKey)`. Concatenates `applicationKey + hmacKey` as the HMAC-SHA-512 key (via WebCrypto `crypto.subtle`), signs `message`, hex-encodes.
+**HMAC computation**: [src/client/shared/crypto.ts](src/client/shared/crypto.ts) — `computeHmac(message, applicationKey, hmacKey)`. Concatenates `applicationKey + hmacKey` as the HMAC-SHA-512 key (via WebCrypto `crypto.subtle`), signs `message`, hex-encodes. Clients go through `resolveHmac` ([src/client/shared/HmacAuth.ts](src/client/shared/HmacAuth.ts)), which prefers `server.sign` (signature from the integrator's server, key never in the browser) over a string `hmacKey`.
 
 ### 2. Recognition flow
 

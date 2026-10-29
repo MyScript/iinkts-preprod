@@ -30,10 +30,6 @@ export enum CanvasEventName {
    */
   ERROR = "error",
   /**
-   * @remarks event emitted on click on pointer events
-   */
-  POINTEREVENTS = "pointer_events",
-  /**
    * @remarks event emitted after
    */
   NOTIF = "notif",

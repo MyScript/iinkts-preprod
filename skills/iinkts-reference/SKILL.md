@@ -264,4 +264,4 @@ canvas.event.addChangedListener((context: THistoryContext) => { ... })
 
 ## MyScript Cloud integration
 
-**Authentication**: HMAC-based (applicationKey + hmacKey) set in `configuration.server`. See `examples/websocket/` for credential setup.
+**Authentication**: HMAC-based, set in `configuration.server`: `sign` (signature computed on a server holding the key, production default) or `hmacKey` string (development only). See `examples/server-signing/`. See `examples/websocket/` for credential setup.
