@@ -148,8 +148,20 @@ Every export on `InteractiveInkCanvas` goes through two functions instead of nin
 - `PDFExportManager.openExportDialog(onConfirm, onCancel?)`: new optional cancel callback, so `download("pdf")` settles on cancellation instead of hanging
 - `TExportActionItemsConfig`/`TContextExportItemsConfig` gained `markdown`, `mermaid`, `plantuml`, `llm`, `jiix` (enabled by default; `markdown` only built with `text` recognition, `mermaid`/`plantuml` only with `shape`)
 
+### The HMAC signature is computed on your server: `server.sign`
+`server.hmacKey` put the HMAC key in the browser, where anyone could read it; its function form only fetched the same key from elsewhere before exposing it the same way.
+- new: `server.sign(message, applicationKey) => Promise<string>` (`THmacSigner`) resolves the signature of the WebSocket HMAC challenge or of the HTTP request body, so the key stays on a server you own. It takes precedence over `hmacKey`. `resolveHmac` calls it
+- **removed**: the function form of `hmacKey`. `TServerHTTPConfiguration.hmacKey` is a `string`, kept for development; anything else makes `resolveHmac` throw
+- `WebSocketClient`/`WebSocketSSRClient` no longer check the type of `hmacKey` before answering a challenge: `resolveHmac` does, and its error still rejects `init()`
+- new example `examples/server-signing/`: a dependency-free Node signing server and a page that holds no credential
+
+### `CanvasEventName.POINTEREVENTS` is removed
+It was declared but never emitted.
+
 ### Type-only
+- `AbstractHistoryStack.event` and its constructor take `THistoryEvent` (new: `{ emitChanged(context) }`, which `CanvasEvent` satisfies) instead of `CanvasEvent`: the history no longer imports the canvas. No runtime change
 - `TInteractiveInkCanvasOptions.override.client` is typed `typeof WebSocketClient`, the class the canvas instantiates, instead of an instance, which the canvas cast to a class. No runtime change
+- `TInkCanvasOptions.override.client` is typed `typeof HTTPClientV2` in the same way. `TInkCanvasOptions.override.grabber` is removed: it was declared but never read, each manager creates its own `PointerEventGrabber`. No runtime change
 - `Logger.debug`/`info`/`warn`/`error` take `...data: unknown[]` instead of `...data: any`. No runtime change
 - `TWebSocketClientMessageReceived` is derived from the new `TWebSocketClientMessageReceivedMap` (one entry per `TWebSocketClientMessageType`, a missing one no longer compiles) instead of a hand-kept union; it resolves to the same members. Likewise `TWebSocketClientMessageMathSolverResult` comes from the new `TMathSolverResultMap` (`result` type by action) through the new generic `TWebSocketClientMessageMathSolver<A extends TMathSolverAction>`; the eleven `TWebSocketClientMessageMathSolver*` aliases stay, now one-liners over it. `WebSocketClient` now checks a message's `type` before dispatching it and logs an unknown one with its raw payload (it used to print `[object Object]`). No other runtime change
 - `WebSocketSSRClient` messages are a discriminated union: `TWebSocketSSRClientMessage<T extends string = string>` takes its `type` as a parameter, each received message type fixes it (`TWebSocketSSRClientMessageSVGPatch.type` is `"svgPatch"`, no longer any string), and the new `TWebSocketSSRClientMessageReceived` is built from the new `TWebSocketSSRClientMessageReceivedMap`. The `manage*Message` handlers take their own message type instead of the base one and cast. New: `TWebSocketSSRClientMessageAck` (`TWebSocketSSRClientMessageHMACChallenge` now extends it), `TWebSocketSSRClientMessageNewPart`, `TWebSocketSSRClientMessageIdle`, `TWebSocketSSRClientMessagePong`. A message of unknown type is logged with its raw payload. No other runtime change

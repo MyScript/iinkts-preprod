@@ -5,12 +5,28 @@ export type TScheme = "https" | "http"
 
 /**
  * @group Client
+ * @remarks Signs `message` (the WebSocket HMAC challenge, or the HTTP request body) and resolves
+ * the signature as a lowercase hex string, so the HMAC key stays on a server you own.
+ * @see computeHmac for the algorithm the server must apply
+ */
+export type THmacSigner = (message: string, applicationKey: string) => Promise<string>
+
+/**
+ * @group Client
  */
 export type TServerHTTPConfiguration = {
   scheme: TScheme
   host: string
   applicationKey: string
-  hmacKey: string | ((applicationKey: string) => Promise<string>)
+  /**
+   * @remarks Puts the HMAC key in the browser, where anyone can read it: for development only.
+   * In production, leave it empty and set `sign`.
+   */
+  hmacKey: string
+  /**
+   * @remarks Signs on a server that holds the HMAC key. Takes precedence over `hmacKey`.
+   */
+  sign?: THmacSigner
   version?: string
 }
 

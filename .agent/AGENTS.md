@@ -89,5 +89,5 @@ Code/architecture notes (managers, symbol system, refactor status) live in Seren
 
 ## MyScript Cloud Integration
 
-**Authentication**: HMAC-based (applicationKey + hmacKey) set in `configuration.server`.
+**Authentication**: HMAC-based, set in `configuration.server`: `sign` (signature computed on a server holding the key, production default) or `hmacKey` string (development only). See `examples/server-signing/`.
 See `examples/websocket/` for credential setup.
