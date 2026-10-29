@@ -50,7 +50,7 @@
 <!-- ===== Hero ===== -->
 <section class="home-hero">
   <h1>iinkTS Examples</h1>
-  <p>Explore handwriting recognition demos — Interactive Ink Canvas, Ink Canvas (v2), and advanced integrations.</p>
+  <p>Explore handwriting recognition demos — text, math, diagrams, export and whiteboard integrations — grouped by use case, then by feature.</p>
   <div class="home-hero-stats">
     <div class="hero-stat" data-count-for="ii-all"><strong>23</strong><span>Interactive Ink Canvas</span></div>
     <div class="hero-stat" data-count-for="ink-v2"><strong>9</strong><span>Ink Canvas v2</span></div>
@@ -75,6 +75,13 @@
 
   <!-- Sidebar -->
   <nav class="home-sidebar" id="home-sidebar" aria-label="Examples navigation">
+    <p class="sidebar-heading">Use cases</p>
+    <ul>
+      <li><a href="#uc-education"><span class="dot" style="background:#6C63FF"></span>Education</a></li>
+      <li><a href="#uc-documents"><span class="dot" style="background:#00b859"></span>Notes &amp; documents</a></li>
+      <li><a href="#uc-diagrams"><span class="dot" style="background:#FF9800"></span>Diagrams &amp; whiteboards</a></li>
+    </ul>
+    <hr class="sidebar-divider" />
     <p class="sidebar-heading">Interactive Ink</p>
     <ul>
       <li><a href="#ii-start"><span class="dot" style="background:#1A9FFF"></span>Getting started</a></li>
@@ -109,6 +116,162 @@
 
   <!-- Main content -->
   <main class="home-main" id="main-content">
+
+    <!-- ============================================
+         SECTION: Use cases
+    ============================================= -->
+    <section class="home-section" id="use-cases">
+      <div class="section-header">
+        <div class="section-icon">
+          <img src="./assets/img/home-offscreen.svg" alt="" />
+        </div>
+        <div class="section-meta">
+          <h2>Use cases</h2>
+          <p>Start from what you are building: the most complete demos, grouped by use case. Every feature has its own example in the sections below.</p>
+        </div>
+      </div>
+
+      <!-- Education -->
+      <div class="subsection" id="uc-education">
+        <div class="subsection-title">Education</div>
+        <div class="card-grid">
+
+          <article class="card" data-search="use case education math tutor workbook exercise edtech">
+            <img class="card-thumb" src="./assets/img/gallery/math-tutor.png" alt="" loading="lazy" />
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVITY</span>
+              <span class="badge badge-primary">Math</span>
+            </div>
+            <h3>Math Tutor</h3>
+            <p>Solve equations by hand, one step per line: each line is read as you write, and the first wrong one is flagged with a hint on the mistake.</p>
+            <div class="card-actions">
+              <a href="interactive-canvas/interactive_canvas_math_tutor.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_math_tutor.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+          <article class="card" data-search="use case education math solver compute variables dependencies">
+            <img class="card-thumb" src="./assets/img/gallery/math.png" alt="" loading="lazy" />
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVITY</span>
+              <span class="badge badge-primary">Math</span>
+            </div>
+            <h3>Math Solver</h3>
+            <p>Write <code>x = 2</code>, then <code>3x + 2 =</code>: the result is computed and written next to your ink, and recomputed when the variable changes.</p>
+            <div class="card-actions">
+              <a href="interactive-canvas/interactive_canvas_math_dependencies.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_math_dependencies.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+          <article class="card" data-search="use case education exam quiz form multiple canvas">
+            <img class="card-thumb" src="./assets/img/gallery/v2-multi-canvas-exam.png" alt="" loading="lazy" />
+            <div class="card-top">
+              <span class="badge badge-rest">InkCanvas-v2</span>
+              <span class="badge badge-rest">Multiple canvas</span>
+            </div>
+            <h3>Exam form</h3>
+            <p>One independent <code>InkCanvas</code> instance per question field — validate each answer via export and tally a score.</p>
+            <div class="card-actions">
+              <a href="canvas/canvas_v2_multi_canvas_exam.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/canvas/canvas_v2_multi_canvas_exam.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      <!-- Notes &amp; documents -->
+      <div class="subsection" id="uc-documents">
+        <div class="subsection-title">Notes &amp; documents</div>
+        <div class="card-grid">
+
+          <article class="card" data-search="use case notes document pdf typeset print">
+            <img class="card-thumb" src="./assets/img/gallery/live-pdf.png" alt="" loading="lazy" />
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVITY</span>
+              <span class="badge badge-primary">All types</span>
+            </div>
+            <h3>Live PDF Document</h3>
+            <p>Write on the left, watch a typeset A4 document build itself on the right — underlined titles, lists, equations and figures — then print it as PDF.</p>
+            <div class="card-actions">
+              <a href="interactive-canvas/interactive_canvas_export_pdf.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_export_pdf.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+          <article class="card" data-search="use case notes markdown export">
+            <img class="card-thumb" src="./assets/img/gallery/export-markdown.png" alt="" loading="lazy" />
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVITY</span>
+              <span class="badge badge-primary">Text</span>
+              <span class="badge badge-primary">Math</span>
+            </div>
+            <h3>Markdown Export</h3>
+            <p>Convert recognized text and math to Markdown, with a live rendered preview beside the source.</p>
+            <div class="card-actions">
+              <a href="interactive-canvas/interactive_canvas_export_markdown.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_export_markdown.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      <!-- Diagrams &amp; whiteboards -->
+      <div class="subsection" id="uc-diagrams">
+        <div class="subsection-title">Diagrams &amp; whiteboards</div>
+        <div class="card-grid">
+
+          <article class="card" data-search="use case diagram graph node edge inspector">
+            <img class="card-thumb" src="./assets/img/gallery/diagram.png" alt="" loading="lazy" />
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVITY</span>
+              <span class="badge badge-primary">Shape</span>
+            </div>
+            <h3>Diagram Inspector</h3>
+            <p>See the graph the server recognized: nodes with their kind and inner label, edges with the shapes they join, dangling ends flagged.</p>
+            <div class="card-actions">
+              <a href="interactive-canvas/interactive_canvas_diagram_inspector.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/interactive-canvas/interactive_canvas_diagram_inspector.html" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+
+          <article class="card" data-search="use case whiteboard tldraw react integration">
+            <img class="card-thumb" src="./assets/img/gallery/tldraw.png" alt="" loading="lazy" />
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVITY</span>
+              <span class="badge badge-primary">All types</span>
+            </div>
+            <h3>TLDraw Integration</h3>
+            <p>Handwriting recognition embedded inside a TLDraw collaborative canvas (React).</p>
+            <div class="card-actions">
+              <a href="custom-rendering/tldraw-websocket-client/dist/index.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/custom-rendering/tldraw-websocket-client/src/App.tsx" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+          <article class="card" data-search="use case whiteboard excalidraw react integration">
+            <img class="card-thumb" src="./assets/img/gallery/excalidraw.png" alt="" loading="lazy" />
+            <div class="card-top">
+              <span class="badge badge-primary">INTERACTIVITY</span>
+              <span class="badge badge-primary">All types</span>
+            </div>
+            <h3>Excalidraw Integration</h3>
+            <p>Handwriting recognition, gestures and conversion inside an Excalidraw whiteboard (React).</p>
+            <div class="card-actions">
+              <a href="custom-rendering/excalidraw-websocket-client/dist/index.html" class="btn-view"><svg><use href="#icn-play"/></svg> View</a>
+              <a href="https://github.com/MyScript/iinkTS/blob/master/examples/custom-rendering/excalidraw-websocket-client/src/App.tsx" class="btn-code" target="_blank" rel="noopener"><svg><use href="#icn-github"/></svg> Code</a>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+
+
+    </section>
 
     <!-- ============================================
          SECTION: Interactive Ink Canvas
