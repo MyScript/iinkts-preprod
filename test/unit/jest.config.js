@@ -1,3 +1,7 @@
+import { readFileSync } from "fs"
+
+const { version } = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf-8"))
+
 export default {
   rootDir: "../../",
   roots: [
@@ -5,6 +9,10 @@ export default {
     "<rootDir>/test/unit"
   ],
   clearMocks: true,
+  // What rollup's inject-version plugin replaces in the bundle
+  globals: {
+    __IINK_VERSION__: version,
+  },
   // Coverage is opt-in through the `test:unit:coverage` script, not a flag on `test:unit`:
   // combining `--coverage` with `--detectOpenHandles` takes over ten minutes on this suite,
   // where `--coverage` alone takes about two. A commented-out `collectCoverage: true` used to

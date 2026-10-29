@@ -7,6 +7,7 @@ import dts from "rollup-plugin-dts"
 import commonjs from "@rollup/plugin-commonjs"
 import svg from "rollup-plugin-svg-import"
 import webWorkerLoader from "rollup-plugin-web-worker-loader"
+import injectVersion from "./rollup-plugin-version.mjs"
 import { fileURLToPath } from "url"
 import path from "path"
 
@@ -38,6 +39,7 @@ export default [
         clean: true,
         include: ["src/**/*.ts", "src/**/*.tsx"]
       }),
+      injectVersion(),
       resolve({ browser: true }),
       commonjs({
         include: ["node_modules/json-css/**"],

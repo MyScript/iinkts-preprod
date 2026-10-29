@@ -444,7 +444,7 @@ export class WebSocketClient {
     this.sendOnSocket({
       type: "authenticate",
       "myscript-client-name": "iink-ts",
-      "myscript-client-version": "1.0.0-buildVersion",
+      "myscript-client-version": __IINK_VERSION__,
     })
   }
 
