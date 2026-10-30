@@ -38,6 +38,44 @@ describe("HTTPClientV2.ts", () => {
     expect(sentBody.configuration.export.jiix.text.lines).toBeUndefined()
   })
 
+  test("should send t0 and dt instead of t to a server from 4.6.0", async () => {
+    const model = new Model(width, height)
+    model.initCurrentStroke({ dt: 1, p: 1, x: 1, y: 1 }, "pen", DefaultPenStyle)
+    model.endCurrentStroke({ dt: 10, p: 1, x: 100, y: 1 })
+    const newConf: THTTPClientV2Configuration = structuredClone(
+      HTTPClientV1RawContentConfiguration as unknown as THTTPClientV2Configuration
+    )
+    newConf.recognition.type = "Raw Content"
+    newConf.server.version = "4.6.0"
+    const rr = new HTTPClientV2(newConf)
+
+    await rr.send(model.symbols)
+
+    const request = fetchMock.mock.calls[0][0] as Request
+    const [sent] = (await request.clone().json()).strokes
+    expect(sent.t).toBeUndefined()
+    expect(sent.dt).toEqual([0, 9])
+  })
+
+  test("should ask the server version before writing the strokes when it is not known yet", async () => {
+    const model = new Model(width, height)
+    model.initCurrentStroke({ dt: 1, p: 1, x: 1, y: 1 }, "pen", DefaultPenStyle)
+    model.endCurrentStroke({ dt: 10, p: 1, x: 100, y: 1 })
+    const newConf: THTTPClientV2Configuration = structuredClone(
+      HTTPClientV1RawContentConfiguration as unknown as THTTPClientV2Configuration
+    )
+    newConf.recognition.type = "Raw Content"
+    delete newConf.server.version
+    fetchMock.mockResponseOnce(JSON.stringify({ version: "4.6.0", gitCommit: "", nativeVersion: "" }))
+    const rr = new HTTPClientV2(newConf)
+
+    await rr.send(model.symbols)
+
+    const request = fetchMock.mock.calls[1][0] as Request
+    const [sent] = (await request.clone().json()).strokes
+    expect(sent.dt).toEqual([0, 9])
+  })
+
   test("should sign the body it actually sends, after adapting the configuration to the server version", async () => {
     const model = new Model(width, height)
     model.initCurrentStroke({ dt: 1, p: 1, x: 1, y: 1 }, "pen", DefaultPenStyle)

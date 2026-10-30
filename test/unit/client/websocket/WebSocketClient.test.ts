@@ -468,6 +468,17 @@ describe("WebSocketClient.ts", () => {
       }
       await expect(messageSent).toMatchObject(messageSentExpected)
     })
+    test("should send t0 and dt instead of t to a server from 4.6.0", async () => {
+      await wsClient.init()
+      wsClient.configuration.server.version = "4.6.0"
+      wsClient.addStrokes(strokes)
+      //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the client
+      await delay(100)
+      const [sent] = JSON.parse(mockServer.getLastMessage() as string).strokes
+      expect(sent).toEqual(toWireStroke(strokes[0], { relativeTimestamps: true }))
+      expect(sent.t).toBeUndefined()
+      expect(sent.t0).toEqual(expect.any(Number))
+    })
     test("should emit event when received gestureDetected", async () => {
       expect.assertions(2)
       await wsClient.init()

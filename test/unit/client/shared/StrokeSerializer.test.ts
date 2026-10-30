@@ -1,4 +1,11 @@
-import { MatrixTransform, StrokeUtil, toWireStroke, type TRecognitionStroke, type TWireStroke } from "@/iink"
+import {
+  MatrixTransform,
+  StrokeUtil,
+  supportsRelativeTimestamps,
+  toWireStroke,
+  type TRecognitionStroke,
+  type TWireStroke,
+} from "@/iink"
 
 /** Stroke origin used by the fixtures; the wire carries `creationTime + dt`, not `dt`. */
 const CREATED_AT = 1700000000000
@@ -282,6 +289,100 @@ describe("StrokeSerializer.ts", () => {
           y: [1.366],
         })
       })
+    })
+
+    describe("with relative timestamps", () => {
+      // Servers from 4.6.0 read `t0` (first pointer, absolute) and `dt` (offsets from it) instead of
+      // `t`, which shrinks every stroke sent. They rebuild `t0 + dt`, so the instants must be the same.
+      const relative = { relativeTimestamps: true }
+
+      test("should send t0 and dt instead of t", () => {
+        const stroke: TRecognitionStroke = {
+          id: "stroke-1",
+          creationTime: CREATED_AT,
+          pointerType: "pen",
+          pointers: [
+            { x: 1, y: 2, dt: 1000, p: 0.5 },
+            { x: 3, y: 4, dt: 1008, p: 0.6 },
+            { x: 5, y: 6, dt: 1016, p: 0.7 },
+          ],
+        }
+
+        expect(toWireStroke(stroke, relative)).toEqual({
+          id: "stroke-1",
+          pointerType: "pen",
+          p: [0.5, 0.6, 0.7],
+          t0: CREATED_AT + 1000,
+          dt: [0, 8, 16],
+          x: [1, 3, 5],
+          y: [2, 4, 6],
+        })
+      })
+
+      test("should round t0 and dt to whole milliseconds, the server reading them as integers", () => {
+        const wire = toWireStroke(
+          {
+            id: "stroke-fraction",
+            creationTime: CREATED_AT + 0.4,
+            pointerType: "pen",
+            pointers: [
+              { x: 1, y: 2, dt: 0 },
+              { x: 3, y: 4, dt: 7.6 },
+            ],
+          },
+          relative
+        )
+
+        expect(wire.t0).toBe(CREATED_AT)
+        expect(wire.dt).toEqual([0, 8])
+      })
+
+      test("should send neither t0 nor dt when a pointer is not timed", () => {
+        const wire = toWireStroke(
+          {
+            id: "stroke-7",
+            creationTime: CREATED_AT,
+            pointerType: "pen",
+            pointers: [
+              { x: 1, y: 2, dt: 10 },
+              { x: 3, y: 4 },
+            ],
+          },
+          relative
+        )
+
+        expect(wire).toEqual({ id: "stroke-7", pointerType: "pen", x: [1, 3], y: [2, 4] })
+      })
+
+      test("should send neither t0 nor dt when the stroke has no origin", () => {
+        const wire = toWireStroke(
+          {
+            id: "stroke-untimed",
+            pointerType: "pen",
+            pointers: [
+              { x: 1, y: 2, dt: 0 },
+              { x: 3, y: 4, dt: 12 },
+            ],
+          },
+          relative
+        )
+
+        expect(wire).toEqual({ id: "stroke-untimed", pointerType: "pen", x: [1, 3], y: [2, 4] })
+      })
+    })
+  })
+
+  describe("supportsRelativeTimestamps", () => {
+    test("should be true from server 4.6.0", () => {
+      expect(supportsRelativeTimestamps("4.6.0")).toBe(true)
+      expect(supportsRelativeTimestamps("4.10.1")).toBe(true)
+      expect(supportsRelativeTimestamps("5.0.0")).toBe(true)
+    })
+
+    test("should be false before 4.6.0, or when the version is not known yet", () => {
+      expect(supportsRelativeTimestamps("4.5.4")).toBe(false)
+      expect(supportsRelativeTimestamps("3.1.3")).toBe(false)
+      expect(supportsRelativeTimestamps(undefined)).toBe(false)
     })
   })
 })

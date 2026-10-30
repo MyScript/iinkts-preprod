@@ -13,7 +13,7 @@ import type {
 import { ensureServerVersion } from "../shared/infos"
 import { redactServerSecrets, serverUrl } from "../shared/ServerConfiguration"
 import type { TRecognitionStroke, TWireStroke } from "../shared/StrokeSerializer"
-import { toWireStroke } from "../shared/StrokeSerializer"
+import { supportsRelativeTimestamps, toWireStroke } from "../shared/StrokeSerializer"
 import type { THTTPClientV2Configuration } from "./HTTPClientV2Configuration"
 import { HTTPClientV2Configuration } from "./HTTPClientV2Configuration"
 import { postRecognition, toRecognitionContentType, toRecognitionError } from "./HTTPRecognition"
@@ -100,7 +100,9 @@ export class HTTPClientV2 {
       scaleX: 0.265,
       scaleY: 0.265,
       contentType,
-      strokes: strokes.map((s) => toWireStroke(s)),
+      strokes: strokes.map((s) =>
+        toWireStroke(s, { relativeTimestamps: supportsRelativeTimestamps(this.configuration.server.version) })
+      ),
     }
     this.logger.debug("buildData", { data })
     return data
@@ -165,6 +167,8 @@ export class HTTPClientV2 {
     }
     const mimeTypes = requestedMimeTypes || this.getMimeTypes()
 
+    // Before building: the version decides how the strokes' timestamps are written
+    await ensureServerVersion(this.configuration)
     const data = this.buildData(strokes)
     const exports: TExportV2[] = await Promise.all(mimeTypes.map((mimeType) => this.tryFetch(data, mimeType)))
     exports.forEach((e) => {
