@@ -7,6 +7,10 @@
     // and nothing is emitted here
     "allowJs": true,
     "composite": false,
+    // A run with nothing changed rereads the last result instead of checking everything again.
+    // The cache sits in node_modules so it never shows up in the git tree
+    "incremental": true,
+    "tsBuildInfoFile": "./node_modules/.cache/tsc/typecheck.tsbuildinfo",
     "rootDir": "./",
     "types": ["jest", "node"],
     "paths": {
