@@ -13,9 +13,8 @@ export default {
   globals: {
     __IINK_VERSION__: version,
   },
-  // Coverage is opt-in through the `test:unit:coverage` script, not a flag on `test:unit`:
-  // combining `--coverage` with `--detectOpenHandles` takes over ten minutes on this suite,
-  // where `--coverage` alone takes about two. A commented-out `collectCoverage: true` used to
+  // Coverage is opt-in through the `test:unit:coverage` script, not a flag on `test:unit`: it
+  // makes the run about three times slower. A commented-out `collectCoverage: true` used to
   // sit here, which is how the threshold below went years without ever being enforced.
   collectCoverageFrom: [
     "<rootDir>/src/**/**.ts",
@@ -49,7 +48,6 @@ export default {
     "<rootDir>/test/unit/__dataset__",
     "<rootDir>/test/unit/__mocks__"
   ],
-  preset: "ts-jest",
   setupFiles: [
     "jest-canvas-mock",
     "<rootDir>/test/unit/__config__/jest.setup.ts",
@@ -70,24 +68,14 @@ export default {
   transform: {
     "^.+\\.css$": "jest-transform-css",
     "^.+\\.svg$": "<rootDir>/test/unit/__config__/svgTransform.ts",
-    "^.+\\.ts$": ["ts-jest", {
-      useESM: true,
-      tsconfig: {
-        esModuleInterop: true,
-        allowSyntheticDefaultImports: true,
-        // Example modules are plain JS served as is, without a build: their tests import them
-        allowJs: true,
-        // Transpile only: a type-checking compiler in every worker cost about 1.4 GB each and got
-        // the CI stage killed for memory. Types are checked once by `yarn typecheck`, tests included.
-        isolatedModules: true,
-      }
+    // Transpile only: types are checked once by `yarn typecheck`, tests included. swc needs no
+    // TypeScript, so the tests do not depend on the compiler's JS API, which TypeScript 7 dropped.
+    "^.+\\.ts$": ["@swc/jest", {
+      jsc: { parser: { syntax: "typescript" }, target: "esnext" },
     }],
-    "^.+/examples/.+\\.js$": ["ts-jest", {
-      useESM: true,
-      tsconfig: {
-        allowJs: true,
-        isolatedModules: true,
-      }
+    // Example modules are plain JS served as is, without a build: their tests import them
+    "^.+/examples/.+\\.js$": ["@swc/jest", {
+      jsc: { parser: { syntax: "ecmascript" }, target: "esnext" },
     }]
   },
   extensionsToTreatAsEsm: [".ts"],
