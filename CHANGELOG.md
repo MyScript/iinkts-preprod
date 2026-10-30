@@ -290,6 +290,10 @@ The canvas UI has 8 slots (`top-left`, `top-center`, `top-right`, `middle-left`,
 - feat(manager): new `PDFExportManager` (`src/manager/base/`, `(canvas: TInteractiveInkCanvas | InkCanvas)`) — print-only DOM/CSS layer, page computation (`computePageCount`, `computeFitToPageScale`, `getPageDimensionsMm`), single-page fit and multi-page tiled modes (`buildSinglePagePrintContainer`/`buildMultiPagePrintContainer`), settings dialog (`openExportDialog`, reusing `Modal.ts`), `print()`. Exposes `TPDFPageFormat`, `TPDFOrientation`, `TPDFPageMode`, `TPDFExportDialogOptions`, `TPDFPageOptions`, `TPDFPageCount`, `TPDFPageSizeMm`, `PDFExportManager.DEFAULT_OPTIONS`
 - feat(menu): `ExportMenuAction`/`ExportContextMenu` build ten entries (JSON, SVG, PNG, Text, Markdown, Mermaid, PlantUML, LLM, JIIX, PDF), each toggleable via `TExportActionItemsConfig`/`TContextExportItemsConfig` and routed through `canvas.download()`; the context menu resolves its scope at click time
 
+### Shorter strokes on the wire: `t0` + `dt`
+From server 4.6.0, `WebSocketClient` and `HTTPClientV2` send each stroke's timing as `t0` (first pointer, absolute) plus `dt` (offsets from it, whole milliseconds) instead of absolute `t` instants, which shrinks every stroke sent. The server version is read once, as for the other version-dependent settings; an older or unknown server still gets `t`. `HTTPClientV2.send` now fetches the version before writing the strokes rather than just before posting.
+- new: `toWireStroke(stroke, { relativeTimestamps })`, `TWireStrokeOptions`, `supportsRelativeTimestamps(serverVersion)`, `TWireStroke.t0` and `TWireStroke.dt`
+
 ### Types returned by public methods can be named
 - feat(manager): `TAnchoredEdgesUpdateResult`, `TFollowedStroke` (`IIConnectorManager`), `TShift` and `TSplitOutcome` (`InsertGestureHandler.computeChangesOnSplitText`) are exported
 
