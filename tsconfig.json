@@ -3,6 +3,9 @@
   "compilerOptions": {
     "rootDir": "./",
     "outDir": "dist",
+    // The library runs in the browser and needs no @types package. Left unset, every one under
+    // node_modules/@types (babel, yargs, jsdom...) would be loaded into the editor's src project
+    "types": [],
     "paths": {
       "@/*": ["./src/*"]
     }
