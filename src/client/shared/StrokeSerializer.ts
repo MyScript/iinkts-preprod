@@ -8,7 +8,7 @@
  */
 
 import type { TMatrixTransform } from "@/core"
-import { applyMatrixToPoint, isIdentityMatrix } from "@/core"
+import { applyMatrixToPoint, isIdentityMatrix, isVersionSuperiorOrEqual } from "@/core"
 
 /**
  * One captured point of a stroke. `x` and `y` are required; `t` and `p` are not, so a caller that
@@ -66,8 +66,10 @@ export type TRecognitionStroke = {
  * What actually goes on the wire: the same pointers transposed into one array per component, which
  * is the form the recognition API expects.
  *
- * `t` and `p` are absent when the stroke did not carry them — see {@link toWireStroke} for why they
- * are omitted whole rather than padded.
+ * Timing goes either as `t` (absolute instants) or, for a server that reads it, as `t0` (the first
+ * pointer's absolute instant) plus `dt` (each pointer's offset from it), which is shorter.
+ * The timing and `p` are absent when the stroke did not carry them — see {@link toWireStroke} for why
+ * they are omitted whole rather than padded.
  * @group Client
  */
 export type TWireStroke = {
@@ -77,6 +79,28 @@ export type TWireStroke = {
   y: number[]
   p?: number[]
   t?: number[]
+  t0?: number
+  dt?: number[]
+}
+
+/**
+ * @group Client
+ */
+export type TWireStrokeOptions = {
+  /** Send `t0` + `dt` instead of `t`; see {@link supportsRelativeTimestamps} */
+  relativeTimestamps?: boolean
+}
+
+// First server version reading `t0` + `dt`; an older one ignores them and would get no timing at all
+const RELATIVE_TIMESTAMPS_SERVER_VERSION = "4.6.0"
+
+/**
+ * Whether a server of this version reads `t0` + `dt`. An unknown version answers no: `t` is the form
+ * every server reads.
+ * @group Client
+ */
+export function supportsRelativeTimestamps(serverVersion: string | undefined): boolean {
+  return !!serverVersion && isVersionSuperiorOrEqual(serverVersion, RELATIVE_TIMESTAMPS_SERVER_VERSION)
 }
 
 /**
@@ -92,9 +116,12 @@ export type TWireStroke = {
  * timestamp is worse than sending none, because the recognizer would treat the invention as capture
  * data. A stroke where only some points are timed is a caller bug, and dropping the column is the
  * only reading of it that cannot mislead the server.
+ *
+ * With `relativeTimestamps`, the same instants go as `t0` + `dt`, rounded to whole milliseconds:
+ * the server reads both as integers.
  * @group Client
  */
-export function toWireStroke(stroke: TRecognitionStroke): TWireStroke {
+export function toWireStroke(stroke: TRecognitionStroke, options: TWireStrokeOptions = {}): TWireStroke {
   const toAbsolute = createPointerTransformer(stroke.transform)
   const wire: TWireStroke = {
     id: stroke.id,
@@ -124,12 +151,21 @@ export function toWireStroke(stroke: TRecognitionStroke): TWireStroke {
   })
 
   if (everyPointerIsTimed && t.length) {
-    wire.t = t
+    if (options.relativeTimestamps) {
+      Object.assign(wire, toRelativeTimestamps(t))
+    } else {
+      wire.t = t
+    }
   }
   if (everyPointerHasPressure && p.length) {
     wire.p = p
   }
   return wire
+}
+
+function toRelativeTimestamps(t: number[]): Pick<TWireStroke, "t0" | "dt"> {
+  const t0 = Math.round(t[0])
+  return { t0, dt: t.map((instant) => Math.round(instant) - t0) }
 }
 
 /**
