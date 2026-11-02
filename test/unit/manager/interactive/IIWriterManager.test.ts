@@ -188,6 +188,12 @@ describe("IIWriterManager.ts", () => {
       expect(stroke.pointers[1].dt).toBe(point2.dt)
       expect(stroke.pointers[1].p).toBe(point2.p)
     })
+    test("should not pan the view while writing near the edge", () => {
+      manager.tool = CanvasWriteTool.Pencil
+      manager.start({ pointer: { dt: 0, p: 0.5, x: 1, y: 1 } } as TPointerInfo)
+      manager.continue({ pointer: { dt: 1, p: 0.5, x: 2, y: 2 } } as TPointerInfo)
+      expect(manager.renderer.ensurePointVisible).not.toHaveBeenCalled()
+    })
     test("should throw error when continu if currentSymbol is undefined", () => {
       manager.currentSymbol = undefined
       const info = {

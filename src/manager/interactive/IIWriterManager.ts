@@ -243,8 +243,6 @@ export class IIWriterManager extends AbstractWriterManager {
       localPointer.y = y
     }
 
-    this.renderer.ensurePointVisible(localPointer, 20)
-
     this.updateCurrentSymbol(localPointer)
     this.scheduleRender()
   }
