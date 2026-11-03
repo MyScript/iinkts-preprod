@@ -77,7 +77,7 @@ async function buildRecognitionHeaders(
   headers.append("Content-Type", "application/json")
   if (server.version && isVersionSuperiorOrEqual(server.version, "2.0.4")) {
     headers.append("myscript-client-name", "iink-ts")
-    headers.append("myscript-client-version", "1.0.0-buildVersion")
+    headers.append("myscript-client-version", __IINK_VERSION__)
   }
   return headers
 }

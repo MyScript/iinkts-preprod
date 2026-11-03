@@ -9,8 +9,10 @@
  * plain functions over plain data. No DOM, no mocks, no setup.
  */
 export default {
-  preset: "ts-jest",
   testEnvironment: "node",
+  transform: {
+    "^.+\\.ts$": ["@swc/jest", { jsc: { parser: { syntax: "typescript" }, target: "esnext" } }],
+  },
   testMatch: ["<rootDir>/**/*.test.ts"],
   testPathIgnorePatterns: ["/node_modules/"],
   // `src` is the unit suite's business. Nothing here is measured for coverage: these tests exist to

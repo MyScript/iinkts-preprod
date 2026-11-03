@@ -17,6 +17,7 @@ Optional body explaining WHY (not what) if complex.
 
 - Subject line: **≤72 chars**, imperative mood ("add" not "added"), no period
 - Body: only when the why isn't obvious from the code
+- Enforced by `commitlint.config.mjs`: `.husky/commit-msg` locally, `Commit messages` stage in the Jenkinsfile on branches and PRs (hard limit 120 chars, aim for 72)
 
 ## Types
 

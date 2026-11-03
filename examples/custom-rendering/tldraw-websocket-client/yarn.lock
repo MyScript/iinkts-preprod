@@ -3466,7 +3466,7 @@ __metadata:
     eslint: "npm:^9.39.4"
     eslint-plugin-react-hooks: "npm:^5.2.0"
     eslint-plugin-react-refresh: "npm:^0.4.26"
-    iink-ts: "npm:^3.2.1"
+    iink-ts: "npm:4.1.0"
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
     react-portal: "npm:^4.3.0"
@@ -3477,12 +3477,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"iink-ts@npm:^3.2.1":
-  version: 3.2.1
-  resolution: "iink-ts@npm:3.2.1"
+"iink-ts@npm:4.1.0":
+  version: 4.1.0
+  resolution: "iink-ts@npm:4.1.0"
   dependencies:
     json-css: "npm:^1.5.6"
-  checksum: 10c0/76b5853941334891d4bc95ee4def95e4e9be7f9ded0556970af5736241a56ca3e20161c1ac3e0bedd97f94750c84eff707504d15231c4788c2c4d167203391e6
+  checksum: 10c0/ca86ebd0b025d5265683f4a7cc7d5a6e1627162510a641198470722d385466caec7063fd84e4ec0a16b03ff2053c3576ed720c18e78fc8a58126aaa7d627b69b
   languageName: node
   linkType: hard
 
