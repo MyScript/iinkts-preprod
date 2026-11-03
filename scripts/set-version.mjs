@@ -2,9 +2,9 @@
 /**
  * Writes a version into a package.json, and nothing else.
  *
- * - `set-version.mjs <version>`: `package.json#version`. CI calls it with the computed version
- *   before the bump commit, then with the pre-release suffix (`-beta.<build>`,
- *   `-alpha.<target>.<build>`, `-rc.<n>`) before building, uncommitted.
+ * - `set-version.mjs <version>`: `package.json#version`. CI calls it before building, uncommitted,
+ *   with the computed version or its pre-release (`-beta.<build>`, `-dev.<target>.<build>`,
+ *   `-rc.<n>`). The release calls it again for the release commit on master.
  * - `set-version.mjs --examples <version>`: the exact `iink-ts` dependency of the tldraw and
  *   excalidraw examples. The release calls it once that version is on npm, never before: their
  *   lockfiles have to resolve it.
