@@ -1,4 +1,6 @@
 import fetchMock from "jest-fetch-mock"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 
 import { ClientError, computeHmac, parseRecognitionResponse, postRecognition, toRecognitionContentType, toRecognitionError, TServerHTTPConfiguration } from "@/iink"
 
@@ -35,6 +37,8 @@ describe("HTTPRecognition.ts", () => {
       expect(request.headers.get("applicationKey")).toEqual("app-key")
       expect(request.headers.get("hmac")).toEqual(await computeHmac(body, "app-key", "hmac-key"))
       expect(request.headers.get("myscript-client-name")).toEqual("iink-ts")
+      const { version } = JSON.parse(readFileSync(join(__dirname, "..", "..", "..", "..", "package.json"), "utf-8"))
+      expect(request.headers.get("myscript-client-version")).toEqual(version)
     })
 
     test("should not send the client headers to a server older than 2.0.4", async () => {

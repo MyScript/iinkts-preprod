@@ -1,6 +1,6 @@
 {
   "name": "iink-ts",
-  "version": "1.0.0-buildVersion",
+  "version": "5.0.0-beta.690",
   "packageManager": "yarn@4.18.0",
   "imports": {
     "#iink": "./dist/iink.esm.js"
@@ -31,8 +31,11 @@
   "homepage": "https://myscript.github.io/iinkTS/",
   "repository": "git://github.com/MyScript/iinkTS.git",
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
-    "typecheck:perf": "tsc --noEmit -p perf/tsconfig.json",
+    "postinstall": "husky",
+    "prepack": "pinst --disable",
+    "postpack": "pinst --enable",
+    "typecheck": "node node_modules/typescript7/bin/tsc --noEmit -p tsconfig.typecheck.json",
+    "typecheck:perf": "node node_modules/typescript7/bin/tsc --noEmit -p perf/tsconfig.json",
     "bench": "node perf/headless/bench.ts",
     "bench:gate": "node perf/headless/compare.ts",
     "bench:ab": "node perf/headless/runPaired.ts",
@@ -49,8 +52,9 @@
     "dev": "rollup -c config/rollup.config.dev.mjs -w --sourcemap",
     "dev:tldraw": "cd ./examples/custom-rendering/tldraw-websocket-client && yarn dev",
     "dev:excalidraw": "cd ./examples/custom-rendering/excalidraw-websocket-client && yarn dev",
-    "test:unit": "jest --config=test/unit/jest.config.js --detectOpenHandles",
+    "test:unit": "jest --config=test/unit/jest.config.js",
     "test:perf": "jest --config=perf/jest.config.js",
+    "test:scripts": "node --test scripts/*.test.mjs",
     "test:unit:coverage": "jest --config=test/unit/jest.config.js --coverage",
     "test:examples": "playwright test --config=test/examples/playwright.config.js",
     "copy:to:tldraw": "cp -r dist/ examples/custom-rendering/tldraw-websocket-client/node_modules/iink-ts/",
@@ -69,13 +73,18 @@
     "json-css": "^1.5.6"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
     "@eslint/eslintrc": "^3.3.6",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.62.1",
     "@rollup/plugin-alias": "^6.0.0",
     "@rollup/plugin-commonjs": "^29.0.3",
     "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-swc": "^0.4.1",
     "@rollup/plugin-terser": "^1.0.0",
+    "@swc/core": "^1.16.20",
+    "@swc/jest": "^0.2.39",
     "@types/jest": "^30.0.0",
     "@types/jsdom": "^30",
     "@typescript-eslint/eslint-plugin": "^8.66.0",
@@ -90,6 +99,7 @@
     "eslint-plugin-prettier": "^5.5.6",
     "eslint-plugin-simple-import-sort": "^13.0.0",
     "globals": "^17.9.0",
+    "husky": "^9.1.7",
     "jest": "^30.4.2",
     "jest-canvas-mock": "^2.5.8",
     "jest-environment-jsdom": "^30.4.1",
@@ -98,7 +108,9 @@
     "jest-transform-css": "^6.0.3",
     "jest-websocket-mock": "^2.5.0",
     "jsdom": "^30.0.1",
+    "lint-staged": "^17.6.0",
     "npm-run-all": "^4.1.5",
+    "pinst": "^3.0.0",
     "postcss": "^8.5.25",
     "prettier": "3.9.6",
     "rollup": "^4.62.4",
@@ -108,16 +120,15 @@
     "rollup-plugin-postcss": "^4.0.2",
     "rollup-plugin-serve": "^3.0.0",
     "rollup-plugin-svg-import": "^3.0.0",
-    "rollup-plugin-typescript2": "^0.36.0",
     "rollup-plugin-web-worker-loader": "^1.7.0",
     "tinybench": "^6.1.3",
-    "ts-jest": "^29.4.12",
     "tslib": "^2.8.1",
     "typedoc": "^0.28.20",
     "typedoc-plugin-expand-object-like-types": "^0.1.2",
     "typedoc-plugin-inline-sources": "^1.3.0",
     "typedoc-plugin-missing-exports": "^4.1.4",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript7": "npm:typescript@^7.0.2"
   },
   "resolutions": {
     "js-yaml": "^4.2.0"
