@@ -4,7 +4,6 @@ coverage
 !.vscode/launch.json
 .yarn
 
-docker/examples/delivery
 test/examples/screenshots
 test-results/
 docs
@@ -27,3 +26,4 @@ __diff_output__
 *.tsbuildinfo
 bench-history
 dist-ref
+docker-logs/

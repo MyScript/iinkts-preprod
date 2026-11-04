@@ -230,6 +230,9 @@ yarn test:unit -- --coverage
 # All examples
 yarn test:examples
 
+# Against a local backend, examples and browsers in docker (testcontainers), as CI does
+yarn test:examples:docker
+
 # Specific test
 yarn test:examples -- interactive-canvas-get-started.test.js
 

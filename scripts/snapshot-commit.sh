@@ -1,6 +1,6 @@
 #!/bin/sh
 # Prints the sha of a commit holding the tracked files of the working tree, edits included, minus
-# what stays internal (Makefile*, docker/, Jenkins*). Its parent is $1, or none when $1 is empty.
+# what stays internal (docker/, Jenkins*). Its parent is $1, or none when $1 is empty.
 # It replaces `git filter-branch`: the public branch gets one commit per deployment on top of its
 # own history, so it is pushed without -f.
 #
@@ -18,7 +18,7 @@ export GIT_INDEX_FILE="$dir/index"
 git read-tree HEAD
 # Tracked files edited in the working tree, such as the preprod version written in package.json
 git add -u
-git rm -r -q --cached --ignore-unmatch -- 'Makefile*' docker 'Jenkins*'
+git rm -r -q --cached --ignore-unmatch -- docker 'Jenkins*'
 tree=$(git write-tree)
 
 if [ -n "$parent" ]; then
