@@ -1,4 +1,4 @@
-import type { ExcalidrawElement, ExcalidrawFreeDrawElement } from "@excalidraw/excalidraw/element/types"
+import type { ExcalidrawElement, ExcalidrawFreeDrawElement, ExcalidrawTextElement } from "@excalidraw/excalidraw/element/types"
 import type { TRecognitionStroke } from "iink-ts"
 
 /**
@@ -11,6 +11,9 @@ export type TBox = { minX: number, minY: number, maxX: number, maxY: number }
 
 export const isFreeDraw = <T extends ExcalidrawElement>(element: T): element is T & ExcalidrawFreeDrawElement =>
   element.type === "freedraw"
+
+export const isText = <T extends ExcalidrawElement>(element: T): element is T & ExcalidrawTextElement =>
+  element.type === "text"
 
 /**
  * Only what changes the ink on the page: a colour or a width change must not trigger a new recognition
@@ -50,6 +53,12 @@ export const sceneBox = (element: ExcalidrawElement): TBox =>
 
 export const boxContains = (outer: TBox, inner: TBox): boolean =>
   outer.minX <= inner.minX && outer.minY <= inner.minY && outer.maxX >= inner.maxX && outer.maxY >= inner.maxY
+
+export const boxOverlaps = (a: TBox, b: TBox): boolean =>
+  a.minX <= b.maxX && b.minX <= a.maxX && a.minY <= b.maxY && b.minY <= a.maxY
+
+export const expandBox = (box: TBox, margin: number): TBox =>
+  ({ minX: box.minX - margin, minY: box.minY - margin, maxX: box.maxX + margin, maxY: box.maxY + margin })
 
 /**
  * creationTime is when the stroke was first seen, kept across replacements so the recognizer
