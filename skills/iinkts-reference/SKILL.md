@@ -241,7 +241,7 @@ Most examples: `<div id="rootEl">` → `Canvas.load(element, type, options)` →
 
 ```bash
 yarn dev          # Rollup watch + example server on :8000
-make dev-lib      # Docker: MongoDB, backend services, fonts, resources
+yarn dev:backend  # Docker (testcontainers): local iink backend on localhost:8897, Ctrl+C stops it
 ```
 
 ## Common patterns

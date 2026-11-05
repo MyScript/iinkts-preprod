@@ -1,5 +1,5 @@
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { IIMathManager, IIModel, JIIXElementType, JIIXMathExpressionType } from "@/iink"
+import { IIMathManager, IIModel, JIIXElementType, JIIXMathExpressionType, StrokeUtil } from "@/iink"
 import type { TJIIXMathElement, TJIIXMathNumber } from "@/iink"
 
 type TSolverOutputExpression = TJIIXMathNumber & { "solver-output": true }
@@ -63,6 +63,23 @@ describe("IIMathManager.ts", () => {
       await manager.tryAutoCompute()
 
       expect(canvas.client.getNumericalComputation).toHaveBeenCalledWith("raw-content/33")
+    })
+
+    // A ghost is never recorded in the history: redo cannot bring it back, only a new compute can
+    test.each([
+      { resultMode: "draw", canRedo: false, computes: true },
+      { resultMode: "draw", canRedo: true, computes: false },
+      { resultMode: "ghost", canRedo: false, computes: true },
+      { resultMode: "ghost", canRedo: true, computes: true },
+    ] as const)("on sync in $resultMode mode with canRedo=$canRedo, computes: $computes", async ({ resultMode, canRedo, computes }) => {
+      const canvas = createAutoComputeCanvas(["numerical-computation"])
+      canvas.history.context = { canRedo } as typeof canvas.history.context
+      new IIMathManager(asCanvas(canvas), { computation: { autoCompute: true, resultMode } })
+
+      canvas.event.emitSynchronized()
+      await new Promise((resolve) => setTimeout(resolve))
+
+      expect((canvas.client.getNumericalComputation as jest.Mock).mock.calls.length > 0).toBe(computes)
     })
 
     test("leaves a block alone when the server does not offer numerical computation", async () => {
@@ -149,6 +166,73 @@ describe("IIMathManager.ts", () => {
       await manager.getBlockCapabilities("block-1")
 
       expect(canvas.client.getAvailableActions).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  describe("variable values in history", () => {
+    const blockStroke = (id: string, jiixBlockId: string, isSolverOutput = false) =>
+      StrokeUtil.createFromPartial({ id, jiixBlockId, isSolverOutput, pointers: [{ x: 0, y: 0, dt: 0, p: 1 }] })
+
+    function createVariableCanvas() {
+      const model = new IIModel()
+      const written = blockStroke("written", "block-1")
+      const result = blockStroke("result", "block-1", true)
+      model.addSymbol(written)
+      model.addSymbol(result)
+      const canvas = createCanvasMock({ model })
+      canvas.removeSymbols = jest.fn().mockResolvedValue([result])
+      canvas.client.getVariables = jest.fn().mockResolvedValue([{ name: "x", value: 2 }])
+      canvas.client.asVariableDefinition = jest.fn().mockResolvedValue(null)
+      canvas.client.setVariableValue = jest.fn().mockResolvedValue(undefined)
+      canvas.client.removeVariableValue = jest.fn().mockResolvedValue(undefined)
+      return { canvas, model, written, result }
+    }
+
+    test("setting a value records it, with the result it clears, as one history step", async () => {
+      const { canvas, result } = createVariableCanvas()
+      const manager = new IIMathManager(asCanvas(canvas))
+
+      await manager.setVariableValue("block-1", "x", 4)
+
+      expect(canvas.history.push).toHaveBeenCalledWith({
+        variables: [{ strokeIds: ["written"], name: "x", before: 2, after: 4 }],
+        erased: [result],
+      })
+    })
+
+    test("removing a value records it as a history step", async () => {
+      const { canvas } = createVariableCanvas()
+      const manager = new IIMathManager(asCanvas(canvas))
+
+      await manager.removeVariable("block-1", "x")
+
+      expect(canvas.history.push).toHaveBeenCalledWith({
+        variables: [{ strokeIds: ["written"], name: "x", before: 2, after: undefined }],
+      })
+    })
+
+    test("replay after sync sends the value to the block the strokes belong to now", async () => {
+      const { canvas, model } = createVariableCanvas()
+      const manager = new IIMathManager(asCanvas(canvas))
+
+      manager.replayVariableChanges([{ strokeIds: ["written"], name: "x", before: undefined, after: 4 }], true)
+      expect(canvas.client.setVariableValue).not.toHaveBeenCalled()
+      const draft = model.draftSymbol("written")!
+      Object.assign(draft, { jiixBlockId: "block-renamed" })
+      model.commitSymbol(draft)
+      canvas.event.emitSynchronized()
+      await new Promise((resolve) => setTimeout(resolve))
+
+      expect(canvas.client.setVariableValue).toHaveBeenCalledWith("block-renamed", "x", 4)
+    })
+
+    test("replaying back to no value removes the variable", async () => {
+      const { canvas } = createVariableCanvas()
+      const manager = new IIMathManager(asCanvas(canvas))
+
+      await manager.replayVariableChanges([{ strokeIds: ["written"], name: "x", before: 4, after: undefined }], false)
+
+      expect(canvas.client.removeVariableValue).toHaveBeenCalledWith("block-1", "x")
     })
   })
 })

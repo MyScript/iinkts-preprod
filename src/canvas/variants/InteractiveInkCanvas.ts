@@ -1428,11 +1428,15 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     const invalidatedGhostBlocks = this.#ghostBlocksInvalidatedBy(changes)
     this.#applyHistoryChanges(changes)
     const actionsToBackend = extractIIBackendChanges(changes)
+    const hasBackendActions = this.#hasBackendActions(actionsToBackend)
     try {
-      if (this.#hasBackendActions(actionsToBackend)) {
+      if (hasBackendActions) {
         invalidatedGhostBlocks.forEach((jiixBlockId) => this.math.clearGhostStrokes(jiixBlockId))
         this.startOperation("Recognizing")
         await this.client[direction](actionsToBackend)
+      }
+      if (changes.variables?.length) {
+        await this.math.replayVariableChanges(changes.variables, hasBackendActions)
       }
     } finally {
       this.updateLayerUI()
