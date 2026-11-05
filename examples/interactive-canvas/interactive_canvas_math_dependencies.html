@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="../assets/style/reset.css" />
   <link rel="stylesheet" href="../assets/style/components.css" />
   <link rel="stylesheet" href="../assets/style/examples.css" />
-    <link rel="stylesheet" href="../assets/style/inputs.css" />
+  <link rel="stylesheet" href="../assets/style/inputs.css" />
   <link rel="stylesheet" href="../assets/style/panel.css" />
   <link rel="stylesheet" href="../components/code-viewer/code-viewer.css" />
 
@@ -19,14 +19,11 @@
     }
 
     #dependencies {
-      width: 260px;
-      flex-shrink: 0;
+      --ex-side-panel-width: 260px;
       padding: 12px;
       background: var(--ex-surface-alt);
-      border-left: 1px solid var(--ex-border);
       font-family: monospace;
       font-size: 12px;
-      overflow-y: auto;
     }
 
     #dependencies strong {
@@ -76,6 +73,9 @@
     </button>
     <button id="showModalBtn" class="btn-keys">API Keys</button>
     <h1 class="header-title">Math Dependencies Example</h1>
+    <button id="sidePanelToggleBtn" class="btn-panel-toggle btn-side-panel-toggle" aria-expanded="false" aria-controls="dependencies">
+      🧮 Dependencies
+    </button>
   </header>
 
   <div class="ex-page-layout">
@@ -110,7 +110,7 @@
     </aside>
     <div class="main-layout">
       <div id="rootEl"></div>
-      <div id="dependencies">
+      <div id="dependencies" class="ex-side-panel">
         <strong>Dependencies:</strong><br>
         <span id="dependency-list">No dependencies yet</span>
       </div>
@@ -123,6 +123,13 @@
     panelToggleBtn.addEventListener('click', () => {
       const open = infoPanel.classList.toggle('open')
       panelToggleBtn.setAttribute('aria-expanded', open)
+    })
+
+    const sidePanelToggleBtn = document.getElementById('sidePanelToggleBtn')
+    const sidePanel = document.getElementById('dependencies')
+    sidePanelToggleBtn.addEventListener('click', () => {
+      const open = sidePanel.classList.toggle('open')
+      sidePanelToggleBtn.setAttribute('aria-expanded', open)
     })
 
     import { Canvas } from '../../dist/iink.esm.js'

@@ -21,14 +21,11 @@
     }
 
     #runner {
-      width: 300px;
-      flex-shrink: 0;
+      --ex-side-panel-width: 300px;
       padding: 12px;
       background: var(--ex-surface-alt);
-      border-left: 1px solid var(--ex-border);
       font-family: monospace;
       font-size: 12px;
-      overflow-y: auto;
     }
 
     .runner-title {
@@ -125,6 +122,9 @@
     </button>
     <button id="showModalBtn" class="btn-keys">API Keys</button>
     <h1 class="header-title">Flowchart Runner Example</h1>
+    <button id="sidePanelToggleBtn" class="btn-panel-toggle btn-side-panel-toggle" aria-expanded="false" aria-controls="runner">
+      ▶ Runner
+    </button>
   </header>
 
   <div class="ex-page-layout">
@@ -157,7 +157,7 @@
     </aside>
     <div class="main-layout">
       <div id="rootEl"></div>
-      <div id="runner">
+      <div id="runner" class="ex-side-panel">
         <div class="runner-actions">
           <button id="runBtn" class="classic-btn primary">▶ Run</button>
           <button id="resetBtn" class="classic-btn">Reset</button>
@@ -186,6 +186,13 @@
     panelToggleBtn.addEventListener('click', () => {
       const open = infoPanel.classList.toggle('open')
       panelToggleBtn.setAttribute('aria-expanded', open)
+    })
+
+    const sidePanelToggleBtn = document.getElementById('sidePanelToggleBtn')
+    const sidePanel = document.getElementById('runner')
+    sidePanelToggleBtn.addEventListener('click', () => {
+      const open = sidePanel.classList.toggle('open')
+      sidePanelToggleBtn.setAttribute('aria-expanded', open)
     })
 
     const rootElement = document.getElementById('rootEl')
