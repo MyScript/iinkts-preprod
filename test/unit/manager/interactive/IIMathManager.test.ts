@@ -65,13 +65,16 @@ describe("IIMathManager.ts", () => {
       expect(canvas.client.getNumericalComputation).toHaveBeenCalledWith("raw-content/33")
     })
 
+    // A ghost is never recorded in the history: redo cannot bring it back, only a new compute can
     test.each([
-      { canRedo: false, computes: true },
-      { canRedo: true, computes: false },
-    ])("on sync with canRedo=$canRedo, computes: $computes", async ({ canRedo, computes }) => {
+      { resultMode: "draw", canRedo: false, computes: true },
+      { resultMode: "draw", canRedo: true, computes: false },
+      { resultMode: "ghost", canRedo: false, computes: true },
+      { resultMode: "ghost", canRedo: true, computes: true },
+    ] as const)("on sync in $resultMode mode with canRedo=$canRedo, computes: $computes", async ({ resultMode, canRedo, computes }) => {
       const canvas = createAutoComputeCanvas(["numerical-computation"])
       canvas.history.context = { canRedo } as typeof canvas.history.context
-      new IIMathManager(asCanvas(canvas), { computation: { autoCompute: true } })
+      new IIMathManager(asCanvas(canvas), { computation: { autoCompute: true, resultMode } })
 
       canvas.event.emitSynchronized()
       await new Promise((resolve) => setTimeout(resolve))

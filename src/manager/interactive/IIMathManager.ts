@@ -82,9 +82,10 @@ export class IIMathManager extends IIAbstractManager {
     this.#isHandlingSynchronized = true
     try {
       await this.#applyPendingVariableChanges()
-      // Mid-history, results come back from the stack: a result drawn here would push a step
-      // and cut off everything left to redo.
-      if (this.#computation.getConfig().autoCompute && !this.canvas.history.context.canRedo) {
+      // Mid-history, drawn results come back from the stack: a result drawn here would push a step
+      // and cut off everything left to redo. A ghost is never in the stack, so it is always recomputed.
+      const { autoCompute, resultMode } = this.#computation.getConfig()
+      if (autoCompute && (resultMode === "ghost" || !this.canvas.history.context.canRedo)) {
         await this.tryAutoCompute()
       }
     } finally {
