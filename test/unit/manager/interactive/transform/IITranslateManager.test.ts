@@ -1,6 +1,6 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
 import { buildIIMath, buildIIStroke, buildIIText } from "../../../helpers"
-import { BoxOps, DecoratorKind, DecoratorUtil, DefaultHistoryConfiguration, EdgeUtil, Geometry2d, IIConnectorManager, IIHistoryManager, IITranslateManager, MatrixTransform, OBBOps, Polygon2d, ShapeUtil, StrokeUtil, SvgElementRole, SymbolGeometry, SymbolUtil, TBaseSymbol, TDecorator, TEdgeLine, TMath, TPartialDeep, TPoint, TStroke, TSymbol, TText, TTransformContext, applyMatrixToPoint, symbolRegistry } from "@/iink"
+import { BoxOps, DecoratorKind, DecoratorUtil, DefaultHistoryConfiguration, EdgeUtil, Geometry2d, IIConnectorManager, IIHistoryManager, IITranslateManager, MatrixTransform, OBBOps, Polygon2d, ShapeUtil, StrokeUtil, SvgElementRole, SymbolGeometry, SymbolUtil, TBaseSymbol, TDecorator, TDraft, TEdgeLine, TMath, TPartialDeep, TPoint, TStroke, TSymbol, TText, TTransformContext, applyMatrixToPoint, symbolRegistry } from "@/iink"
 
 describe("IITranslateManager.ts", () => {
   test("should create", () => {
@@ -336,6 +336,55 @@ describe("IITranslateManager.ts", () => {
       expect(restoredEdgeStroke.pointers[1]).toEqual(
         expect.objectContaining({ x: pointersBefore[1].x, y: pointersBefore[1].y })
       )
+    })
+
+    test("drag preview of an edge anchored at both ends matches the commit after repeated moves, even when the edge carries its own matrix", async () => {
+      // Regression: the preview wrote document-space anchor points into the edge's raw coordinates,
+      // and the renderer then applied the edge's own matrix on top — an edge moved before being
+      // anchored lagged its shapes by that matrix while dragging, then jumped on pointer-up.
+      const canvas = createCanvasMock()
+      ;(canvas as unknown as { connector: IIConnectorManager }).connector = new IIConnectorManager(asCanvas(canvas))
+      const history = new IIHistoryManager(DefaultHistoryConfiguration, canvas.event)
+      ;(canvas as unknown as { history: IIHistoryManager }).history = history
+      const manager = new IITranslateManager(asCanvas(canvas))
+
+      const shapeA = ShapeUtil.createCircle({ x: 50, y: 50 }, 20)
+      const shapeB = ShapeUtil.createCircle({ x: 300, y: 50 }, 20)
+      const edge = EdgeUtil.createLine({ x: 0, y: 0 }, { x: 100, y: 100 })
+      canvas.model.addSymbol(shapeA)
+      canvas.model.addSymbol(shapeB)
+      canvas.model.addSymbol(edge)
+      history.init(canvas.model)
+      await manager.translate([canvas.model.getSymbol(edge.id)!], 37, 11)
+      const draft = canvas.model.draftSymbol(edge.id) as TDraft<TEdgeLine>
+      canvas.connector.applyEndpointAnchor(draft, 0, { x: 50, y: 50 })
+      canvas.connector.applyEndpointAnchor(draft, 1, { x: 300, y: 50 })
+      canvas.model.commitSymbol(draft)
+
+      const drawn: TEdgeLine[] = []
+      canvas.renderer.drawSymbol = jest.fn((s: TSymbol) => {
+        if (s.id === edge.id) drawn.push(s as TEdgeLine)
+      })
+      const toDocument = (e: TEdgeLine) => ({
+        start: applyMatrixToPoint(e.start, e.transform),
+        end: applyMatrixToPoint(e.end, e.transform),
+        entry: e.startAnchor?.entryPoint,
+      })
+      const moves: [string, number, number][] = [
+        [shapeA.id, 30, 40],
+        [shapeB.id, 25, -60],
+        [shapeA.id, -15, 15],
+      ]
+      for (const [id, tx, ty] of moves) {
+        drawn.length = 0
+        canvas.connector.drawAnchoredEdgesForMatrix([id], MatrixTransform.identity().translate(tx, ty))
+        const preview = toDocument(drawn[0])
+        await manager.translate([canvas.model.getSymbol(id)!], tx, ty)
+        const committed = canvas.model.getSymbol(edge.id) as TEdgeLine
+        expect(preview).toEqual(toDocument(committed))
+        expect(preview.start).toEqual(SymbolGeometry.boundsOf(canvas.model.getSymbol(shapeA.id)!).center)
+        expect(preview.end).toEqual(SymbolGeometry.boundsOf(canvas.model.getSymbol(shapeB.id)!).center)
+      }
     })
 
     test("translate() moving a shape with a converted, anchored edge is undo-safe (the originally reported bug)", async () => {
