@@ -18,14 +18,11 @@
     }
 
     #connections {
-      width: 260px;
-      flex-shrink: 0;
+      --ex-side-panel-width: 260px;
       padding: 12px;
       background: var(--ex-surface-alt);
-      border-left: 1px solid var(--ex-border);
       font-family: monospace;
       font-size: 12px;
-      overflow-y: auto;
     }
 
     #connections strong {
@@ -75,6 +72,9 @@
     </button>
     <button id="showModalBtn" class="btn-keys">API Keys</button>
     <h1 class="header-title">Diagram Connections Example</h1>
+    <button id="sidePanelToggleBtn" class="btn-panel-toggle btn-side-panel-toggle" aria-expanded="false" aria-controls="connections">
+      🔗 Connections
+    </button>
   </header>
 
   <div class="ex-page-layout">
@@ -113,7 +113,7 @@
     </aside>
     <div class="main-layout">
       <div id="rootEl"></div>
-      <div id="connections">
+      <div id="connections" class="ex-side-panel">
         <strong>Connections:</strong><br>
         <span id="connections-list">No edges yet</span>
       </div>
@@ -126,6 +126,13 @@
     panelToggleBtn.addEventListener('click', () => {
       const open = infoPanel.classList.toggle('open')
       panelToggleBtn.setAttribute('aria-expanded', open)
+    })
+
+    const sidePanelToggleBtn = document.getElementById('sidePanelToggleBtn')
+    const sidePanel = document.getElementById('connections')
+    sidePanelToggleBtn.addEventListener('click', () => {
+      const open = sidePanel.classList.toggle('open')
+      sidePanelToggleBtn.setAttribute('aria-expanded', open)
     })
 
     import { Canvas, SymbolType } from '../../dist/iink.esm.js'
