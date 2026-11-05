@@ -133,17 +133,28 @@
   z-index: 20;
 }
 
-/* Outline of a selected symbol. Stacked drop-shadows read as a crisp outline; an SVG filter
-   (dilate + flood + composite) did the same but crashed WebKit's renderer on a selection */
-.ms-ink .ms-layer-rendering .ms-selected {
-  filter: drop-shadow(0 0 0.5px var(--ms-ink-selection-color)) drop-shadow(0 0 0.5px var(--ms-ink-selection-color))
-    drop-shadow(0 0 1px var(--ms-ink-selection-color));
+/* Outline of a selected symbol: a stroke painted under the fill of the ink outline (or of the
+   glyphs), so only its outer half shows. No filter on purpose: an SVG filter crashed WebKit's
+   renderer, and a CSS drop-shadow, rasterized on the GPU by Chrome, left a ghost broken copy of
+   the ink next to the selection on some drivers */
+.ms-ink .ms-layer-rendering .ms-selected[type="stroke"],
+.ms-ink .ms-layer-rendering .ms-selected text {
+  stroke: var(--ms-ink-selection-color);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
+  vector-effect: non-scaling-stroke;
 }
 
-/* A symbol the eraser is passing over. A CSS opacity filter scales its alpha like the former SVG
-   removal filter (an alpha transfer table), which crashed WebKit's renderer on a few strokes */
+/* A shape or an edge is drawn by its stroke, so its outline is a wider copy of its path drawn under
+   it by the renderer, unpainted until coloured here */
+.ms-ink .ms-layer-rendering .ms-selection-halo {
+  stroke: var(--ms-ink-selection-color);
+}
+
+/* A symbol the eraser is passing over. Plain opacity, no filter: see the selection outline above */
 .ms-ink .ms-layer-rendering .ms-deleting {
-  filter: opacity(25%);
+  opacity: 0.25;
 }
 
 .ms-ink .ms-layer-rendering .ms-rendering-canvas {

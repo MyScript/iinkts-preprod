@@ -210,6 +210,69 @@ describe("SVGRenderer.ts", () => {
       renderer.updateSelectedState(stroke, false)
       expect(el.classList.contains(SVGRendererConst.selectedClassName)).toBe(false)
     })
+    test("should keep a selected stroke outlined when it is redrawn", () => {
+      const stroke = buildIIStroke()
+      renderer.drawSymbol(stroke)
+      renderer.updateSelectedState(stroke, true)
+
+      renderer.drawSymbol(stroke)
+      expect(renderer.getElementById(stroke.id)?.classList.contains(SVGRendererConst.selectedClassName)).toBe(true)
+
+      renderer.updateSelectedState(stroke, false)
+    })
+    describe.each([
+      ["shape", () => buildIICircle({ style: { width: 3 } })],
+      ["edge", () => buildIILine({ style: { width: 3 } })],
+    ])("selected %s", (_type, build) => {
+      // Its stroke is the line itself, so the outline cannot be painted under it with paint-order:
+      // a wider copy of the path, the halo, is drawn underneath instead
+      test("should be grouped with a halo drawn under it", () => {
+        const symbol = build()
+        renderer.drawSymbol(symbol)
+
+        renderer.updateSelectedState(symbol, true)
+        const group = renderer.getElementById(symbol.id)!
+        expect(group.tagName).toEqual("g")
+        expect(group.getAttribute("type")).toEqual(symbol.type)
+        expect(group.classList.contains(SVGRendererConst.selectedClassName)).toBe(true)
+        expect(divElement.querySelectorAll(`#${symbol.id}`)).toHaveLength(1)
+
+        const [halo, path] = Array.from(group.children)
+        expect(halo.classList.contains(SVGRendererConst.selectionHaloClassName)).toBe(true)
+        expect(halo.getAttribute("stroke-width")).toEqual("7")
+        expect(halo.hasAttribute("marker-end")).toBe(false)
+        expect(halo.getAttribute("style")).toContain("pointer-events: none")
+        expect(path.hasAttribute("id")).toBe(false)
+        expect(path.hasAttribute("type")).toBe(false)
+        expect(path.getAttribute("stroke-width")).toEqual("3")
+      })
+      test("should keep its halo when redrawn or moved", () => {
+        const symbol = build()
+        renderer.drawSymbol(symbol)
+        renderer.updateSelectedState(symbol, true)
+
+        renderer.drawSymbol(symbol)
+        expect(renderer.getElementById(symbol.id)!.querySelector(`.${SVGRendererConst.selectionHaloClassName}`)).not.toBeNull()
+
+        symbol.transform = MatrixTransform.identity().translate(10, 20)
+        renderer.setSymbolTransform(symbol)
+        const group = renderer.getElementById(symbol.id)!
+        expect(group.getAttribute("transform")).toEqual(MatrixTransform.toCssString(symbol.transform))
+        Array.from(group.children).forEach((child) => expect(child.hasAttribute("transform")).toBe(false))
+      })
+      test("should be drawn alone again once unselected", () => {
+        const symbol = build()
+        renderer.drawSymbol(symbol)
+        renderer.updateSelectedState(symbol, true)
+
+        renderer.updateSelectedState(symbol, false)
+        const el = renderer.getElementById(symbol.id)!
+        expect(el.tagName).toEqual("path")
+        expect(el.classList.contains(SVGRendererConst.selectedClassName)).toBe(false)
+        expect(el.parentElement).toBe(renderer.layer)
+        expect(el.previousElementSibling?.classList.contains(SVGRendererConst.selectionHaloClassName)).toBeFalsy()
+      })
+    })
     test("should fade a symbol being erased with a class, not an SVG filter", () => {
       // WebKit's renderer crashed painting the former SVG removal filter, on as few as five strokes
       const stroke = buildIIStroke()
