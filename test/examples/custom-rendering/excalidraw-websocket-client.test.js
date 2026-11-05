@@ -26,10 +26,14 @@ const shift = async (page, strokes) => {
   }))
 }
 
-// No dataset holds an underline: a straight stroke just below "hello"
-const underline = {
-  pointers: Array.from({ length: 20 }, (_, i) => ({ x: 250 + i * 5, y: 268, t: i * 20, p: 0.5 }))
-}
+// No dataset holds an underline: a straight stroke below "hello", whose strokes end at y 256
+const underlineAt = (y) => ({
+  pointers: Array.from({ length: 20 }, (_, i) => ({ x: 250 + i * 5, y, t: i * 20, p: 0.5 }))
+})
+const underline = underlineAt(268)
+// A converted text is underlined in a band centered on its bottom, whose height comes from the
+// server's JIIX box: the stroke sits on that bottom so the box may shrink or grow on any backend
+const convertedTextUnderline = underlineAt(258)
 
 // Excalidraw draws on a canvas: the scene is read through the API the example exposes
 const readScene = (page) => page.evaluate(() => ({
@@ -175,7 +179,7 @@ test.describe("Excalidraw WebSocket client", { tag: "@touch" }, () => {
   })
 
   test("should draw a line under an underlined converted text", async ({ page }) => {
-    await convertContentThenGesture(page, [...helloOneStroke.strokes, underline])
+    await convertContentThenGesture(page, [...helloOneStroke.strokes, convertedTextUnderline])
 
     await expect.poll(async () => (await readScene(page)).elements.map(e => e.type), { timeout: 5_000 }).toEqual(["text", "line"])
     const groups = await page.evaluate(() => window.excalidrawAPI.getSceneElements().map(e => e.groupIds))
