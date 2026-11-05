@@ -26,10 +26,14 @@ const shift = async (page, strokes) => {
   }))
 }
 
-// No dataset holds an underline: a straight stroke just below "hello"
-const underline = {
-  pointers: Array.from({ length: 20 }, (_, i) => ({ x: 250 + i * 5, y: 268, t: i * 20, p: 0.5 }))
-}
+// No dataset holds an underline: a straight stroke below "hello", whose strokes end at y 256
+const underlineAt = (y) => ({
+  pointers: Array.from({ length: 20 }, (_, i) => ({ x: 250 + i * 5, y, t: i * 20, p: 0.5 }))
+})
+const underline = underlineAt(268)
+// A converted text is underlined in a band centered on its bottom, whose height comes from the
+// server's JIIX box: the stroke sits on that bottom so the box may shrink or grow on any backend
+const convertedTextUnderline = underlineAt(258)
 
 // Excalidraw draws on a canvas: the scene is read through the API the example exposes
 const readScene = (page) => page.evaluate(() => ({
@@ -61,6 +65,17 @@ const writeContentThenGesture = async (page, strokes) => {
   await writeStrokes(page, await shift(page, content))
   await expect.poll(() => countOf(page, "freedraw")).toBe(content.length)
   await expect.poll(() => contentChangedCounts.get(page) - before, { timeout: 15_000 }).toBeGreaterThanOrEqual(content.length)
+  await writeStrokes(page, await shift(page, strokes.slice(-1)))
+}
+
+// A converted text has no strokes on the server: the gesture over it is read on its own shape
+const convertContentThenGesture = async (page, strokes) => {
+  const content = strokes.slice(0, -1)
+  await writeStrokes(page, await shift(page, content))
+  await expect.poll(() => countOf(page, "freedraw")).toBe(content.length)
+  await page.getByTestId("convert-button").click()
+  await expect.poll(() => countOf(page, "freedraw")).toBe(0)
+  expect(await countOf(page, "text")).toBe(1)
   await writeStrokes(page, await shift(page, strokes.slice(-1)))
 }
 
@@ -149,6 +164,35 @@ test.describe("Excalidraw WebSocket client", { tag: "@touch" }, () => {
     await expect.poll(async () => (await readScene(page)).elements, { timeout: 5_000 }).toEqual([
       expect.objectContaining({ id: hello.id, strokeWidth: hello.strokeWidth * 2 })
     ])
+  })
+
+  test("should erase the converted text under a scratch-out", async ({ page }) => {
+    await convertContentThenGesture(page, threeScratchOut.strokes)
+
+    await expect.poll(async () => (await readScene(page)).elements, { timeout: 5_000 }).toEqual([])
+  })
+
+  test("should erase the converted text under a strike-through", async ({ page }) => {
+    await convertContentThenGesture(page, helloStrike.strokes)
+
+    await expect.poll(async () => (await readScene(page)).elements, { timeout: 5_000 }).toEqual([])
+  })
+
+  test("should draw a line under an underlined converted text", async ({ page }) => {
+    await convertContentThenGesture(page, [...helloOneStroke.strokes, convertedTextUnderline])
+
+    await expect.poll(async () => (await readScene(page)).elements.map(e => e.type), { timeout: 5_000 }).toEqual(["text", "line"])
+    const groups = await page.evaluate(() => window.excalidrawAPI.getSceneElements().map(e => e.groupIds))
+    expect(groups[0]).toHaveLength(1)
+    expect(groups[1]).toEqual(groups[0])
+  })
+
+  test("should select the converted text inside a surround", async ({ page }) => {
+    await convertContentThenGesture(page, helloOneStrokeSurrounded.strokes)
+
+    await expect.poll(async () => (await readScene(page)).elements.map(e => e.type), { timeout: 5_000 }).toEqual(["text"])
+    const { elements, selectedIds } = await readScene(page)
+    expect(selectedIds).toEqual([elements[0].id])
   })
 
   test("should select the strokes inside a surround", async ({ page }) => {
