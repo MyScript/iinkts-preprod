@@ -399,7 +399,8 @@ export class IIConnectorManager extends IIAbstractManager {
 
     // Always recompute both anchor entry points using final endpoint positions —
     // even when only one shape is moving, the other endpoint's exit angle changes.
-    const recomputeAnchor = (anchor: TAnchor, from: TPoint, to: TPoint): TAnchor => {
+    // `from`/`to` are in `edge`'s own frame, like the stored points the preview clone carries.
+    const recomputeAnchor = (edge: TEdge, anchor: TAnchor, from: TPoint, to: TPoint): TAnchor => {
       const target = this.model.getSymbol(anchor.symbolId)
       if (!target || !ShapeUtil.isShape(target)) {
         return anchor
@@ -409,141 +410,91 @@ export class IIConnectorManager extends IIAbstractManager {
         : SymbolGeometry.verticesOf(target)
       return {
         ...anchor,
-        entryPoint: this.computeEntryPoint(from, to, vertices),
+        entryPoint: this.#entryPointInEdgeFrame(edge, from, to, vertices),
       }
     }
 
+    // Where the anchor lands once its moving target is transformed by `matrix`, mapped back into
+    // `edge`'s raw frame: the renderer applies `edge.transform` on top, so writing the document
+    // point as-is shifted the preview by that matrix — the edge then jumped on pointer-up, where
+    // the commit path (resolveAndUpdateAnchor) already maps it back.
+    const resolveMovedAnchor = (edge: TEdge, anchor: TAnchor | undefined): TPoint | undefined => {
+      if (!anchor || !idSet.has(anchor.symbolId)) {
+        return undefined
+      }
+      const target = this.model.getSymbol(anchor.symbolId)
+      if (!target) {
+        return undefined
+      }
+      const worldPoint = matrix.applyToPoint(resolveAnchorPoint(anchor, OBBOps.toBox(SymbolGeometry.boundsOf(target))))
+      return applyInverseMatrixToPoint(worldPoint, edge.transform)
+    }
+
     this.#getAnchoredEdges().forEach((symbol) => {
+      const startPoint = resolveMovedAnchor(symbol, symbol.startAnchor)
+      const endPoint = resolveMovedAnchor(symbol, symbol.endAnchor)
+      if (!startPoint && !endPoint) {
+        return
+      }
+
       if (EdgeUtil.isArcEdge(symbol)) {
-        let clone = symbol
-        let changed = false
         // No `isShape` filter on the target here: neither the Line/PolyEdge preview branches
         // below nor the commit path (resolveAndUpdateAnchor) apply one, and a preview that
         // skips what the commit path moves makes the arc jump on pointer-up.
-        if (symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)) {
-          const targetSymbol = this.model.getSymbol(symbol.startAnchor.symbolId)
-          if (targetSymbol) {
-            const box = OBBOps.toBox(SymbolGeometry.boundsOf(targetSymbol))
-            const point = matrix.applyToPoint(resolveAnchorPoint(symbol.startAnchor!, box))
-            clone = { ...clone, ...stretchArcEndpoint(clone, "start", point) }
-            changed = true
-          }
+        let clone = symbol
+        if (startPoint) {
+          clone = { ...clone, ...stretchArcEndpoint(clone, "start", startPoint) }
         }
-        if (symbol.endAnchor && idSet.has(symbol.endAnchor.symbolId)) {
-          const targetSymbol = this.model.getSymbol(symbol.endAnchor.symbolId)
-          if (targetSymbol) {
-            const box = OBBOps.toBox(SymbolGeometry.boundsOf(targetSymbol))
-            const point = matrix.applyToPoint(resolveAnchorPoint(symbol.endAnchor!, box))
-            clone = { ...clone, ...stretchArcEndpoint(clone, "end", point) }
-            changed = true
-          }
+        if (endPoint) {
+          clone = { ...clone, ...stretchArcEndpoint(clone, "end", endPoint) }
         }
-        if (changed) {
-          // Entry points must be refreshed from the STRETCHED geometry's own vertices, or they
-          // go stale the instant the anchored shape moves — same "M ... Q ..." spike bug as an
-          // un-recomputed entry point, just self-inflicted on every subsequent move instead of
-          // only at first anchoring. `clone` is a fresh spread each move (never frozen), so this
-          // is one verticesOf call instead of the three separate field reads it replaces.
-          const vertices = SymbolGeometry.verticesOf(clone)
-          const n = vertices.length
-          if (clone.startAnchor && n >= 2) {
-            clone.startAnchor = recomputeAnchor(clone.startAnchor, vertices[0], vertices[1])
-          }
-          if (clone.endAnchor && n >= 2) {
-            clone.endAnchor = recomputeAnchor(clone.endAnchor, vertices[n - 1], vertices[n - 2])
-          }
-          this.canvas.renderer.drawSymbol(clone)
+        // Entry points must be refreshed from the STRETCHED geometry's own vertices, or they
+        // go stale the instant the anchored shape moves — same "M ... Q ..." spike bug as an
+        // un-recomputed entry point, just self-inflicted on every subsequent move instead of
+        // only at first anchoring. Raw vertices: recomputeAnchor expects the edge's own frame.
+        const vertices = SymbolGeometry.rawOf(clone).vertices
+        const n = vertices.length
+        if (clone.startAnchor && n >= 2) {
+          clone.startAnchor = recomputeAnchor(clone, clone.startAnchor, vertices[0], vertices[1])
         }
+        if (clone.endAnchor && n >= 2) {
+          clone.endAnchor = recomputeAnchor(clone, clone.endAnchor, vertices[n - 1], vertices[n - 2])
+        }
+        this.canvas.renderer.drawSymbol(clone)
         return
       }
-
-      if (!EdgeUtil.isLineEdge(symbol) && !EdgeUtil.isPolyEdge(symbol)) {
-        return
-      }
-
-      let changed = false
 
       if (EdgeUtil.isLineEdge(symbol)) {
-        let start = symbol.start
-        let end = symbol.end
-        const startTargetSymbol =
-          symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)
-            ? this.model.getSymbol(symbol.startAnchor.symbolId)
-            : undefined
-        const endTargetSymbol =
-          symbol.endAnchor && idSet.has(symbol.endAnchor.symbolId)
-            ? this.model.getSymbol(symbol.endAnchor.symbolId)
-            : undefined
-
-        if (startTargetSymbol) {
-          start = matrix.applyToPoint(
-            resolveAnchorPoint(symbol.startAnchor!, OBBOps.toBox(SymbolGeometry.boundsOf(startTargetSymbol)))
-          )
-          changed = true
-        }
-        if (endTargetSymbol) {
-          end = matrix.applyToPoint(
-            resolveAnchorPoint(symbol.endAnchor!, OBBOps.toBox(SymbolGeometry.boundsOf(endTargetSymbol)))
-          )
-          changed = true
-        }
-        if (changed) {
-          const cloneStartAnchor = symbol.startAnchor
-            ? recomputeAnchor(symbol.startAnchor, start, end)
-            : symbol.startAnchor
-          const cloneEndAnchor = symbol.endAnchor ? recomputeAnchor(symbol.endAnchor, end, start) : symbol.endAnchor
-          const clone = {
-            ...symbol,
-            start,
-            end,
-            startAnchor: cloneStartAnchor,
-            endAnchor: cloneEndAnchor,
-          }
-          this.canvas.renderer.drawSymbol(clone)
-        }
+        const start = startPoint ?? symbol.start
+        const end = endPoint ?? symbol.end
+        this.canvas.renderer.drawSymbol({
+          ...symbol,
+          start,
+          end,
+          startAnchor: symbol.startAnchor && recomputeAnchor(symbol, symbol.startAnchor, start, end),
+          endAnchor: symbol.endAnchor && recomputeAnchor(symbol, symbol.endAnchor, end, start),
+        })
       } else if (EdgeUtil.isPolyEdge(symbol)) {
-        const points = symbol.points.map((p) => ({
-          ...p,
-        }))
-        const startTargetSymbol =
-          symbol.startAnchor && idSet.has(symbol.startAnchor.symbolId)
-            ? this.model.getSymbol(symbol.startAnchor.symbolId)
-            : undefined
-        const endTargetSymbol =
-          symbol.endAnchor && idSet.has(symbol.endAnchor.symbolId)
-            ? this.model.getSymbol(symbol.endAnchor.symbolId)
-            : undefined
-
-        if (startTargetSymbol) {
-          points[0] = matrix.applyToPoint(
-            resolveAnchorPoint(symbol.startAnchor!, OBBOps.toBox(SymbolGeometry.boundsOf(startTargetSymbol)))
-          )
-          changed = true
+        const points = symbol.points.map((p) => ({ ...p }))
+        const n = points.length
+        if (startPoint && n > 0) {
+          points[0] = startPoint
         }
-        if (endTargetSymbol) {
-          points[points.length - 1] = matrix.applyToPoint(
-            resolveAnchorPoint(symbol.endAnchor!, OBBOps.toBox(SymbolGeometry.boundsOf(endTargetSymbol)))
-          )
-          changed = true
+        if (endPoint && n > 0) {
+          points[n - 1] = endPoint
         }
-        if (changed) {
-          const n = points.length
-          const cloneStartAnchor =
+        this.canvas.renderer.drawSymbol({
+          ...symbol,
+          points,
+          startAnchor:
             symbol.startAnchor && n >= 2
-              ? recomputeAnchor(symbol.startAnchor, points[0], points[1])
-              : symbol.startAnchor
-          const cloneEndAnchor =
+              ? recomputeAnchor(symbol, symbol.startAnchor, points[0], points[1])
+              : symbol.startAnchor,
+          endAnchor:
             symbol.endAnchor && n >= 2
-              ? recomputeAnchor(symbol.endAnchor, points[n - 1], points[n - 2])
-              : symbol.endAnchor
-          const clone = {
-            ...symbol,
-            points,
-            startAnchor: cloneStartAnchor,
-            endAnchor: cloneEndAnchor,
-          }
-          this.canvas.renderer.drawSymbol(clone)
-        }
+              ? recomputeAnchor(symbol, symbol.endAnchor, points[n - 1], points[n - 2])
+              : symbol.endAnchor,
+        })
       }
     })
 
