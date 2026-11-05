@@ -146,6 +146,12 @@ describe("IIHistoryManager.ts", () => {
       expect(reversed).toEqual({ replaced: { newSymbols: [oldStroke], oldSymbols: [newStroke] } })
     })
 
+    test("should invert a variable change alone by swapping its values", () => {
+      manager.push({ variables: [{ strokeIds: ["s1"], name: "x", before: 2, after: 4 }] })
+      const reversed = manager.undo()
+      expect(reversed).toEqual({ variables: [{ strokeIds: ["s1"], name: "x", before: 4, after: 2 }] })
+    })
+
     test("should invert updated by swapping each pair", () => {
       const before = buildIIStroke()
       const after = buildIIStroke()

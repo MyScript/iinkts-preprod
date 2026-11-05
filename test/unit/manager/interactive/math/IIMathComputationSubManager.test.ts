@@ -1,6 +1,14 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import type { TJIIXMathElement, TJIIXMathNumber, TJIIXMathOperator, TJIIXMathPower, TJIIXStrokeItem } from "@/iink"
-import { IIMathComputationSubManager, JIIXElementType, JIIXMathExpressionType, MatrixTransform } from "@/iink"
+import type { TSymbol, TJIIXMathElement, TJIIXMathNumber, TJIIXMathOperator, TJIIXMathPower, TJIIXStrokeItem } from "@/iink"
+import {
+  IIMathComputationSubManager,
+  IIModel,
+  JIIXElementType,
+  JIIXMathExpressionType,
+  MatrixTransform,
+  StrokeUtil,
+  isStroke,
+} from "@/iink"
 
 type TSolverOutputExpression = TJIIXMathNumber & { "solver-output": true }
 
@@ -20,10 +28,19 @@ function buildSolverOutputResult(blockId: string, value: number): TJIIXMathEleme
   }
 }
 
+/** Lets `addSymbols` write to the model like the real canvas does, so the model holds the drawn result. */
+function writeThroughAddSymbols(canvas: ReturnType<typeof createCanvasMock>): void {
+  canvas.addSymbols = jest.fn().mockImplementation((symbols: TSymbol[]) => {
+    symbols.forEach((s) => canvas.model.addSymbol(s))
+    return Promise.resolve(symbols)
+  })
+}
+
 describe("IIMathComputationSubManager.ts", () => {
   describe("computeNumericalResult", () => {
     test("draw result is frozen: a later recompute must not query the client nor touch the model", async () => {
       const canvas = createCanvasMock()
+      writeThroughAddSymbols(canvas)
       const manager = new IIMathComputationSubManager(asCanvas(canvas))
 
       canvas.client.getNumericalComputation = jest.fn().mockResolvedValue(buildSolverOutputResult("block-1", 4))
@@ -43,6 +60,7 @@ describe("IIMathComputationSubManager.ts", () => {
 
     test("draw result is frozen: ghost mode must not kick in either once a draw exists for the block", async () => {
       const canvas = createCanvasMock()
+      writeThroughAddSymbols(canvas)
       const manager = new IIMathComputationSubManager(asCanvas(canvas))
 
       canvas.client.getNumericalComputation = jest.fn().mockResolvedValue(buildSolverOutputResult("block-1", 4))
@@ -53,6 +71,44 @@ describe("IIMathComputationSubManager.ts", () => {
 
       expect(canvas.client.getNumericalComputation).not.toHaveBeenCalled()
       expect(manager.hasGhostStrokes("block-1")).toBe(false)
+    })
+
+    test("a drawn result undone out of the model is drawn again by the next compute", async () => {
+      const canvas = createCanvasMock()
+      writeThroughAddSymbols(canvas)
+      const manager = new IIMathComputationSubManager(asCanvas(canvas))
+      canvas.client.getNumericalComputation = jest.fn().mockResolvedValue(buildSolverOutputResult("block-1", 4))
+      await manager.computeNumericalResult("block-1", "draw")
+      const solverOutputs = () => canvas.model.symbols.filter((s) => isStroke(s) && s.isSolverOutput)
+      solverOutputs().forEach((s) => canvas.model.removeSymbol(s.id))
+
+      const { wasRecomputed } = await manager.computeNumericalResult("block-1", "draw")
+
+      expect(wasRecomputed).toBe(true)
+      expect(solverOutputs()).toHaveLength(1)
+    })
+
+    test("replacing a drawn result is one history step: old result erased, new result added", async () => {
+      const model = new IIModel()
+      const oldResult = StrokeUtil.createFromPartial({
+        id: "solver-old",
+        isSolverOutput: true,
+        jiixBlockId: "block-1",
+        pointers: [{ x: 0, y: 0, dt: 0, p: 1 }],
+      })
+      model.addSymbol(oldResult)
+      const canvas = createCanvasMock({ model })
+      canvas.removeSymbols = jest.fn().mockResolvedValue([oldResult])
+      const manager = new IIMathComputationSubManager(asCanvas(canvas))
+      canvas.client.getNumericalComputation = jest.fn().mockResolvedValue(buildSolverOutputResult("block-1", 4))
+
+      await manager.computeNumericalResult("block-1", "draw")
+
+      const [added] = (canvas.addSymbols as jest.Mock).mock.calls[0]
+      expect(canvas.addSymbols).toHaveBeenCalledWith(added, false)
+      expect(canvas.removeSymbols).toHaveBeenCalledWith(["solver-old"], false)
+      expect(canvas.history.push).toHaveBeenCalledTimes(1)
+      expect(canvas.history.push).toHaveBeenCalledWith({ erased: [oldResult], added })
     })
 
     test("no draw yet: recompute proceeds normally when the result changes", async () => {

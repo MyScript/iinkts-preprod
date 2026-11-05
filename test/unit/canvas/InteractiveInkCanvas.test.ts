@@ -1336,6 +1336,23 @@ describe("InteractiveInkCanvas.ts", () => {
       await canvas.undo()
       expect(canvas.model.exports).toBeUndefined()
     })
+    test("should replay variable values after the sync when the step also changes strokes", async () => {
+      const stroke1 = buildIIStroke()
+      const variables = [{ strokeIds: [stroke1.id], name: "x", before: 4, after: 2 }]
+      canvas.math.replayVariableChanges = jest.fn(() => Promise.resolve())
+      canvas.history.undo = jest.fn(() => ({ added: [stroke1], variables }))
+      canvas.history.context.canUndo = true
+      await canvas.undo()
+      expect(canvas.math.replayVariableChanges).toHaveBeenCalledWith(variables, true)
+    })
+    test("should replay variable values at once when the step changes no stroke", async () => {
+      const variables = [{ strokeIds: ["s1"], name: "x", before: 4, after: 2 }]
+      canvas.math.replayVariableChanges = jest.fn(() => Promise.resolve())
+      canvas.history.undo = jest.fn(() => ({ variables }))
+      canvas.history.context.canUndo = true
+      await canvas.undo()
+      expect(canvas.math.replayVariableChanges).toHaveBeenCalledWith(variables, false)
+    })
     test("should call client.undo & renderer.drawSymbol when history.undo return added stroke", async () => {
       const stroke1 = buildIIStroke()
       canvas.history.undo = jest.fn(() => ({ added: [stroke1] }))

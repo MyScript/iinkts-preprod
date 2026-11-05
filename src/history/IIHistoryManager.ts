@@ -5,9 +5,30 @@ import { extractStrokes } from "@/symbol"
 import { AbstractDiffHistoryManager } from "./AbstractDiffHistoryManager"
 
 /**
+ * A math variable's value before and after one step. `undefined` means the variable had no value.
+ *
+ * Keyed by the block's strokes, not by its `jiixBlockId`: the backend names blocks, and a block
+ * whose strokes are erased then restored by undo/redo comes back under a new name. No stroke means
+ * a global variable.
+ *
+ * @group History
+ */
+export type TIIHistoryVariableChange = {
+  strokeIds: string[]
+  name: string
+  before?: number
+  after?: number
+}
+
+/**
  * @group History
  */
 export type TIIHistoryChanges = {
+  /**
+   * Values set on the backend, which keeps them nowhere in the document: without this, undoing a
+   * block away and redoing it back lost the value it had been given.
+   */
+  variables?: TIIHistoryVariableChange[]
   added?: TSymbol[]
   /**
    * A before/after pair, and the only way a change to an existing symbol is recorded.
@@ -123,7 +144,8 @@ export class IIHistoryManager extends AbstractDiffHistoryManager<TIIHistoryChang
       changes.updated?.length ||
       changes.erased?.length ||
       changes.replaced?.oldSymbols.length ||
-      changes.order?.symbols?.length
+      changes.order?.symbols?.length ||
+      changes.variables?.length
     )
   }
 
@@ -151,6 +173,9 @@ export class IIHistoryManager extends AbstractDiffHistoryManager<TIIHistoryChang
         newSymbols: [...changes.replaced.oldSymbols],
         oldSymbols: [...changes.replaced.newSymbols],
       }
+    }
+    if (changes.variables) {
+      reversedChanges.variables = changes.variables.map((v) => ({ ...v, before: v.after, after: v.before }))
     }
     if (changes.order) {
       const positionMap: Record<string, "first" | "last" | "forward" | "backward"> = {

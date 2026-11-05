@@ -42,25 +42,25 @@ export default defineConfig({
       use: { ...devices["iPad Mini landscape"] },
     },
   ].filter((project) => !process.env.PROJECT || project.name === process.env.PROJECT),
-  // In CI the pages are already served — `make prepare-test-examples-ci` brings up the backend and
-  // the example server, and `BASE_URL` points at them, which is the same assumption the examples'
-  // own config makes by having no `webServer` at all. Starting a second one here would serve a
-  // different root than the one the tests are pointed at.
+  // With `E2E_STACK=docker` (CI), `global-setup` starts the examples in docker and points `BASE_URL`
+  // at them, which is the same assumption the examples' own config makes by having no `webServer` at
+  // all. Starting a second one here would serve a different root than the one the tests are pointed at.
   //
   // This reads the real environment and not `.env.local`: dotenv is loaded by `global-setup`, which
-  // runs after this file is evaluated. That is the distinction wanted — CI passes `BASE_URL` through
-  // docker and is seen, a developer's `.env.local` is not and the local server still starts — but it
-  // rests on that order, so do not move the dotenv call earlier without revisiting this.
-  webServer: process.env.BASE_URL
-    ? undefined
-    : {
-        command: "node perf/browser/staticServer.mjs",
-        // Pinned to the repository root: `cwd` otherwise defaults to this config's directory, which
-        // both doubles the command path and makes the server serve the wrong root — it serves
-        // `process.cwd()`, and the scenarios ask for `/examples` and `/dist`.
-        cwd: fileURLToPath(new URL("../..", import.meta.url)),
-        url: "http://localhost:8000/examples/index.html",
-        reuseExistingServer: true,
-        timeout: 30 * 1000,
-      },
+  // runs after this file is evaluated. That is the distinction wanted — a `BASE_URL` set by the caller
+  // is seen, a developer's `.env.local` is not and the local server still starts — but it rests on
+  // that order, so do not move the dotenv call earlier without revisiting this.
+  webServer:
+    process.env.BASE_URL || process.env.E2E_STACK === "docker"
+      ? undefined
+      : {
+          command: "node perf/browser/staticServer.mjs",
+          // Pinned to the repository root: `cwd` otherwise defaults to this config's directory, which
+          // both doubles the command path and makes the server serve the wrong root — it serves
+          // `process.cwd()`, and the scenarios ask for `/examples` and `/dist`.
+          cwd: fileURLToPath(new URL("../..", import.meta.url)),
+          url: "http://localhost:8000/examples/index.html",
+          reuseExistingServer: true,
+          timeout: 30 * 1000,
+        },
 })

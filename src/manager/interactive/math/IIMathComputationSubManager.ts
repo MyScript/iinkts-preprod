@@ -4,7 +4,7 @@ import type { MatrixTransform, TBox, TPoint } from "@/core"
 import { BoxOps, convertMillimeterToPixel, createUUID, isDeepEqualIgnoring, OBBOps } from "@/core"
 import { LoggerCategory } from "@/logger"
 import type { TStyle } from "@/style"
-import type { TStroke } from "@/symbol"
+import type { TStroke, TSymbol } from "@/symbol"
 import { isStroke } from "@/symbol"
 import { StrokeUtil, SymbolGeometry } from "@/symbol-utils"
 
@@ -199,11 +199,16 @@ export class IIMathComputationSubManager extends IIAbstractManager {
     if (ghostIds && ghostIds.length > 0) {
       return true
     }
-    return !!this.#computations.get(jiixBlockId)?.solverOutputStrokeIds?.length
+    return this.hasDrawSolverOutputs(jiixBlockId)
   }
 
+  /**
+   * Read from the model, not from the ids recorded at compute time: undo/redo adds and removes
+   * drawn results without going through this manager, so the recorded ids can name strokes that
+   * are gone - which froze the block with no result on screen.
+   */
   hasDrawSolverOutputs(jiixBlockId: string): boolean {
-    return !!this.#computations.get(jiixBlockId)?.solverOutputStrokeIds?.length
+    return this.canvas.model.symbols.some((s) => isStroke(s) && s.jiixBlockId === jiixBlockId && s.isSolverOutput)
   }
 
   hasGhostStrokes(jiixBlockId: string): boolean {
@@ -267,7 +272,11 @@ export class IIMathComputationSubManager extends IIAbstractManager {
     }
   }
 
-  async clearSolverOutputs(jiixBlockId: string): Promise<void> {
+  /**
+   * Removes a block's solver output strokes and ghosts, without recording a history step.
+   * @returns The removed strokes, so a caller can record them in its own history step
+   */
+  async clearSolverOutputs(jiixBlockId: string): Promise<TSymbol[]> {
     this.logger.info("clearSolverOutputs", {
       jiixBlockId,
     })
@@ -276,16 +285,18 @@ export class IIMathComputationSubManager extends IIAbstractManager {
       (s) => isStroke(s) && s.jiixBlockId === jiixBlockId && s.isSolverOutput
     )
 
-    if (solverOutputStrokes.length > 0) {
-      await this.canvas.removeSymbols(
-        solverOutputStrokes.map((s) => s.id),
-        false
-      )
-    }
+    const removed =
+      solverOutputStrokes.length > 0
+        ? await this.canvas.removeSymbols(
+            solverOutputStrokes.map((s) => s.id),
+            false
+          )
+        : []
 
     this.updateSolverOutputs(jiixBlockId, [])
     // clearGhostStrokes also invalidates #lastComputationResult
     this.clearGhostStrokes(jiixBlockId)
+    return removed
   }
 
   async clearAllSolverOutputs(): Promise<void> {
@@ -336,7 +347,8 @@ export class IIMathComputationSubManager extends IIAbstractManager {
     this.logger.info("computeNumericalResult", "Numerical computation completed successfully", result)
 
     const lastResult = this.#lastComputationResult.get(jiixBlockId)
-    if (lastResult && isDeepEqualIgnoring(lastResult, result, ["timestamp"])) {
+    const isDisplayed = mode === "ghost" ? this.hasGhostStrokes(jiixBlockId) : this.hasDrawSolverOutputs(jiixBlockId)
+    if (isDisplayed && lastResult && isDeepEqualIgnoring(lastResult, result, ["timestamp"])) {
       this.logger.debug("computeNumericalResult", "Result unchanged, skipping re-render", { jiixBlockId })
       const addedStrokesCount =
         mode === "ghost"
@@ -346,14 +358,16 @@ export class IIMathComputationSubManager extends IIAbstractManager {
       return { result, addedStrokesCount, value, wasRecomputed: false }
     }
 
-    await this.clearSolverOutputs(jiixBlockId)
+    const erased = await this.clearSolverOutputs(jiixBlockId)
     this.#lastComputationResult.set(jiixBlockId, result)
 
     let addedStrokesCount = 0
+    let added: TStroke[] = []
 
     if (mode === "draw") {
       const wasBlockSelected = this.canvas.selector.isMathBlockSelected(jiixBlockId)
-      const addedStrokes = await this.addSolverOutputStrokes(result)
+      const addedStrokes = await this.addSolverOutputStrokes(result, undefined, false)
+      added = addedStrokes
       addedStrokesCount = addedStrokes.length
       this.logger.info("computeNumericalResult", `Added ${addedStrokesCount} solver output strokes`)
       this.updateSolverOutputs(
@@ -373,6 +387,7 @@ export class IIMathComputationSubManager extends IIAbstractManager {
       )
       this.#ghostStrokes.set(jiixBlockId, strokes)
     }
+    this.pushResultSwap(erased, added)
 
     let value: number | undefined
     if (result.expressions && Array.isArray(result.expressions)) {
@@ -492,7 +507,17 @@ export class IIMathComputationSubManager extends IIAbstractManager {
     return strokes
   }
 
-  async addSolverOutputStrokes(result: TJIIXMathElement, style?: TStyle): Promise<TStroke[]> {
+  /**
+   * Records the replacement of a block's drawn result as one undoable step, so undo/redo restores
+   * the old result instead of stacking every result ever computed.
+   */
+  protected pushResultSwap(erased: TSymbol[], added: TStroke[]): void {
+    if (erased.length || added.length) {
+      this.canvas.history.push({ erased, added })
+    }
+  }
+
+  async addSolverOutputStrokes(result: TJIIXMathElement, style?: TStyle, addToHistory = true): Promise<TStroke[]> {
     this.logger.info("addSolverOutputStrokes", {
       result,
     })
@@ -529,7 +554,7 @@ export class IIMathComputationSubManager extends IIAbstractManager {
       addedStrokes.push(stroke)
       this.logger.debug("addSolverOutputStrokes", "Added solver output stroke:", stroke.id)
     }
-    await this.canvas.addSymbols(addedStrokes)
+    await this.canvas.addSymbols(addedStrokes, addToHistory)
     return addedStrokes
   }
 

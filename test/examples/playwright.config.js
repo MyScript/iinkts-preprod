@@ -80,18 +80,15 @@ function scoped(project) {
   return SCOPES[scope] ? { ...rest, grep: SCOPES[scope] } : rest
 }
 
-let projects
+/** PROJECT: one project name, or several separated by commas */
+let projects = defaultProject.map(scoped)
 if (process.env.PROJECT) {
-  const proj = defaultProject.find(p => process.env.PROJECT === p.name)
-  if (!proj) {
-    console.error(`PROJECT not found: ${process.env.PROJECT}, values allowed are: [${defaultProject.map(p => p.name).join(", ")}]` )
+  const names = process.env.PROJECT.split(",").map(name => name.trim())
+  const unknown = names.filter(name => !defaultProject.some(p => p.name === name))
+  if (unknown.length) {
+    console.error(`PROJECT not found: ${unknown.join(", ")}, values allowed are: [${defaultProject.map(p => p.name).join(", ")}]` )
   }
-  else {
-    projects = [scoped(proj)]
-  }
-}
-else {
-  projects = defaultProject.map(scoped)
+  projects = defaultProject.filter(p => names.includes(p.name)).map(scoped)
 }
 process.env.PLAYWRIGHT_LIST_PRINT_STEPS = true
 
@@ -101,7 +98,8 @@ export default defineConfig({
   outputDir: "test-results",
   retries: 1,
   timeout: 60 * 1000,
-  workers: process.env.CI ? 1 : 4,
+  // CI: one worker per project, as many as when each project ran in its own stage
+  workers: process.env.CI ? Math.max(projects.length, 1) : 4,
   use: {
     headless: process.env.HEADLESS === "false" ? false : true,
     baseURL: process.env.BASE_URL || "http://localhost:8000",
@@ -112,7 +110,8 @@ export default defineConfig({
   projects,
   snapshotDir: "./__snapshots__",
   snapshotPathTemplate: "./__snapshots__/{testFilePath}/{projectName}/{arg}{ext}",
-  reporter: 'list',
+  // CI counts the failed projects in the JSON report (scripts/e2e-failed-projects.mjs)
+  reporter: process.env.CI ? [["list"], ["json", { outputFile: "test-results/report.json" }]] : "list",
   expect: {
     timeout: 2500,
     toHaveScreenshot: {
