@@ -1,6 +1,6 @@
 import type { ExcalidrawElement, ExcalidrawFreeDrawElement } from "@excalidraw/excalidraw/element/types"
 import type { AppState } from "@excalidraw/excalidraw/types"
-import type { WebSocketClient } from "iink-ts"
+import type { TRecognitionStroke, WebSocketClient } from "iink-ts"
 import { geometrySignature, isFreeDraw, POINT_INTERVAL_MS, toRecognitionStroke } from "./FreeDrawStroke"
 
 /**
@@ -23,6 +23,8 @@ type TStrokeDiff = {
 export class Synchronizer
 {
   onError?: (error: Error) => void
+  /** Resolves whether a lone new stroke was applied as a gesture on converted content */
+  applyGesture?: (stroke: TRecognitionStroke) => Promise<boolean>
 
   private sent = new Map<string, TSentStroke>()
   private latestElements: readonly ExcalidrawElement[] = []
@@ -87,10 +89,19 @@ export class Synchronizer
       {
         if (erased.length) await this.client.eraseStrokes(erased)
         if (replaced.length) await this.client.replaceStrokes(replaced.map(e => e.id), this.toStrokes(replaced))
-        // A gesture is always a single stroke, drawn on its own
-        if (added.length) await this.client.addStrokes(this.toStrokes(added), added.length === 1)
+        if (added.length) await this.addStrokes(this.toStrokes(added))
       })
       .catch(error => this.onError?.(error instanceof Error ? error : new Error(String(error))))
+  }
+
+  /**
+   * A gesture is always a single stroke, drawn on its own. One already applied on converted content
+   * is still sent, so the server keeps the same strokes as the scene until its erasure follows
+   */
+  private async addStrokes(strokes: TRecognitionStroke[]): Promise<void>
+  {
+    const isAppliedGesture = strokes.length === 1 && !!(await this.applyGesture?.(strokes[0]))
+    await this.client.addStrokes(strokes, strokes.length === 1 && !isAppliedGesture)
   }
 
   /**

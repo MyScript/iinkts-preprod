@@ -2,9 +2,11 @@ import { CaptureUpdateAction, newElementWith } from "@excalidraw/excalidraw"
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types"
 import type { AppState, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types"
 
+export type TElementPatch = Partial<Pick<ExcalidrawElement, "strokeWidth" | "groupIds">>
+
 type TSceneUpdate = {
   erase?: Iterable<string>
-  strokeWidths?: Map<string, number>
+  patches?: Map<string, TElementPatch>
   add?: readonly ExcalidrawElement[]
   selectedIds?: string[]
 }
@@ -21,8 +23,8 @@ export const updateScene = (api: ExcalidrawImperativeAPI, update: TSceneUpdate):
   const elements = api.getSceneElementsIncludingDeleted().map(e =>
   {
     if (erase.has(e.id)) return newElementWith(e, { isDeleted: true })
-    const strokeWidth = update.strokeWidths?.get(e.id)
-    return strokeWidth === undefined ? e : newElementWith(e, { strokeWidth })
+    const patch = update.patches?.get(e.id)
+    return patch ? newElementWith(e, patch) : e
   })
   api.updateScene({
     elements: [...elements, ...(update.add ?? [])],
