@@ -66,11 +66,12 @@ export class GestureManager
   }
 
   /**
-   * A text has no stroke width: it gets a straight line under it, grouped with it so they move together
+   * A text has no stroke width: it gets a straight line under it, grouped with it so they move together.
+   * The group id comes from the text id: crypto.randomUUID only exists on a secure origin (https or localhost)
    */
   private underlineText(text: ExcalidrawTextElement, patches: Map<string, TElementPatch>): ExcalidrawElementSkeleton
   {
-    const groupIds = text.groupIds.length ? text.groupIds : [crypto.randomUUID()]
+    const groupIds = text.groupIds.length ? text.groupIds : [`underline-${ text.id }`]
     if (!text.groupIds.length) patches.set(text.id, { groupIds })
     return {
       type: "line",
