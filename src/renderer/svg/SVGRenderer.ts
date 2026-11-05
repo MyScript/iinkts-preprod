@@ -46,6 +46,18 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
    */
   static readonly VIRTUALIZATION_MARGIN_RATIO = 0.5
 
+  /** How much wider than the line a selection halo is, in screen pixels (half of it each side) */
+  static readonly #HALO_SPREAD = 4
+
+  /** What a group wrapping a selected symbol takes over from its element */
+  static readonly #ADDRESS_ATTRIBUTES = ["id", "type", "transform"] as const
+
+  /**
+   * Symbols drawn selected. Kept here rather than read off the element, because an element is
+   * rebuilt from the symbol alone — on a redraw, a deferred rebuild, a symbol scrolling back in.
+   */
+  #selectedIds = new Set<string>()
+
   /**
    * Tracks every drawn symbol's element and bounds, whether currently attached to
    * `layer` or not - see {@link drawSymbol} and {@link #reconcileVirtualization}.
@@ -420,7 +432,10 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     // No check that the util can draw: `getSVGElement` is part of the contract. This used to log
     // "no util for symbol" for a util that existed but had no draw method, which said the wrong
     // thing about a registration that had in fact worked.
-    return util.getSVGElement(symbol)
+    const element = util.getSVGElement(symbol)
+    // Applied here, where every element is built, so a redraw, a deferred rebuild or a symbol coming
+    // back into view keeps its outline without each of them having to remember it
+    return element && this.#selectedIds.has(symbol.id) ? this.#outlineSelected(symbol, element) : element
   }
 
   prependElement(el: Element): void {
@@ -457,6 +472,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
   removeElement(id: string): void {
     this.#logger.debug("Element", { id })
     this.#virtualizedSymbols.delete(id)
+    this.#selectedIds.delete(id)
     if (!this.layer) {
       this.#logger.debug("removeElement: layer not initialized yet, skipping")
       return
@@ -585,18 +601,66 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
   }
 
   updateSelectedState(symbol: TSymbol, isSelected: boolean): void {
-    // Edge selection adds/removes a child outline path — full redraw needed
-    if (symbol.type === SymbolType.Edge) {
-      this.drawSymbol(symbol)
-      return
+    if (isSelected) {
+      this.#selectedIds.add(symbol.id)
+    } else {
+      this.#selectedIds.delete(symbol.id)
     }
     const el = this.getElementById(symbol.id)
     if (!el) {
       return
     }
-    // A CSS drop-shadow, not an SVG filter: WebKit's renderer crashed painting the SVG one
-    // (dilate + flood + composite) on a selection of several strokes
+    // A halo changes the element itself (a group instead of the bare path): rebuild it
+    if (SVGRenderer.#isOutlinedByHalo(symbol)) {
+      this.drawSymbol(symbol)
+      return
+    }
+    // The outline is a stroke the stylesheet paints under the fill, not a filter: WebKit crashed on
+    // an SVG one, and Chrome left ghost ink next to the selection with a CSS drop-shadow on the GPU
     el.classList.toggle(SVGRendererConst.selectedClassName, isSelected)
+  }
+
+  /** A shape or an edge is drawn by its stroke, so the stylesheet cannot paint an outline under it */
+  static #isOutlinedByHalo(symbol: TSymbol): boolean {
+    return symbol.type === SymbolType.Shape || symbol.type === SymbolType.Edge
+  }
+
+  #outlineSelected(symbol: TSymbol, element: SVGGraphicsElement): SVGGraphicsElement {
+    if (!SVGRenderer.#isOutlinedByHalo(symbol)) {
+      element.classList.add(SVGRendererConst.selectedClassName)
+      return element
+    }
+    return SVGRenderer.#groupWithHalo(element)
+  }
+
+  /**
+   * The element preceded by a wider copy of itself, the halo, which the stylesheet colours.
+   *
+   * The group takes over what addresses the symbol — id, type and matrix — so `getElementById`,
+   * hit-testing by `type` and `setSymbolTransform` reach the group and move both paths together.
+   * The halo is unpainted until the stylesheet colours it, so an SVG export of a selected symbol does
+   * not carry it. No arrow heads on it: their size follows the stroke width, they would balloon.
+   */
+  static #groupWithHalo(element: SVGGraphicsElement): SVGGElement {
+    const group = SVGBuilder.createGroup({ class: SVGRendererConst.selectedClassName })
+    SVGRenderer.#ADDRESS_ATTRIBUTES.forEach((name) => {
+      const value = element.getAttribute(name)
+      if (value !== null) {
+        group.setAttribute(name, value)
+        element.removeAttribute(name)
+      }
+    })
+    const halo = element.cloneNode(true) as SVGGraphicsElement
+    const width = Number(element.getAttribute("stroke-width")) || 1
+    halo.classList.add(SVGRendererConst.selectionHaloClassName)
+    halo.removeAttribute("marker-start")
+    halo.removeAttribute("marker-end")
+    halo.setAttribute("stroke-width", String(width + SVGRenderer.#HALO_SPREAD))
+    halo.setAttribute("stroke", "none")
+    halo.setAttribute("fill", "none")
+    halo.setAttribute("style", SVGRendererConst.noSelection)
+    group.append(halo, element)
+    return group
   }
 
   updateDeletingState(symbol: TSymbol, isDeleting: boolean): void {
@@ -604,7 +668,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     if (!el) {
       return
     }
-    // A CSS opacity filter, not an SVG one: WebKit's renderer crashed painting the SVG removal filter
+    // Plain CSS opacity, not a filter: WebKit's renderer crashed painting the SVG removal filter
     // (an alpha transfer table) on as few as five strokes
     el.classList.toggle(SVGRendererConst.deletingClassName, isDeleting)
   }
@@ -740,6 +804,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     this.#virtualizedSymbols.forEach(({ element }, id) => {
       if (element.matches(query)) {
         this.#virtualizedSymbols.delete(id)
+        this.#selectedIds.delete(id)
         element.remove()
       }
     })
@@ -749,6 +814,7 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
   clear(): void {
     this.#logger.info("clear")
     this.#virtualizedSymbols.clear()
+    this.#selectedIds.clear()
     if (this.layer) {
       while (this.layer.firstChild) {
         this.layer.firstChild.remove()
