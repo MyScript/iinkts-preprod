@@ -27,3 +27,6 @@ __diff_output__
 bench-history
 dist-ref
 docker-logs/
+
+# Written at deploy time for the examples footer (scripts/build-info.sh)
+examples/build-info.json

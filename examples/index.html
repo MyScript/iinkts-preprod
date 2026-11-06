@@ -1027,6 +1027,8 @@
 
     <p id="no-results" class="home-no-results" style="display:none">No examples match your search.</p>
 
+    <footer id="build-info" class="home-build-info" hidden></footer>
+
   </main>
 </div>
 <!-- /home-layout -->
@@ -1105,6 +1107,10 @@
   sections.forEach(s => observer.observe(s));
 </script>
 <script src="assets/js/theme.js"></script>
+<script type="module">
+  import { renderBuildInfo } from "./assets/js/build-info.js"
+  renderBuildInfo(document.getElementById("build-info"))
+</script>
 
 </body>
 </html>
