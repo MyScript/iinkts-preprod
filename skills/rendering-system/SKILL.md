@@ -77,7 +77,7 @@ A **symbol's** bounds do not come from here: ask its geometry, which is tight an
 
 ## Styling
 
-- **Per symbol**: `symbol.style` is a `TStyle` (`color`, `width`, `opacity`, `fill`, `pen`, `penAngle`, `penSmoothing`, `penSpeed`); `mergeSymbolStyle` fills defaults. Change it through the canvas (`updateSymbolsStyle` on `InkCanvas`, `updateSymbol` on `InteractiveInkCanvas`), never by editing the element
+- **Per symbol**: `symbol.style` is a `TStyle` (`color`, `width`, `opacity`, `fill`, `pen`, `penAngle`, `penSmoothing`, `penSpeed`); `mergeSymbolStyle` fills defaults. Change it through the canvas (`updateSymbolsStyle` on `InkCanvas`, `updateSymbols(ids, { style })` on `InteractiveInkCanvas`), never by editing the element
 - **Next strokes**: `canvas.penStyle = { color, width, pen }`
 - **Theme / UI**: [src/iink.css](src/iink.css) is injected at runtime; on `InteractiveInkCanvas`, `configuration.cssVars` / `canvas.setCssVars(vars)` override the `--ms-ink-*` custom properties on the root element. Prefer CSS classes and variables over inline attributes
 - **Legacy (`INK_V1`)**: `StyleManager` holds `penStyle` and `TTheme` (`ink`, `.math`, `.math-solved`, `.text`); `StyleHelper` ([src/style-css/StyleHelper.ts](src/style-css/StyleHelper.ts)) converts them between JSON and CSS (`themeToCSS`, `penStyleToCSS`, …)

@@ -61,7 +61,7 @@ src/
 ├── history/             # AbstractHistoryStack, AbstractDiffHistoryManager, HistoryManager, IHistoryManager, IIHistoryManager
 ├── symbol/              # Type + type guard, per type — nothing else
 │   ├── stroke/          # TStroke, isStroke/isRecognizedMath/isRecognizedText
-│   ├── typeset/         # TText/TSymbolChar/isText, TMath/TMathElement/isMath, TTypesetChild, TRotation
+│   ├── typeset/         # TText/TSymbolChar/isText, TMath/TMathElement/isMath, TTypesetChild (rotation lives in symbol.transform)
 │   ├── decorator/       # TDecorator, DecoratorKind, isDecorator
 │   ├── eraser/          # TEraser, EraserOps — a transient tool, not a symbol type, so no util
 │   ├── shape/           # TShapeCircle/Ellipse/Polygon, ShapeKind
@@ -161,7 +161,7 @@ Primitives: TPoint { x, y }, TBox { x, y, height, width }, TOBB (oriented box)
 Stroke:     TStroke
 Text:       TText
 Math:       TMath
-Typeset:    TTypesetChild, TRotation
+Typeset:    TTypesetChild
 Decorator:  TDecorator
 Eraser:     TEraser
 Shape:      TShapeCircle, TShapeEllipse, TShapePolygon

@@ -107,13 +107,14 @@ classDiagram
     +addSymbol(sym, addToHistory?) Promise~TSymbol~
     +addSymbols(symList, addToHistory?) Promise~TSymbol[]~
     +updateSymbol(id, patch, addToHistory?) Promise~TSymbol~
+    +updateSymbols(ids, patch, addToHistory?) Promise~TSymbol[]~
     +removeSymbol(id, addToHistory?) Promise~void~
     +select(ids) void
     +selectAll() void
     +unselectAll() void
     +convert(symbols?) Promise~void~
     +export(mimeTypes?) Promise~TExport~
-    +exportAs(format, options?) Promise~TExportResult~
+    +exportAs(format, options?) Promise
     +download(format, options?) Promise~void~
     +synchronize() Promise~void~
     +undo() Promise~IIModel~
@@ -241,14 +242,13 @@ classDiagram
   }
   class IIResizeManager {
     +constructor(canvas)
-    +scaleElement(id, sx, sy) void
+    +direction: ResizeDirection
     +start(target, origin) void
     +continue(point) object
     +end(point) Promise~void~
   }
   class IIRotationManager {
     +constructor(canvas)
-    +rotateElement(id, degree) void
     +start(target, origin) void
     +continue(point) number
     +end(point) Promise~void~
@@ -360,7 +360,7 @@ classDiagram
   class ExportManager {
     <<abstract>>
     +constructor(canvas, pdfExport)
-    +exportAs(format, options?) Promise~TExportResult~
+    +exportAs(format, options?) Promise
     +download(format, options?) Promise~void~
     +destroy() void
   }
@@ -402,14 +402,18 @@ classDiagram
     +pop() void
     +clear() void
   }
-  class IIHistoryManager {
-    +isChangesEmpty(changes) boolean
-    +init(model) void
-    +push(model, changes) void
-    +undo() TIIHistoryStackItem
-    +redo() TIIHistoryStackItem
+  class AbstractDiffHistoryManager~TChanges~ {
+    <<abstract>>
+    +push(changes) void
+    +undo() TChanges
+    +redo() TChanges
   }
-  AbstractHistoryStack <|-- IIHistoryManager
+  class IIHistoryManager {
+    +init(model) void
+    #isChangesEmpty(changes) boolean
+  }
+  AbstractHistoryStack <|-- AbstractDiffHistoryManager
+  AbstractDiffHistoryManager <|-- IIHistoryManager
 
   class ColorPaletteManager {
     <<singleton>>
@@ -451,7 +455,7 @@ classDiagram
 | `IIAbstractManager` | `src/manager/interactive/IIAbstractManager.ts` |
 | Transform managers | `src/manager/interactive/transform/` |
 | Math sub-managers | `src/manager/interactive/math/` |
-| `IIHistoryManager` / `AbstractHistoryStack` | `src/history/` |
+| `IIHistoryManager` / `AbstractDiffHistoryManager` / `AbstractHistoryStack` | `src/history/` |
 | `IIMenuManager` | `src/menu/IIMenuManager.ts` |
 | `ColorPaletteManager` / `ExportManager` / `PDFExportManager` / `LayoutManager` | `src/manager/base/` |
 | `IIExportManager` | `src/manager/interactive/IIExportManager.ts` |

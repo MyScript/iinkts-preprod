@@ -37,7 +37,8 @@ classDiagram
   InkCanvasDeprecated o-- Model : model
   InkCanvasDeprecated *-- InkCanvasDeprecatedConfiguration : configuration
 
-  AbstractHistoryStack~T~ <|-- IHistoryManager
+  AbstractHistoryStack~T~ <|-- AbstractDiffHistoryManager~TChanges~
+  AbstractDiffHistoryManager~TChanges~ <|-- IHistoryManager
   AbstractHistoryStack~T~ <|-- HistoryManager
 
   IWriterManager ..> PointerEventGrabber : creates (via base ctor)
@@ -162,12 +163,14 @@ classDiagram
     +pop() void
     +clear() void
   }
+  class AbstractDiffHistoryManager~TChanges~ {
+    <<abstract>>
+    +push(changes) void
+    +undo() TChanges
+    +redo() TChanges
+  }
   class IHistoryManager {
-    +updateModelStack(model) void
-    +init(model) void
-    +push(model, changes) void
-    +undo() TIHistoryStackItem
-    +redo() TIHistoryStackItem
+    +init() void
   }
   class HistoryManager {
     +push(model) void
@@ -175,7 +178,8 @@ classDiagram
     +undo() Model
     +redo() Model
   }
-  AbstractHistoryStack <|-- IHistoryManager
+  AbstractHistoryStack <|-- AbstractDiffHistoryManager
+  AbstractDiffHistoryManager <|-- IHistoryManager
   AbstractHistoryStack <|-- HistoryManager
 
   class HTTPClientV2 {
@@ -236,7 +240,7 @@ classDiagram
 | `IWriterManager` (simple) | `src/manager/simple/IWriterManager.ts` |
 | `AbstractWriterManager` / `EraseManager` / `LayoutManager` | `src/manager/base/` |
 | `IDebugSVGManager` | `src/manager/debug/IDebugSVGManager.ts` |
-| `IHistoryManager` / `HistoryManager` / `AbstractHistoryStack` | `src/history/` |
+| `IHistoryManager` / `HistoryManager` / `AbstractDiffHistoryManager` / `AbstractHistoryStack` | `src/history/` |
 | `HTTPClientV2` / `HTTPClientV1` | `src/client/http/` |
 | `StyleManager` | `src/style/StyleManager.ts` |
 | `PointerEventGrabber` | `src/grabber/PointerEventGrabber.ts` |
