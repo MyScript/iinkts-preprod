@@ -1,5 +1,6 @@
 import type { TBox, TPartialDeep, TPoint } from "@/core"
 import {
+  applyInverseMatrixToPoint,
   createUUID,
   type Geometry2d,
   isIdentityMatrix,
@@ -150,9 +151,9 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
   }
 
   /**
-   * Deliberately nothing. A standalone decorator's bounds are recomputed from the symbols it
-   * decorates, which the transform manager does after moving them — moving the decorator itself
-   * would double the displacement. `IIAbstractTransformManager.applyToSymbol` still returns early
+   * Deliberately nothing. A standalone decorator follows the symbols it decorates: the transform
+   * manager composes their matrix onto it, or refits its box when only some of them moved — moving
+   * the decorator itself as well would double the displacement. `IIAbstractTransformManager.applyToSymbol` still returns early
    * for decorators, so nothing calls this yet; it becomes the live path when IIC-2014 removes that
    * early return, and stating the exception here is what keeps it from being lost.
    *
@@ -189,9 +190,11 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
     return bounds ? new Polygon2d(OBBOps.toCorners(bounds), true, bounds.angle) : new Polygon2d([])
   }
 
-  /** The two ends of the line it draws — a decorator never moves, so there is no matrix to apply. */
+  /** The two ends of the line it draws, carried by the matrix it took from its targets. */
   getSnapPoints(decorator: TDecorator): TPoint[] {
-    return decorator.targetBounds ? DecoratorUtil.computeVertices(decorator.targetBounds) : []
+    return decorator.targetBounds
+      ? this.mapPointsForward(decorator, DecoratorUtil.computeVertices(decorator.targetBounds))
+      : []
   }
 
   canResize(_decorator: TDecorator): boolean {
@@ -298,6 +301,19 @@ export class DecoratorUtil extends SymbolUtil<TDecorator> {
 
   static setTargetBounds(decorator: TDecorator, targetBounds: TOBB): void {
     decorator.targetBounds = targetBounds
+  }
+
+  /**
+   * Refits the box around `targets` (document coordinates), expressed in the decorator's own frame
+   * so that the matrix it took from earlier transforms still places it.
+   */
+  static refitTargetBounds(decorator: TDecorator, targets: TOBB[]): void {
+    const corners = targets
+      .flatMap((obb) => OBBOps.toCorners(obb))
+      .map((p) => applyInverseMatrixToPoint(p, decorator.transform))
+      // A degenerate matrix (scaled to zero) has no local frame to express the box in.
+      .filter((p): p is TPoint => !!p)
+    DecoratorUtil.setTargetBounds(decorator, OBBOps.createFromPoints(corners))
   }
 
   /** The two endpoints of the horizontal line a decorator's own geometry is: the middle of its bounds. */

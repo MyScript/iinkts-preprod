@@ -32,8 +32,9 @@ export type TDecorator = TBaseSymbol & {
    * A decorator holds no coordinates of its own: it is placed over other symbols. Its box arrives
    * from outside, either as the recognizer's own word box (JIIX, which is not the union of the
    * strokes' boxes and cannot be recomputed from them) or as that union when JIIX has not answered
-   * yet. `DecoratorUtil.getGeometry` therefore reads this field rather than deriving anything, and whoever
-   * moves or re-targets the decorator has to write it again — see
+   * yet. `DecoratorUtil.getGeometry` therefore reads this field rather than deriving anything. It is
+   * in the decorator's local frame: when its targets are transformed together the decorator takes
+   * their matrix in `transform` and this box is left alone; only a partial move refits it — see
    * `IIAbstractTransformManager.updateDecoratorsForTargets`.
    *
    * Unset is the "no box of its own" case, and it is the only flag: the `hasBounds` boolean that

@@ -80,6 +80,7 @@ export class IIRotationManager extends IIAbstractTransformManager {
     this.model.symbolsSelected.forEach((s) => {
       this.previewTransform(s, matrix)
     })
+    this.previewDecorators(this.model.symbolsSelected, matrix)
     this.getGhostStrokeIdsForSelectedMath(this.model.symbolsSelected).forEach((id) => {
       this.previewElementTransform(id, matrix)
     })
@@ -123,7 +124,7 @@ export class IIRotationManager extends IIAbstractTransformManager {
         center: { ...bounds.center },
       })
     })
-    this.applyAndDraw(this.model.symbolsSelected, matrix)
+    const movedDecorators = this.applyAndDraw(this.model.symbolsSelected, matrix)
     this.applyTransformToGhostStrokesForSelectedMath(this.model.symbolsSelected, matrix)
     const { oldSymbols: anchoredOldSymbols, newSymbols: anchoredNewSymbols } =
       this.canvas.connector.updateAnchoredEdges(
@@ -142,7 +143,7 @@ export class IIRotationManager extends IIAbstractTransformManager {
       ...this.replaceGradientFollowedStrokes(anchoredOldSymbols, anchoredNewSymbols),
     ])
     const changes: TIIHistoryChanges = {}
-    this.recordTransformed(changes, oldSymbols)
+    this.recordTransformed(changes, [...oldSymbols, ...movedDecorators])
     // Converted Line/PolyEdge/Arc anchors are recomputed from the target's new bounds, and
     // gradient-followed raw strokes are reshaped non-uniformly. They join the same `updated` pair
     // as the rotated selection — appended, not assigned, or one of the two sets would be lost.
