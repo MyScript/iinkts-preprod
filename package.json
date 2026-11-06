@@ -1,6 +1,6 @@
 {
   "name": "iink-ts",
-  "version": "5.0.0-beta.704",
+  "version": "5.0.0-beta.705",
   "packageManager": "yarn@4.18.0",
   "imports": {
     "#iink": "./dist/iink.esm.js"
