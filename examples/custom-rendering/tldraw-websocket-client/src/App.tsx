@@ -85,6 +85,8 @@ export default function App()
       if (changedDrawShapes.length > 0 && editor) {
         const { toConvert, toRemove } = converter.convert(changedDrawShapes)
         if (toConvert.length > 0) {
+          // Own undo step: otherwise undo also removes the last stroke drawn
+          editor.markHistoryStoppingPoint("convert")
           editor.run(() =>
           {
             editor.deleteShapes(toRemove)
