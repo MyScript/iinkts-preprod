@@ -36,9 +36,9 @@
   </button>
   <a class="home-header-brand" href="http://www.myscript.com/" target="_blank" rel="noopener">
     <span class="home-header-logo" role="img" aria-label="MyScript"></span>
-    <span class="home-header-sep"></span>
-    <span class="home-header-label">iinkTS Examples</span>
   </a>
+  <span class="home-header-sep"></span>
+  <span class="home-header-label">iinkTS Examples</span>
   <span class="home-header-spacer"></span>
   <button id="theme-toggle" class="home-theme-toggle" aria-label="Toggle dark mode" onclick="toggleTheme()">
     <span class="ico-sun">&#x2600;&#xFE0F;</span>
@@ -1027,6 +1027,8 @@
 
     <p id="no-results" class="home-no-results" style="display:none">No examples match your search.</p>
 
+    <footer id="build-info" class="home-build-info" hidden></footer>
+
   </main>
 </div>
 <!-- /home-layout -->
@@ -1105,6 +1107,10 @@
   sections.forEach(s => observer.observe(s));
 </script>
 <script src="assets/js/theme.js"></script>
+<script type="module">
+  import { renderBuildInfo } from "./assets/js/build-info.js"
+  renderBuildInfo(document.getElementById("build-info"))
+</script>
 
 </body>
 </html>

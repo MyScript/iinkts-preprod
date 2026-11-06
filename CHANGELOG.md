@@ -73,6 +73,8 @@ A decorator holds no coordinates: its box comes from the recognizer's word box, 
 - renamed: `TDecorator.bounds` → `TDecorator.targetBounds`, now optional; `DecoratorOps.setBounds` → `DecoratorUtil.setTargetBounds`
 - removed: `TDecorator.hasBounds` — presence of `targetBounds` is the flag (the boolean shadowed a zero-size box)
 - fixed: a decorator serialised by iinkTS (`TOBB`) came back with a NaN centre on re-import; erasing one target out of several threw `Cannot assign to read only property 'targetIds'`
+- a standalone decorator now takes the same matrix as its targets when they are translated, resized or rotated together (live preview included), so it turns with rotated ink instead of being re-derived as an axis-aligned box; `targetBounds` and `baseline` are in the decorator's local frame, placed by its `transform`. Only a partial move (some targets) refits the box, still in that frame. The decorator is recorded in the transform's history entry, so undo/redo restores it
+- new: `DecoratorUtil.refitTargetBounds(decorator, targets)`
 
 ### History: diff-only, records what changed
 Entries no longer store a `Model`/`IIModel` snapshot, and no longer describe a change by its parameters (delta, angle, factors, colour): a transform writes `symbol.transform` and a restyle `symbol.style`, so the record is the state and undo restores it exactly (a scale's `1 / scaleX` was `Infinity` at zero and ignored its origin).

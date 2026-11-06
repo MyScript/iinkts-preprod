@@ -97,24 +97,55 @@ const MATH_SOLVER_NEUTRAL_RESULTS: { [A in TMathSolverAction]: () => TMathSolver
 }
 
 /**
- * A websocket dialog have this sequence :
+ * A websocket dialog has this sequence. The full list of server messages is
+ * {@link TWebSocketClientMessageType}; keep this sketch in line with it.
  * --------------- Client --------------------------------------------------------------- Server ---------------
+ * Handshake
  * { type: "authenticate" }                           ==================>
  *                                                    <==================       { type: "hmacChallenge" }
  * { type: "hmac" }                                   ==================>
  *                                                    <==================       { type: "authenticated" }
  * { type: "initSession" | "restoreSession" }         ==================>
  *                                                    <==================       { type: "sessionDescription" }
- * { type: "sendToSupport", [key]:[value] }           ==================>
- *                                                    <==================        { type: "ack" }
  * { type: "newContentPart" | "openContentPart" }     ==================>
- *                                                    <==================       { type: "partChanged" }
+ *                                                    <==================       { type: "newPart" | "partChanged" }
+ * { type: "changeConfiguration" }                    ==================>
+ *                                                    <==================       { type: "configurationChanged" }
+ *
+ * Edition (each change is answered by a contentChanged)
  * { type: "addStrokes" }                             ==================>
- *                                                    <==================       { type: "contentChanged" }
- * { type: "transform" }                              ==================>
- *                                                    <==================       { type: "contentChanged" }
+ * { type: "replaceStrokes" }                         ==================>
  * { type: "eraseStrokes" }                           ==================>
+ * { type: "transform" }  (TRANSLATE | ROTATE | SCALE | MATRIX) =======>
+ * { type: "undo" | "redo", changes }                 ==================>
+ * { type: "clear" }                                  ==================>
  *                                                    <==================       { type: "contentChanged" }
+ *
+ * Gestures, detected in context (addStrokes with processGestures, fewer than 3 strokes)
+ * { type: "addStrokes", processGestures: true }      ==================>
+ *                                                    <==================       { type: "gestureDetected", gestureType: "SCRATCH", gestureStrokeId, strokeIds, … }
+ *   the gesture manager applies it, then sends the result:
+ * { type: "eraseStrokes" | "replaceStrokes" }        ==================>
+ *                                                    <==================       { type: "contentChanged" }
+ *
+ * Gestures, detected without context (stroke not added to the content)
+ * { type: "contextlessGesture", scaleX, scaleY, strokes } ============>
+ *                                                    <==================       { type: "contextlessGesture", gestureType, strokeId }
+ *
+ * Requests
+ * { type: "export", partId, mimeTypes }              ==================>
+ *                                                    <==================       { type: "exported" }
+ * { type: "waitForIdle" }                            ==================>
+ *                                                    <==================       { type: "idle" }
+ * { type: "mathSolver", action, blockId }            ==================>
+ *                                                    <==================       { type: "mathSolverResult" }
+ * { type: "sendToSupport", metadata }                ==================>
+ *                                                    <==================       { type: "ack" }
+ * { type: "ping" }                                   ==================>
+ *                                                    <==================       { type: "pong" }
+ *
+ * At any time
+ *                                                    <==================       { type: "error" }
  */
 
 /**

@@ -1,11 +1,10 @@
 import type { TInteractiveInkCanvas } from "@/canvas"
-import type { MatrixTransform } from "@/core"
-import { applyMatrixToPoint, OBBOps } from "@/core"
+import { applyMatrixToPoint, MatrixTransform } from "@/core"
 import type { TIIHistoryChanges } from "@/history"
 import { appendUpdated } from "@/history"
 import { LoggerCategory } from "@/logger"
 import { SvgElementRole } from "@/renderer"
-import type { TStroke, TSymbol } from "@/symbol"
+import type { TDecorator, TStroke, TSymbol } from "@/symbol"
 import { isDecorator, isStroke } from "@/symbol"
 import { DecoratorUtil, SymbolGeometry } from "@/symbol-utils"
 
@@ -86,7 +85,12 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
     )
   }
 
-  protected applyAndDraw(symbols: TSymbol[], matrix: MatrixTransform): void {
+  /**
+   * Returns the pre-transform records of the standalone decorators that followed `symbols`, for
+   * the caller to hand to {@link recordTransformed}: they are moved here, outside the selection, so
+   * no caller snapshot holds them and undo would otherwise leave them where the gesture put them.
+   */
+  protected applyAndDraw(symbols: TSymbol[], matrix: MatrixTransform): TDecorator[] {
     symbols.forEach((s) => {
       // No fallback on the passed symbol: since IIC-1972 the history stack holds values rather than
       // references into the document, so a symbol the document no longer holds is one there is
@@ -104,41 +108,92 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
       // that `SymbolGeometry`'s frozen-only cache actually holds for it.
       this.canvas.renderer.setSymbolTransform(this.model.getSymbol(target.id) ?? target)
     })
-    this.updateDecoratorsForTargets(symbols, matrix)
+    return this.updateDecoratorsForTargets(symbols, matrix)
   }
 
   /**
-   * Standalone decorators store their own bounds (set once from their targets' bounds)
-   * and are never part of `symbolsSelected` (selection redirects to their targetIds), so
-   * a translate/resize/rotate of the target symbols leaves the decorator's bounds stale.
-   * Recompute them here from the (already transformed) target symbols.
+   * The live gesture, previewed on the standalone decorators carried by `symbols`.
+   *
+   * Only those whose every target is in `symbols`: they are the ones the commit moves by the same
+   * matrix (see `updateDecoratorsForTargets`), so previewing them any other way would show a
+   * decoration that jumps on release. A decorator only partly moved has its box refitted at commit
+   * instead, which a matrix cannot preview.
    */
-  private updateDecoratorsForTargets(symbols: TSymbol[], matrix: MatrixTransform): void {
-    const byTargetId = this.model.decoratorsByTargetId
-    const affected = new Map<string, TSymbol>()
-    symbols.forEach((s) => byTargetId.get(s.id)?.forEach((deco) => affected.set(deco.id, deco)))
+  protected previewDecorators(symbols: TSymbol[], live: MatrixTransform): void {
+    this.decoratorsCarriedBy(symbols).forEach(({ decorator, whole }) => {
+      if (whole) {
+        this.previewTransform(decorator, live)
+      }
+    })
+  }
 
-    affected.forEach((deco) => {
-      const draft = this.model.draftSymbol(deco.id)
+  /**
+   * The standalone decorators targeting any of `symbols`, each flagged `whole` when all of its
+   * targets are among them. Decorators are never part of `symbolsSelected` (selection redirects to
+   * their targetIds), so a transform reaches them only through here.
+   */
+  private decoratorsCarriedBy(symbols: TSymbol[]): { decorator: TDecorator; whole: boolean }[] {
+    const movedIds = new Set(symbols.map((s) => s.id))
+    const byTargetId = this.model.decoratorsByTargetId
+    const affected = new Map<string, TDecorator>()
+    symbols.forEach((s) => byTargetId.get(s.id)?.forEach((deco) => isDecorator(deco) && affected.set(deco.id, deco)))
+    return [...affected.values()].map((decorator) => ({
+      decorator,
+      whole: decorator.targetIds.every((id) => movedIds.has(id)),
+    }))
+  }
+
+  /**
+   * Keeps standalone decorators on the symbols they decorate after those were transformed.
+   *
+   * A decorator whose targets all moved takes the very matrix they took, composed onto its own:
+   * its `targetBounds` and `baseline` stay in its local frame, so a rotation turns the decoration
+   * with the ink instead of re-deriving an axis-aligned box around it. A decorator only partly
+   * moved cannot follow one matrix, so its box is refitted around its targets, in its local frame.
+   */
+  private updateDecoratorsForTargets(symbols: TSymbol[], matrix: MatrixTransform): TDecorator[] {
+    return this.decoratorsCarriedBy(symbols).flatMap(({ decorator, whole }) => {
+      const draft = this.model.draftSymbol(decorator.id)
       if (!draft || !isDecorator(draft)) {
-        return
+        return []
       }
-      const targetSyms = draft.targetIds.map((id) => this.model.getSymbol(id)).filter((s): s is TSymbol => !!s)
-      if (!targetSyms.length) {
-        return
-      }
-      // Re-derived from the moved targets, not carried by a matrix: `DecoratorUtil.applyTransform`
-      // is deliberately a no-op, so a decorator never receives one. Its box is an input, and this
-      // is the writer that keeps it in step with the symbols it decorates.
-      DecoratorUtil.setTargetBounds(draft, OBBOps.createFromOBBs(targetSyms.map((s) => SymbolGeometry.boundsOf(s))))
-      // baseline is an absolute y-coordinate (used by Underline/Strikethrough rendering
-      // in place of bounds), so it must follow the same transform as the target symbols.
-      if (draft.baseline !== undefined) {
-        draft.baseline = applyMatrixToPoint({ x: 0, y: draft.baseline }, matrix).y
+      if (whole) {
+        // Composed here rather than through `applyToSymbol`: `DecoratorUtil.applyTransform` stays a
+        // no-op so that nothing else (duplicate, paste) moves a decorator independently of its targets.
+        draft.transform = matrix.clone().multiply(draft.transform)
+      } else {
+        this.refitDecorator(draft, matrix)
       }
       this.model.commitSymbol(draft)
       this.canvas.renderer.drawSymbol(draft)
+      // The committed record read before the draft was taken is frozen, so it is the "before" as-is.
+      return [decorator]
     })
+  }
+
+  /**
+   * Refits a partly-moved decorator's box around its targets, expressed in the decorator's own frame
+   * so that its stored matrix still places it. `baseline` is an absolute y in that frame, so it takes
+   * the gesture's matrix as seen from that frame.
+   */
+  private refitDecorator(draft: TDecorator, matrix: MatrixTransform): void {
+    const targets = draft.targetIds.map((id) => this.model.getSymbol(id)).filter((s): s is TSymbol => !!s)
+    if (!targets.length) {
+      return
+    }
+    const anchorX = draft.targetBounds?.center.x ?? 0
+    DecoratorUtil.refitTargetBounds(
+      draft,
+      targets.map((s) => SymbolGeometry.boundsOf(s))
+    )
+    if (draft.baseline !== undefined) {
+      const local = MatrixTransform.identity()
+        .multiply(draft.transform)
+        .invert()
+        .multiply(matrix)
+        .multiply(draft.transform)
+      draft.baseline = applyMatrixToPoint({ x: anchorX, y: draft.baseline }, local).y
+    }
   }
 
   /**
