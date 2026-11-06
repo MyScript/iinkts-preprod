@@ -102,6 +102,9 @@ the everyday limit.
 
 ## What CI does with the verdict
 
+The perf stages (`Bench gate`, `Browser perf`) only run when the Jenkins parameter `run_perf` is set; it
+is off by default, so an ordinary branch or pull-request build measures nothing.
+
 Three things can go wrong in the stage and they are not the same thing, so they no longer share a
 message — a broken reference build used to read exactly like a regression.
 
@@ -137,7 +140,7 @@ gate's own error was at most 10.3% against a limit of 20%.
   request's merge commit (the target's tip, no network needed), a fetch, and then fails listing the
   refs the checkout does have. `BENCH_REF_BASE` names a different base; `BENCH_REF_SHA` or `--sha`
   skips the question entirely and never looks for the base at all.
-- `yarn bench:e2e` runs in CI (stage `Browser perf`) but is **reported, never gated**. Like the gate,
+- `yarn bench:e2e` runs in CI (stage `Browser perf`, with `run_perf`) but is **reported, never gated**. Like the gate,
   it needs `dist-ref/` from `yarn bench:ref` and refuses to start without it.
 - The seed loop passes the *same* stroke objects to `addSymbol`, so since E5 those objects are frozen
   by the commit. Any case that iterates `strokes` is measuring frozen records. This is intentional —
@@ -264,7 +267,7 @@ can claim to have moved it. Until then treat 66 as folklore.
 
 The `structuredClone` count did not move, and the E5 acceptance criterion that asked for zero is
 **not met**. What E5 removed was the clone on every *read* of the interactive document; the thirteen
-remaining sites are elsewhere and mostly legitimate — `SymbolStore.draftSymbol` clones on purpose
+remaining sites are elsewhere and mostly legitimate — `SymbolStore.draft` clones on purpose
 (that is how a frozen record becomes writable), and the rest are in `Model`, `IModel` and
 `symbol/legacy/Stroke`, which serve the non-interactive canvas variants. The criterion was written
 against a counter, not against a behaviour, and the counter was the wrong instrument.

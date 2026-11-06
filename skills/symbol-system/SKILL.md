@@ -46,11 +46,10 @@ and distance from it — see `src/core/geometry/shapes/`.
 
 Co-located with each type, not centralized:
 
+Defined in `src/symbol/stroke/Stroke.ts` (`isStroke`, `isRecognizedMath`, `isRecognizedText`, `isStrokeSolverOutput`), `src/symbol/typeset/Text.ts` (`isText`), `src/symbol/typeset/Math.ts` (`isMath`), `src/symbol/decorator/Decorator.ts` (`isDecorator`). Import them through the barrel (`iink/barrel-imports` lint rule):
+
 ```typescript
-import { isStroke, isRecognizedMath, isRecognizedText } from "@/symbol/stroke/Stroke"
-import { isText } from "@/symbol/text/Text"
-import { isMath } from "@/symbol/math/Math"
-import { isDecorator } from "@/symbol/decorator/Decorator"
+import { isDecorator, isMath, isStroke, isText } from "@/symbol"
 
 // Narrow before accessing type-specific properties
 if (isStroke(symbol)) {
@@ -64,36 +63,44 @@ If a type guard you need doesn't exist, add it next to the type definition — n
 
 ## IIModel Interactions
 
-`IIModel` stores symbols in a `Map<string, TSymbol>` (keyed by `symbol.id`):
+`IIModel` keeps symbols in a `SymbolStore` (`src/store/`), in stacking order. Committed records are **frozen**: never mutate one, draft it and commit it back.
 
 ```typescript
-model.addSymbol(symbol)      // adds to map + updates bounding box cache
-model.getSymbol(id)          // returns TSymbol | undefined
-model.symbols                // returns TSymbol[] (from map values)
+model.getSymbol(id)                 // TSymbol | undefined — the frozen record
+model.symbols                       // TSymbol[] in stacking order (the records themselves)
+model.symbolCount                   // count without building the list
+model.addSymbol(symbol)
+const draft = model.draftSymbol(id) // mutable copy (TDraft<TSymbol>)
+model.commitSymbol(draft)           // stores it back, same position, bumps modificationDate
+model.updateSymbol(symbol)          // replace by id
+model.replaceSymbol(id, symbols)
+model.changeOrderSymbol(id, position)
 model.removeSymbol(id)
-model.updateSymbol(symbol)   // replace by id
 ```
 
-**Cache invalidation**: `IIModel` caches bounding boxes. After bulk mutations, call `model.resetBoundingBox()`.
+Geometry (bounds, vertices…) is not stored on the model or the symbol: ask `SymbolGeometry` (`src/symbol-utils/SymbolGeometry.ts`), which caches a `Geometry2d` per frozen record. On a canvas, prefer `canvas.addSymbol`/`updateSymbol`/`removeSymbol` — they also render, sync the backend and record history.
 
 ## SymbolFactory
 
-Use `SymbolFactory` (`src/symbol-utils/SymbolFactory.ts`) to create symbols — never construct a type literal directly:
+`src/symbol-utils/SymbolFactory.ts` holds two functions (no class) that ask the registry which util owns `partial.type` — never construct a type literal directly:
 
 ```typescript
-import { SymbolFactory } from "@/symbol-utils"
+import { createSymbolFromPartial, createSymbolsFromPartial } from "@/symbol-utils"
+
+const symbol = createSymbolFromPartial({ type: "shape", kind: "circle", /* … */ })
+const symbols = createSymbolsFromPartial(partials) // accumulates errors, throws once
 ```
 
-Creating symbols by hand bypasses ID generation and default style merging.
+Requires `registerBuiltinSymbolUtils()` to have run (canvases do it in `initialize()`). For a known type, the util's statics work too (`StrokeUtil.createEmpty`, `ShapeUtil.createCircleBetweenPoints`). Creating symbols by hand bypasses ID generation and default style merging.
 
 ## Common Mistakes
 
 | Mistake | Fix |
 |---------|-----|
-| `symbol.type === "stroke"` inline check | Use `isStroke(symbol)` from `@/symbol/stroke/Stroke` |
+| `symbol.type === "stroke"` inline check | Use `isStroke(symbol)` from `@/symbol` |
 | Assuming `SymbolHelpers` dispatches by type | It only has `cloneSymbol()` — use `symbolRegistry` |
 | Branching on `SymbolType` in a manager/renderer | Add/extend the type's util instead |
-| Mutating `model.symbols` array directly | Use `model.addSymbol()` / `model.removeSymbol()` |
+| Mutating a record from `model.symbols` / `getSymbol()` (frozen) | `draftSymbol(id)` → change → `commitSymbol(draft)` |
 | Looking for per-type logic in `src/symbol/` only | Rendering + capability flags live in `src/symbol-utils/` |
 
 ## Adding a New Symbol Type

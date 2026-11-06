@@ -349,13 +349,13 @@ If you encounter the error: `Unrecognized property: convert.force`, this means y
 To correct the problem, you have 2 options:
 
 - either update your server
-- either add in the iink-ts configuration `configuration.server.info.version = 2.2.0`
+- either add in the iink-ts configuration `configuration.server.version = "2.2.0"`
 
 If you encounter the error: `Unrecognized property: configuration.export.jiix.text.lines`, this means your server version is lower than 3.2.0.
 To correct the problem, you have 2 options:
 
 - either update your server
-- either add in the iink-ts configuration `configuration.server.info.version = 3.1.0`
+- either add in the iink-ts configuration `configuration.server.version = "3.1.0"`
 
 ## License
 

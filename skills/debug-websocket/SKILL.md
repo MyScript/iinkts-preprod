@@ -12,7 +12,7 @@ Applies to `WebSocketClient` (`src/client/websocket/WebSocketClient.ts`), used b
 
 ## Quick Diagnostic Checklist
 
-1. **Is the connection open?** Check `canvas.client.initialized.promise` resolves.
+1. **Is the connection open?** Check `canvas.initializationPromise` resolves (it is `canvas.client.initialized.promise`).
 2. **Is the session authenticated?** Look for the `hmacChallenge` → `hmac` → `authenticated` exchange (see flow below).
 3. **Are strokes being sent?** Enable verbose logs (see below).
 4. **Is the server responding?** Check for `contentChanged` messages.
@@ -23,9 +23,11 @@ Applies to `WebSocketClient` (`src/client/websocket/WebSocketClient.ts`), used b
 ```typescript
 import { LoggerManager, LoggerCategory, LoggerLevel } from "iink-ts"
 
-// Increase log level for the client only
-LoggerManager.setLoggerLevel(LoggerCategory.CLIENT, LoggerLevel.DEBUG)
+// Increase log level for the client only — setLoggerLevel takes a { [category]: level } map
+LoggerManager.setLoggerLevel({ [LoggerCategory.CLIENT]: LoggerLevel.DEBUG })
 ```
+
+Or at load time: `configuration.logger: { [LoggerCategory.CLIENT]: LoggerLevel.DEBUG }`.
 
 Logs are structured objects, not string-prefixed lines (`src/logger/logger.ts`):
 ```js
@@ -43,7 +45,7 @@ Filter the console on `from: "CLIENT."` to isolate client logs.
 ```
 → authenticate
 ← hmacChallenge         (server sends { hmacChallenge, iinkSessionId })
-→ hmac                  (client sends computeHmac(hmacChallenge, applicationKey, hmacKey))
+→ hmac                  (client sends resolveHmac(server, hmacChallenge): server.sign(...) or computeHmac(...))
 ← authenticated
 → initSession           (or restoreSession if a sessionId already exists)
 ← sessionDescription
@@ -90,7 +92,7 @@ Real codes are standard WebSocket close codes, mapped in `mapCloseCodeToMessage(
 
 Fix guidance:
 - `1006`/`CANT_ESTABLISH` → check network/host reachability, let the built-in reconnection run (see Reconnection below) rather than hand-rolling retry logic.
-- `WRONG_CREDENTIALS` → check `applicationKey`/`hmacKey` in `configuration.server`.
+- `WRONG_CREDENTIALS` → check `applicationKey` and `sign`/`hmacKey` in `configuration.server` (with `sign`, check what the signing server returns).
 - `NO_SESSION_FOUND`/`TOO_OLD` → re-`init()` a new session; export first if you need to preserve content (`ClientError.NO_SESSION_FOUND` message explicitly recommends export-then-reimport to avoid losing work).
 
 ## Trace Recognition Pipeline in Code
@@ -100,7 +102,7 @@ Fix guidance:
 // src/client/websocket/WebSocketClient.ts → addStrokes()
 
 // 2. Where the raw message is parsed and dispatched
-// src/client/websocket/WebSocketClient.ts → protected messageCallback() (line ~587)
+// src/client/websocket/WebSocketClient.ts → protected messageCallback()
 // Unknown message types log a warning: "Message type unknown: ..."
 
 // 3. Where the export/content update reaches the canvas
@@ -112,8 +114,8 @@ Fix guidance:
 
 ## Intercept Messages at Runtime
 
-Temporary debug snippet (remove before commit):
-```typescript
+Temporary debug snippet, in the browser console (remove before commit). `socket` is `protected`, so this is plain JS, not typed code — in TypeScript, subclass `WebSocketClient` and pass it through `options.override.client` instead:
+```javascript
 const client = canvas.client // WebSocketClient instance, exposed as a public property
 const rawSend = client.socket.send.bind(client.socket)
 client.socket.send = (data) => {
@@ -134,13 +136,13 @@ client.socket.addEventListener("message", (e) => {
 
 ## HMAC Computation
 
-If auth fails, verify manually — note the real parameter order is `(message, applicationKey, hmacKey)`, and the message signed is the challenge string, not an arbitrary payload:
+Clients sign through `resolveHmac(server, message)` (`src/client/shared/HmacAuth.ts`): `server.sign(message, applicationKey)` when set (production), else a string `hmacKey` (development). If auth fails with `hmacKey`, verify manually — note the real parameter order is `(message, applicationKey, hmacKey)`, and the message signed is the challenge string, not an arbitrary payload:
 ```typescript
 import { computeHmac } from "iink-ts"
 const hash = await computeHmac(hmacChallengeString, applicationKey, hmacKey)
 ```
 
-Contrast with HTTP clients (`HTTPClientV2`/`HTTPClientV1`): there, `computeHmac(JSON.stringify(requestBody), applicationKey, hmacKey)` is sent as an `hmac` **request header**, not exchanged via a challenge message.
+Contrast with HTTP clients (`HTTPClientV2`/`HTTPClientV1`, via `src/client/http/HTTPRecognition.ts`): there, `resolveHmac(server, JSON.stringify(requestBody))` is sent as an `hmac` **request header**, not exchanged via a challenge message.
 
 ## Reconnection Behavior
 
@@ -152,4 +154,4 @@ One reconnection path in `WebSocketClient.ts` — if changes seem to vanish afte
 
 ## Checking Connection State
 
-There's no separate documented state-machine enum — check `canvas.client.socket.readyState` directly against the native `WebSocket` constants (`CONNECTING`, `OPEN`, `CLOSING`, `CLOSED`), and `canvas.client.initialized.promise` for whether the handshake completed.
+Public state: `canvas.connectionState` (`TCanvasConnectionState`), the `CONNECTION_STATUS_CHANGED` event (`"connected" | "offline" | "error"`), and `canvas.initializationPromise` for whether the handshake completed. For the raw socket, check `canvas.client.socket.readyState` (protected — console only) against the native `WebSocket` constants.

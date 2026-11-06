@@ -70,12 +70,12 @@ export type TSymbol = TEdge | TShape | TStroke | TText | TMath | TDecorator | TY
 
 ### 5. Create the util
 
-`src/symbol-utils/yourtype/YourTypeUtil.ts`. Three members are required; everything else is inherited.
+`src/symbol-utils/yourtype/YourTypeUtil.ts`. Four abstract members are required (`type`, `create`, `getGeometry`, `getSVGElement`); everything else is inherited. Cross-folder imports go through the barrel (`iink/barrel-imports` lint rule):
 
 ```typescript
-import { Polygon2d, type Geometry2d, BoxOps } from "@/core/geometry"
-import { SymbolType } from "@/symbol/Symbol"
-import type { TYourType } from "@/symbol/yourtype/YourType"
+import { BoxOps, type Geometry2d, Polygon2d, type TPartialDeep } from "@/core"
+import { SymbolType, type TYourType } from "@/symbol"
+
 import { SymbolUtil } from "../SymbolUtil"
 
 export class YourTypeUtil extends SymbolUtil<TYourType> {
@@ -125,8 +125,10 @@ Check which managers need to handle the new type:
 
 ### 9. Write tests
 
-- `test/unit/symbol/yourtype/YourType.test.ts` — `create()`, `createFromPartial()` with missing fields, `overlaps()` inside/outside box
-- `test/unit/symbol-utils/yourtype/YourTypeUtil.test.ts` — adapter delegates correctly, `getSVGElement()` produces expected structure
+Import everything through `@/iink` (unit tests never import `@/symbol` or deeper paths).
+
+- `test/unit/symbol/yourtype/YourType.test.ts` — the guard
+- `test/unit/symbol-utils/yourtype/YourTypeUtil.test.ts` — `create()`, `createFromPartial()` with missing fields, `getGeometry()` / `overlaps()` inside/outside box, `getSVGElement()` produces expected structure
 
 ## Checklist
 
@@ -138,6 +140,6 @@ Check which managers need to handle the new type:
 - [ ] Registered in `registerBuiltinSymbolUtils`
 - [ ] Exported from `src/symbol-utils/index.ts`
 - [ ] Manager handling verified
-- [ ] Tests written, ≥75% coverage
-- [ ] `yarn typecheck` clean
+- [ ] Tests written (global threshold: 88% branches/lines/statements, 86% functions)
+- [ ] `yarn typecheck` and `yarn lint` clean
 - [ ] `yarn test:unit` passes
