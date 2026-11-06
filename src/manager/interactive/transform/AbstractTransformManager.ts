@@ -115,7 +115,7 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
    * The live gesture, previewed on the standalone decorators carried by `symbols`.
    *
    * Only those whose every target is in `symbols`: they are the ones the commit moves by the same
-   * matrix (see {@link updateDecoratorsForTargets}), so previewing them any other way would show a
+   * matrix (see `updateDecoratorsForTargets`), so previewing them any other way would show a
    * decoration that jumps on release. A decorator only partly moved has its box refitted at commit
    * instead, which a matrix cannot preview.
    */
