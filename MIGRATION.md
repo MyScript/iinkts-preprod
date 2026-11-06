@@ -122,7 +122,8 @@ The same call takes any part of the recognition configuration, the math solver i
 
 `updateSymbols(ids, patch, addToHistory?)` and `updateSymbol(id, patch, addToHistory?)` take ids, not
 records. The patch is an object (`style`, `font`) or a function that changes a draft of each symbol.
-`updateSymbolsStyle` and `updateTextFontStyle` are gone.
+`updateSymbolsStyle` and `updateTextFontStyle` are gone from `InteractiveInkCanvas` (`InkCanvas` keeps
+`updateSymbolsStyle`).
 
 ```ts
 // v4

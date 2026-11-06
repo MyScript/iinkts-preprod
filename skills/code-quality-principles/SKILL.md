@@ -35,7 +35,7 @@ function processStroke(stroke) { return isValidStroke(stroke) ? normalizeStroke(
 ## Unit tests (mandatory)
 
 - Mirror architecture: `test/unit/` mirrors `src/`
-- Coverage ≥75% (branches/functions/lines/statements)
+- Global coverage threshold: 88% branches/lines/statements, 86% functions (`test/unit/jest.config.js`)
 - Naming `{ClassName}.test.ts`
 - Minimum per function: nominal case, error case, edge case (null/undefined/empty/zero)
 
@@ -51,5 +51,6 @@ function processStroke(stroke) { return isValidStroke(stroke) ? normalizeStroke(
 - [ ] Functions ≤20 lines, one abstraction level
 - [ ] Explicit names (no comment needed)
 - [ ] Early returns for failure cases
-- [ ] Unit tests present, `yarn test:unit --coverage` ≥75%
+- [ ] Unit tests present, `yarn test:unit:coverage` passes the threshold
 - [ ] `yarn typecheck` clean
+- [ ] `yarn lint` clean (barrel imports: `@/x` across folders, `@/iink` in tests)

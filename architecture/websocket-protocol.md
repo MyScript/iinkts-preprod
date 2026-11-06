@@ -2,7 +2,7 @@
 
 Full message lifecycle used by `InteractiveInkCanvas` (`src/canvas/variants/InteractiveInkCanvas.ts`) via `WebSocketClient` (`src/client/websocket/WebSocketClient.ts`) against the MyScript Cloud recognition server. All message shapes come from `TWebSocketClientMessageType` in `src/client/websocket/WebSocketClientMessage.ts`.
 
-> Note: the `debug-websocket` and `recognizer-system` project skills describe a different, outdated protocol (`src/recognizer/...`, message types like `strokesAdded`/`sessionInitialized`) — that path no longer exists in the codebase. This document reflects the current `src/client/websocket/WebSocketClient.ts` implementation; treat it as the source of truth.
+> This document reflects the current `src/client/websocket/WebSocketClient.ts` implementation; treat it as the source of truth. The `client-system` and `debug-websocket` skills cover the same client from the development and debugging angles.
 
 ```mermaid
 sequenceDiagram
@@ -17,7 +17,7 @@ sequenceDiagram
     Client->>Server: WS connect wss://.../offscreen?applicationKey=...
     Client->>Server: {type: "authenticate", myscript-client-name, myscript-client-version}
     Server-->>Client: {type: "hmacChallenge", hmacChallenge, iinkSessionId}
-    Client->>Client: server.sign(hmacChallenge) or computeHmac(hmacChallenge, applicationKey, hmacKey)
+    Client->>Client: resolveHmac(server, hmacChallenge): server.sign(...) or computeHmac(hmacChallenge, applicationKey, hmacKey)
     Client->>Server: {type: "hmac", hmac}
     Server-->>Client: {type: "authenticated"}
 
@@ -27,7 +27,7 @@ sequenceDiagram
     Client->>Server: {type: "newContentPart", contentType, mimeTypes}
     Server-->>Client: {type: "newPart", id, idx}
     Client->>Canvas: resolve initialized promise
-    Canvas-->>App: await editor.initialized.promise resolves
+    Canvas-->>App: await canvas.initializationPromise resolves
 
     %% keepalive (parallel, independent worker)
     loop every pingDelay (15s)
@@ -121,7 +121,7 @@ One path in `WebSocketClient.ts`, switched by `configuration.server.websocket.au
 | Protocol state machine | `src/client/websocket/WebSocketClient.ts` |
 | Message type enum + payload shapes | `src/client/websocket/WebSocketClientMessage.ts` |
 | HMAC/applicationKey config | `src/client/shared/ServerConfiguration.ts` |
-| HMAC computation | `src/utils/crypto.ts` |
+| HMAC signature (`sign` or `hmacKey`) | `src/client/shared/HmacAuth.ts` (`resolveHmac`), `src/client/shared/crypto.ts` (`computeHmac`) |
 | Public event surface | `src/client/shared/ClientEvent.ts` |
 | Close-code → message mapping | `src/client/shared/ClientError.ts` |
 | Editor-side wiring (init/undo/redo/export/destroy) | `src/canvas/variants/InteractiveInkCanvas.ts` |
