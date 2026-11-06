@@ -1,6 +1,6 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
 import { buildIIMath, buildIIStroke, buildIIText } from "../../../helpers"
-import { BoxOps, EdgeUtil, IIConnectorManager, IIRotationManager, MathUtil, MatrixTransform, OBBOps, ShapeUtil, StrokeUtil, SvgElementRole, SymbolGeometry, TBaseSymbol, TPoint, TStroke, TSymbol, TextUtil, computeRotatedPoint, convertDegreeToRadian } from "@/iink"
+import { BoxOps, DecoratorKind, DecoratorUtil, EdgeUtil, IIConnectorManager, IIRotationManager, MathUtil, MatrixTransform, OBBOps, ShapeUtil, StrokeUtil, SvgElementRole, SymbolGeometry, TBaseSymbol, TDecorator, TPoint, TStroke, TSymbol, TextUtil, computeRotatedPoint, convertDegreeToRadian } from "@/iink"
 
 describe("IIRotationManager.ts", () => {
   test("should create", () => {
@@ -585,5 +585,59 @@ describe("start() — selection containing an unregistered symbol type", () => {
     // Center comes only from the registered stroke's bounds (5,5) — the orphan at (1000,1000)
     // must not have pulled it off toward the far corner.
     expect(manager.center).toEqual({ x: 5, y: 5 })
+  })
+  describe("standalone decorators turn with their targets", () => {
+    const buildDecoratedStroke = (canvas: ReturnType<typeof createCanvasMock>) => {
+      const stroke = buildIIStroke({ box: { x: 0, y: 0, width: 40, height: 10 } })
+      canvas.model.addSymbol(stroke)
+      const decorator = DecoratorUtil.createDecorator(DecoratorKind.Underline, {}, [stroke.id], {
+        x: 0,
+        y: 0,
+        width: 40,
+        height: 10,
+      })
+      canvas.model.addSymbol(decorator)
+      return { stroke, decorator }
+    }
+
+    test("a committed rotation gives the decorator the same matrix as its target", () => {
+      const canvas = createCanvasMock()
+      const manager = new IIRotationManager(asCanvas(canvas))
+      const { stroke, decorator } = buildDecoratedStroke(canvas)
+      const matrix = MatrixTransform.identity().rotate(convertDegreeToRadian(30), { x: 20, y: 5 })
+
+      manager.applyMatrix([stroke], matrix)
+
+      const newStroke = canvas.model.getSymbol(stroke.id)!
+      const newDeco = canvas.model.getSymbol(decorator.id) as TDecorator
+      expect(newDeco.transform).toEqual(newStroke.transform)
+      expect(newDeco.targetBounds).toEqual(decorator.targetBounds)
+      expect(DecoratorUtil.renderForSymbol(newDeco, newDeco)?.getAttribute("transform")).toBe(
+        MatrixTransform.toCssString(newStroke.transform)
+      )
+    })
+
+    test("the rotation preview turns the decorator element with its target", () => {
+      const canvas = createCanvasMock()
+      const { stroke, decorator } = buildDecoratedStroke(canvas)
+      canvas.model.selectSymbol(stroke.id)
+
+      const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+      group.setAttribute("id", "decorated-group")
+      group.setAttribute("role", SvgElementRole.InteractElementsGroup)
+      const target = document.createElementNS("http://www.w3.org/2000/svg", "circle")
+      group.appendChild(target)
+
+      const manager = new IIRotationManager(asCanvas(canvas))
+      manager.start(target, { x: 0, y: 0 })
+      manager.center = { x: 0, y: 0 }
+      manager.origin = { x: 1, y: 0 }
+      manager.continue({ x: 0, y: 1 })
+
+      const calls = (canvas.renderer.setAttribute as jest.Mock).mock.calls
+      const written = (id: string) => calls.find(([callId, name]) => callId === id && name === "transform")?.[2]
+      expect(written(decorator.id)).toBe("matrix(0, 1, -1, 0, 0, 0)")
+      expect(written(decorator.id)).toBe(written(stroke.id))
+    })
   })
 })

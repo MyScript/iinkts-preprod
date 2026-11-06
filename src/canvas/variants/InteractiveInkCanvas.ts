@@ -908,9 +908,9 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     if (geometryTargets.length) {
       // Losing a target shrinks the decorator: its box is an input, so nothing else would
       // narrow it and the underline would keep spanning the erased stroke.
-      DecoratorUtil.setTargetBounds(
+      DecoratorUtil.refitTargetBounds(
         draft,
-        OBBOps.createFromOBBs(geometryTargets.map((s) => SymbolGeometry.boundsOf(s)))
+        geometryTargets.map((s) => SymbolGeometry.boundsOf(s))
       )
     }
     this.model.updateSymbol(draft)

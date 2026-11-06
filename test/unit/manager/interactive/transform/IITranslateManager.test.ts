@@ -696,13 +696,12 @@ describe("IIC-1999, a selection of typeset symbols", () => {
     expect((canvas.model.symbols[0] as TText).transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 10, ty: 15 })
   })
   /**
-   * A decorator's `targetBounds` is an input: `DecoratorUtil.applyTransform` is a no-op, so no
-   * matrix carries it, and `updateDecoratorsForTargets` is the only thing that keeps it in step
-   * with the symbols the decorator sits over. Nothing covered that writer, which is why deleting
-   * it read as free — these tests are what makes it cost something.
+   * `DecoratorUtil.applyTransform` is a no-op, so `updateDecoratorsForTargets` is the only thing
+   * that keeps a standalone decorator in step with the symbols it sits over: it composes their
+   * matrix onto the decorator when they all moved, and refits its box when only some did.
    */
-  describe("standalone decorator targetBounds follow translated targets", () => {
-    test("translate() recomputes the decorator's targetBounds from its (moved) target symbols", async () => {
+  describe("standalone decorators follow translated targets", () => {
+    test("translate() moves the decorator by the same matrix as its target", async () => {
       const canvas = createCanvasMock()
       const manager = new IITranslateManager(asCanvas(canvas))
 
@@ -720,9 +719,57 @@ describe("IIC-1999, a selection of typeset symbols", () => {
       await manager.translate([stroke], 10, 20, false)
 
       const newDeco = canvas.model.getSymbol(decorator.id) as TDecorator
-      expect(newDeco.targetBounds!.center).toEqual(
+      expect(newDeco.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 10, ty: 20 })
+      expect(newDeco.targetBounds!.center).toEqual(centerBefore)
+      expect(SymbolGeometry.boundsOf(newDeco).center).toEqual(
         expect.objectContaining({ x: centerBefore.x + 10, y: centerBefore.y + 20 })
       )
+    })
+
+    test("translate() records the decorator it moved in the history entry, so undo brings it back", async () => {
+      const canvas = createCanvasMock()
+      const manager = new IITranslateManager(asCanvas(canvas))
+
+      const stroke = buildIIStroke()
+      canvas.model.addSymbol(stroke)
+      const decorator = DecoratorUtil.createDecorator(
+        DecoratorKind.Underline,
+        {},
+        [stroke.id],
+        OBBOps.toBox(SymbolGeometry.boundsOf(stroke))
+      )
+      canvas.model.addSymbol(decorator)
+
+      await manager.translate([stroke], 10, 20)
+
+      const changes = (canvas.history.push as jest.Mock).mock.calls[0][0]
+      const pair = changes.updated.find((p: { before: TSymbol }) => p.before.id === decorator.id)
+      expect(pair.before.transform).toEqual(MatrixTransform.identity())
+      expect(pair.after.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 10, ty: 20 })
+    })
+
+    test("translate() refits the box of a decorator whose targets only partly moved", async () => {
+      const canvas = createCanvasMock()
+      const manager = new IITranslateManager(asCanvas(canvas))
+
+      const moved = buildIIStroke({ box: { x: 0, y: 0, width: 10, height: 10 } })
+      const still = buildIIStroke({ box: { x: 20, y: 0, width: 10, height: 10 } })
+      canvas.model.addSymbol(moved)
+      canvas.model.addSymbol(still)
+      const decorator = DecoratorUtil.createDecorator(DecoratorKind.Highlight, {}, [moved.id, still.id], {
+        x: 0,
+        y: 0,
+        width: 30,
+        height: 10,
+      })
+      canvas.model.addSymbol(decorator)
+
+      await manager.translate([moved], 0, 40, false)
+
+      const newDeco = canvas.model.getSymbol(decorator.id) as TDecorator
+      const expected = OBBOps.createFromOBBs([moved, still].map((s) => SymbolGeometry.boundsOf(canvas.model.getSymbol(s.id)!)))
+      expect(newDeco.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 0, ty: 0 })
+      expect(newDeco.targetBounds).toEqual(expected)
     })
 
     test("translate() leaves other decorators (not targeting a moved symbol) untouched", async () => {
@@ -747,7 +794,7 @@ describe("IIC-1999, a selection of typeset symbols", () => {
       expect(decorator.targetBounds!.center).toEqual(centerBefore)
     })
 
-    test("translate() shifts the decorator's baseline vertically along with its target stroke", async () => {
+    test("translate() keeps the decorator's baseline in its local frame, carried by its matrix", async () => {
       const canvas = createCanvasMock()
       const manager = new IITranslateManager(asCanvas(canvas))
 
@@ -766,7 +813,8 @@ describe("IIC-1999, a selection of typeset symbols", () => {
       await manager.translate([stroke], 0, 50, false)
 
       const newDeco = canvas.model.getSymbol(decorator.id) as TDecorator
-      expect(newDeco.baseline).toBe(150)
+      expect(newDeco.baseline).toBe(100)
+      expect(newDeco.transform.ty).toBe(50)
     })
   })
 })

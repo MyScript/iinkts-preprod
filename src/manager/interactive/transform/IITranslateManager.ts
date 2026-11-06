@@ -58,7 +58,7 @@ export class IITranslateManager extends IIAbstractTransformManager {
     // with `addToHistory` false and would pay for clones nobody reads.
     const preTransformSnapshots = addToHistory ? symbols.map((s) => cloneSymbol(s)) : []
     const matrix = MatrixTransform.identity().translate(tx, ty)
-    this.applyAndDraw(symbols, matrix)
+    const movedDecorators = this.applyAndDraw(symbols, matrix)
     this.applyTransformToGhostStrokesForSelectedMath(symbols, matrix)
     // Pre-convert edge strokes and converted Line/PolyEdge/Arc anchors moved by the connector,
     // not by applyAndDraw above. Rigidly-moved raw strokes are recorded alongside the selection;
@@ -81,6 +81,7 @@ export class IITranslateManager extends IIAbstractTransformManager {
       this.recordTransformed(changes, [
         ...preTransformSnapshots,
         ...this.resolveFollowedSymbols(rigidStrokeIds, symbols),
+        ...movedDecorators,
       ])
       appendUpdated(
         changes,
@@ -128,6 +129,7 @@ export class IITranslateManager extends IIAbstractTransformManager {
     this.model.symbolsSelected.forEach((s) => {
       this.previewTransform(s, matrix)
     })
+    this.previewDecorators(this.model.symbolsSelected, matrix)
     this.getGhostStrokeIdsForSelectedMath(this.model.symbolsSelected).forEach((id) => {
       this.previewElementTransform(id, matrix)
     })

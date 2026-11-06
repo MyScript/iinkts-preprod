@@ -118,4 +118,26 @@ describe("DecoratorUtil", () => {
       expect(decoratorGeometry(d).overlapsBox({ x: 0, y: 0, width: 100, height: 100 })).toBe(false)
     })
   })
+
+  describe("refitTargetBounds", () => {
+    test("fits the box in the decorator's own frame, so its matrix still places it", () => {
+      const d = DecoratorUtil.createDecorator(DecoratorKind.Underline, {})
+      d.transform = MatrixTransform.identity().rotate(Math.PI / 2, { x: 0, y: 0 })
+      // In document coordinates, a 10x40 box: the 40x10 local box turned by 90 degrees.
+      DecoratorUtil.refitTargetBounds(d, [OBBOps.fromBox({ x: -10, y: 0, width: 10, height: 40 })])
+      expect(d.targetBounds!.center.x).toBeCloseTo(20)
+      expect(d.targetBounds!.center.y).toBeCloseTo(5)
+      expect(d.targetBounds!.width).toBeCloseTo(40)
+      expect(d.targetBounds!.height).toBeCloseTo(10)
+    })
+
+    test("with an identity matrix, is the union of the targets' boxes", () => {
+      const d = DecoratorUtil.createDecorator(DecoratorKind.Highlight, {})
+      DecoratorUtil.refitTargetBounds(d, [
+        OBBOps.fromBox({ x: 0, y: 0, width: 10, height: 10 }),
+        OBBOps.fromBox({ x: 20, y: 5, width: 10, height: 10 }),
+      ])
+      expect(d.targetBounds).toEqual(OBBOps.fromBox({ x: 0, y: 0, width: 30, height: 15 }))
+    })
+  })
 })
