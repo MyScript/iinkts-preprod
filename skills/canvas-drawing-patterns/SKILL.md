@@ -7,9 +7,9 @@ description: Canvas/ink-editor architecture checklist for iinkTS (manager lifecy
 
 ## Manager lifecycle
 
-A manager that adds an event listener or holds a resource (timer, subscription) MUST implement `destroy()` and get called on editor teardown.
+A manager that adds an event listener or holds a resource (timer, subscription) MUST release it — in the `onDestroy()` hook of `IIAbstractManager` (called by `destroy()`), or at the end of the gesture for per-drag listeners — and its `destroy()` must be called from the canvas's `destroy()`.
 
-Verify before adding a new listener: `grep -rl "addEventListener\|addListener" src/manager` then confirm each hit overrides `destroy()` from `IIAbstractManager`. Managers currently holding listeners: `IIOverlayManager`, `IDebugSVGManager`, `IIKeyboardManager`, `IISelectionManager` — check their cleanup coverage before extending them.
+Verify before adding a new listener: `grep -rl "addEventListener\|addListener" src/manager` then confirm each hit removes it. Managers currently holding listeners: `IIOverlayManager`, `IDebugSVGManager`, `IIKeyboardManager` (`attach`/`detach`), `IISelectionManager` (per gesture), `PDFExportManager` — check their cleanup coverage before extending them.
 
 ## API design
 

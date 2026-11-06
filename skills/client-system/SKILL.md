@@ -25,12 +25,13 @@ The client system handles communication with the MyScript Cloud backend for hand
 
 ## WebSocket Protocol Flow
 
-**Implementation**: [src/client/websocket/WebSocketClient.ts](src/client/websocket/WebSocketClient.ts) — a sequence diagram already lives in the doc comment at the top of the file (lines 36-55), consult it first.
+**Implementation**: [src/client/websocket/WebSocketClient.ts](src/client/websocket/WebSocketClient.ts) — a sequence diagram already lives in the doc comment above the `WebSocketClient` class ("A websocket dialog have this sequence"), consult it first. The full message lifecycle is in `architecture/websocket-protocol.md`.
 
 ### 1. Connection + handshake
 
 ```typescript
-// URL built in the constructor:
+// URL built in the constructor by serverUrl(server, "offscreen", { websocket: true, query })
+// (src/client/shared/ServerConfiguration.ts):
 // `${scheme}://${host}/api/v4.0/iink/offscreen?applicationKey=${applicationKey}`
 // scheme is "wss" if server.scheme === "https", else "ws"
 
@@ -46,8 +47,8 @@ Auth is a **message-field challenge/response**, not an HTTP header (that's HTTP-
 // 2. Server → Client
 ← { type: 'hmacChallenge', hmacChallenge, iinkSessionId }
 
-// 3. Client computes HMAC over the challenge string and replies
-→ { type: 'hmac', hmac: computeHmac(hmacChallenge, applicationKey, hmacKey) }
+// 3. Client signs the challenge string (server.sign, or hmacKey in development) and replies
+→ { type: 'hmac', hmac: await resolveHmac(server, hmacChallenge) }
 
 ← { type: 'authenticated' }
 
@@ -107,7 +108,7 @@ There is **no `convert` message** on the WebSocket protocol — conversion is an
 
 There is **no `close`/`closed` JSON message**. Closing the session is a native `WebSocket.close(code, reason)` call, handled via the native `CloseEvent`, not a protocol message.
 
-**Type definitions**: [src/client/websocket/WebSocketClientMessage.ts](src/client/websocket/WebSocketClientMessage.ts) — full server→client enum `TWebSocketClientMessageType`: `hmacChallenge, authenticated, sessionDescription, newPart, partChanged, contentChanged, idle, pong, exported, gestureDetected, contextlessGesture, mathSolverResult, error, ack`.
+**Type definitions**: [src/client/websocket/WebSocketClientMessage.ts](src/client/websocket/WebSocketClientMessage.ts) — full server→client enum `TWebSocketClientMessageType`: `hmacChallenge, authenticated, sessionDescription, newPart, partChanged, configurationChanged, contentChanged, idle, pong, exported, gestureDetected, contextlessGesture, mathSolverResult, error, ack`.
 
 ### Event emission
 
@@ -174,21 +175,24 @@ Errors: non-OK response throws { code, message } (TApiError)
 
 ## Message Handling Pattern: DeferredPromise
 
-[src/core/std/DeferredPromise.ts](src/core/std/DeferredPromise.ts) — `.promise`/`.resolve`/`.reject`/`.isFullFilled`/`.isPending`. Used throughout `WebSocketClient` to track pending round trips keyed by `blockId`/`strokeId`/mimeType, since the protocol has no universal correlation id:
+[src/core/std/DeferredPromise.ts](src/core/std/DeferredPromise.ts) — `.promise`/`.resolve`/`.reject`/`.isFullFilled`/`.isPending`. `WebSocketClient` tracks pending round trips with `waitForAnswer(key, neutral)`, keyed by a string (`export:<mimeType>`, a `blockId`…) since the protocol has no universal correlation id; the message handlers settle them by key (`answer()` / `settlePending()`):
 
 ```typescript
-async export(requestedMimeTypes?: string[]): Promise<TExport> {
-  const deferred = new DeferredPromise<TExport>()
-  this.#exportDeferredMap.set(id, deferred)
-  this.send({ type: 'export', ... })
-  return deferred.promise
+protected async sendExport(requestedMimeTypes?: string[]): Promise<TExport> {
+  const mimeTypes = requestedMimeTypes || this.mimeTypes.slice()
+  await this.send({ type: "export", partId: this.currentPartId, mimeTypes })
+  const deferreds = mimeTypes.map((mt) => this.waitForAnswer(`export:${mt}`, {}))
+  return Object.assign({}, ...(await Promise.all(deferreds.map((d) => d.promise))))
 }
 ```
+
+`export()` chains calls through `exportQueue`, so concurrent exports never interleave.
 
 ## Authentication summary
 
 - **WebSocket**: message-field challenge/response (`hmacChallenge` → client replies `{ type: 'hmac', hmac }`). See flow above.
-- **HTTP**: `computeHmac(JSON.stringify(body), applicationKey, hmacKey)` sent as a plain `hmac` request header alongside `applicationKey` header — no challenge round trip.
+- **HTTP**: `resolveHmac(server, JSON.stringify(body))` (`src/client/http/HTTPRecognition.ts`) sent as a plain `hmac` request header alongside `applicationKey` header — no challenge round trip.
+- Both: `server.sign` (signature from the integrator's server) in production, a string `hmacKey` only in development.
 
 ## Reconnection Strategy (WebSocketClient only)
 
@@ -216,7 +220,7 @@ Config in `ServerConfiguration.ts` (`DefaultServerWebsocketConfiguration`): `pin
 
 ## Testing Clients
 
-See `test/unit/client/` for real specs: `WebSocketClient.test.ts`, `WebSocketSSRClient.test.ts`, `HTTPClientV1.test.ts`, `HTTPClientV2.test.ts`.
+`test/unit/client/` mirrors `src/client/`: `websocket/WebSocketClient.test.ts`, `websocket/WebSocketSSRClient.test.ts`, `http/HTTPClientV1.test.ts`, `http/HTTPClientV2.test.ts`, `shared/HmacAuth.test.ts`…
 
 ## Best Practices
 

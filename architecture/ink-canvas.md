@@ -1,8 +1,8 @@
 # InkCanvas — Architecture
 
-`InkCanvas` is the HTTP batch editor variant (INKV2 protocol — simpler, stateless, `Canvas.load(element, "INKV2", options)`). It is a **sibling** of `InteractiveInkCanvas`, not a subclass — both extend the same `AbstractCanvas` base.
+`InkCanvas` is the HTTP batch editor variant (HTTP v2 — simpler, stateless, `Canvas.load(element, "INK_V2", options)`). It is a **sibling** of `InteractiveInkCanvas`, not a subclass — both extend the same `AbstractCanvas` base.
 
-The legacy `InkCanvasDeprecated` (INKV1, `@deprecated`) is documented alongside it since it shares the base class and illustrates why `InkCanvas` was introduced, but new code should never use it.
+The legacy `InkCanvasDeprecated` (`INK_V1`, `@deprecated`) is documented alongside it since it shares the base class and illustrates why `InkCanvas` was introduced, but new code should never use it.
 
 ## Overview
 
@@ -24,6 +24,7 @@ classDiagram
   InkCanvas *-- IDebugSVGManager : debugger
   InkCanvas *-- IHistoryManager : history
   InkCanvas *-- HTTPClientV2 : client
+  InkCanvas *-- LayoutManager : layout
   InkCanvas o-- SVGRenderer : renderer
   InkCanvas o-- IModel : model
   InkCanvas *-- InkCanvasConfiguration : configuration
@@ -75,11 +76,17 @@ classDiagram
     +writer: IWriterManager
     +eraser: EraseManager
     +debugger: IDebugSVGManager
+    +layout: LayoutManager
+    +model: IModel
+    +configuration: InkCanvasConfiguration
     +tool: CanvasTool
+    +penStyle: TStyle
+    +initializationPromise: Promise~void~
     +constructor(rootElement, options?)
     +initialize() Promise~void~
     +updateSymbolsStyle(ids, style) void
     +export(mimeTypes?) Promise~TExportV2~
+    +importStrokes(strokes) Promise~TExportV2~
     +removeStrokes(ids) Promise~void~
     +undo() Promise~void~
     +redo() Promise~void~
@@ -227,9 +234,9 @@ classDiagram
 | `InkCanvasDeprecated` | `src/canvas/variants/InkCanvasDeprecated.ts` |
 | `AbstractCanvas` | `src/canvas/AbstractCanvas.ts` |
 | `IWriterManager` (simple) | `src/manager/simple/IWriterManager.ts` |
-| `AbstractWriterManager` / `EraseManager` | `src/manager/base/` |
+| `AbstractWriterManager` / `EraseManager` / `LayoutManager` | `src/manager/base/` |
 | `IDebugSVGManager` | `src/manager/debug/IDebugSVGManager.ts` |
 | `IHistoryManager` / `HistoryManager` / `AbstractHistoryStack` | `src/history/` |
-| `HTTPClientV2` / `HTTPClientV1` | `src/client/` |
+| `HTTPClientV2` / `HTTPClientV1` | `src/client/http/` |
 | `StyleManager` | `src/style/StyleManager.ts` |
 | `PointerEventGrabber` | `src/grabber/PointerEventGrabber.ts` |
