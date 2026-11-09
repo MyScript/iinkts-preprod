@@ -165,4 +165,39 @@ describe("plain Ink hit-testing avoids redundant geometry recomputation", () => 
 
     buildGeometrySpy.mockRestore()
   })
+  describe("locked symbols", () => {
+    const setup = () => {
+      const canvas = createCanvasMock()
+      const manager = new EraseManager(asCanvas(canvas))
+      manager.renderer.drawSymbol = jest.fn()
+      manager.renderer.updateDeletingState = jest.fn()
+      const locked: TSymbol = { ...buildIIStroke(), locked: true }
+      canvas.model.addSymbol(locked)
+      manager.start({ pointer: { dt: 1, p: 0.5, x: 6, y: 6 } } as TPointerInfo)
+      return { canvas, manager, locked }
+    }
+
+    test("a locked symbol under the eraser is never marked for deletion", () => {
+      const { manager, locked } = setup()
+      manager.continue({ pointer: { dt: 2, p: 0.5, x: 6, y: 6 } } as TPointerInfo)
+      expect(manager.deletingIds.has(locked.id)).toBe(false)
+      expect(manager.renderer.updateDeletingState).not.toHaveBeenCalled()
+    })
+
+    test("the refusal is reported once per gesture, not on every pointer move", () => {
+      const { canvas, manager, locked } = setup()
+      manager.continue({ pointer: { dt: 2, p: 0.5, x: 6, y: 6 } } as TPointerInfo)
+      manager.continue({ pointer: { dt: 3, p: 0.5, x: 7, y: 7 } } as TPointerInfo)
+      expect(canvas.event.emitLockedRefused).toHaveBeenCalledTimes(1)
+      expect(canvas.event.emitLockedRefused).toHaveBeenCalledWith([locked])
+    })
+
+    test("a new gesture reports the refusal again", async () => {
+      const { canvas, manager } = setup()
+      await manager.end({ pointer: { dt: 2, p: 0.5, x: 6, y: 6 } } as TPointerInfo)
+      manager.start({ pointer: { dt: 3, p: 0.5, x: 6, y: 6 } } as TPointerInfo)
+      manager.continue({ pointer: { dt: 4, p: 0.5, x: 6, y: 6 } } as TPointerInfo)
+      expect(canvas.event.emitLockedRefused).toHaveBeenCalledTimes(2)
+    })
+  })
 })

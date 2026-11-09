@@ -29,6 +29,8 @@ export class EraseManager {
   currentEraser?: TEraser
   deletingIds: Set<string>
   charsToDelete: Map<string, Set<string>> = new Map()
+  /** Locked symbols the current gesture ran over, so each refusal is reported once */
+  refusedIds: Set<string> = new Set()
 
   constructor(canvas: TInteractiveInkCanvas | TInkCanvas) {
     this.#logger.info("constructor")
@@ -68,6 +70,19 @@ export class EraseManager {
     return edges.some((edge) => computeDistanceBetweenPointAndSegment(point, edge) < radius)
   }
 
+  /** A locked symbol is never erased; the first time a gesture runs over it, the refusal is reported */
+  #refuseIfHit(symbol: TSymbol, point: TPoint, radius: number): void {
+    if (
+      this.refusedIds.has(symbol.id) ||
+      !symbolRegistry.has(symbol.type) ||
+      !this.#isHitByPoint(symbol, point, radius)
+    ) {
+      return
+    }
+    this.refusedIds.add(symbol.id)
+    this.canvas.event.emitLockedRefused([symbol])
+  }
+
   attach(layer: HTMLElement): void {
     this.grabber.attach(layer)
     this.grabber.onPointerDown = this.start.bind(this)
@@ -84,6 +99,7 @@ export class EraseManager {
     this.currentEraser = EraserOps.create(this.eraserWidth)
     this.currentEraser.pointers.push(info.pointer)
     this.charsToDelete.clear()
+    this.refusedIds.clear()
     this.renderer.drawSymbol(this.currentEraser!)
   }
 
@@ -101,7 +117,9 @@ export class EraseManager {
     // instead of throwing.
     if (this.#isTInteractiveInkCanvas(this.canvas)) {
       this.canvas.model.symbols.forEach((s) => {
-        if (isText(s)) {
+        if (s.locked) {
+          this.#refuseIfHit(s, currentPoint, radius)
+        } else if (isText(s)) {
           let hasHitChar = false
           s.chars.forEach((char) => {
             const { x, y, width, height } = char.bounds

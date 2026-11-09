@@ -9,6 +9,7 @@ export class CanvasEventMock extends CanvasEvent {
   emitIdle = jest.fn()
   emitImported = jest.fn()
   emitLoaded = jest.fn()
+  emitLockedRefused = jest.fn()
   emitNotif = jest.fn()
   emitSelected = jest.fn()
   emitToolChanged = jest.fn()

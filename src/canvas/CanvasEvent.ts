@@ -81,6 +81,11 @@ export enum CanvasEventName {
    * @remarks event emitted when the derived UI connection state changes (see {@link TCanvasConnectionState})
    */
   CONNECTION_STATE_CHANGED = "connection-state-changed",
+  /**
+   * @remarks event emitted when a change was refused because it targeted locked symbols; the detail
+   * lists those symbols
+   */
+  LOCKED_REFUSED = "locked-refused",
 }
 
 /**
@@ -297,6 +302,19 @@ export class CanvasEvent extends EventTarget {
     this.addEventListener(
       CanvasEventName.IMPORTED,
       (evt: unknown) => callback((evt as CustomEvent).detail as TExport),
+      { signal: this.abortController.signal }
+    )
+  }
+
+  emitLockedRefused(symbols: TSymbol[]): void {
+    this.#logger.info("emitLockedRefused")
+    this.emit(CanvasEventName.LOCKED_REFUSED, symbols)
+  }
+  addLockedRefusedListener(callback: (symbols: TSymbol[]) => void): void {
+    this.#logger.info("addLockedRefusedListener", { callback })
+    this.addEventListener(
+      CanvasEventName.LOCKED_REFUSED,
+      (evt: unknown) => callback((evt as CustomEvent).detail as TSymbol[]),
       { signal: this.abortController.signal }
     )
   }

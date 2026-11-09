@@ -197,6 +197,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.client.event.addExportedListener(this.event.emitExported.bind(this.event))
     this.client.event.addContentChangedListener(this.onContentChanged.bind(this))
     this.event.addGesturedListener(this.onGestured.bind(this))
+    this.event.addLockedRefusedListener((symbols) => this.#flashLockRefused(symbols))
     this.client.event.addSessionOpenedListener(this.event.emitSessionOpened.bind(this.event))
     this.client.event.addEndInitialization(this.layers.clearModal.bind(this.layers))
     this.client.event.addEndInitialization(this.markConnectedOnce.bind(this))
@@ -702,13 +703,14 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    */
   async updateSymbols(ids: string[], patch: TSymbolUpdate, addToHistory = true): Promise<TSymbol[]> {
     this.logger.info("updateSymbols", { ids, patch })
+    const freeIds = this.#withoutLocked(ids)
     const befores: TSymbol[] = []
     const afters: TSymbol[] = []
     // One flat list of before/after pairs: the symbols patched, and the texts that had to slide along
     // because a text got wider or narrower. Both are just symbols whose record changed.
     const updated: NonNullable<TIIHistoryChanges["updated"]> = []
     // Driven by the id list rather than by a scan of the document: drafting by id is O(m).
-    ids.forEach((id) => {
+    freeIds.forEach((id) => {
       // The committed record is frozen, so it is the snapshot: nothing to clone
       const before = this.model.getSymbol(id)
       const draft = before && this.#isChangedBy(before, patch) ? this.model.draftSymbol(id) : undefined
@@ -730,6 +732,84 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     }
     this.updateLayerUI()
     return afters
+  }
+
+  /**
+   * Lock symbols by id: they stay selectable, copyable and exportable, but nothing changes them any
+   * more — no move, resize, rotation, erase, conversion or restyle, from the user or from this API —
+   * and `clear()` keeps them. Unlock them first to change them.
+   *
+   * Undo replays history as recorded and ignores the lock: content the user must not be able to
+   * undo away should be added with `addToHistory = false` before it is locked.
+   * @param addToHistory - Whether to add to history (default: true)
+   * @returns The records that changed; ids already locked or with no symbol are skipped
+   * @example
+   * ```ts
+   * const statement = await canvas.addSymbols(symbols, false)
+   * await canvas.lockSymbols(statement.map((s) => s.id), false)
+   * ```
+   */
+  async lockSymbols(ids: string[], addToHistory = true): Promise<TSymbol[]> {
+    return this.#setLocked(ids, true, addToHistory)
+  }
+
+  /**
+   * Unlock symbols by id, so they can be changed again. See {@link lockSymbols}.
+   * @param addToHistory - Whether to add to history (default: true)
+   * @returns The records that changed; ids not locked or with no symbol are skipped
+   */
+  async unlockSymbols(ids: string[], addToHistory = true): Promise<TSymbol[]> {
+    return this.#setLocked(ids, false, addToHistory)
+  }
+
+  #setLocked(ids: string[], locked: boolean, addToHistory: boolean): TSymbol[] {
+    this.logger.info(locked ? "lockSymbols" : "unlockSymbols", { ids })
+    const updated: NonNullable<TIIHistoryChanges["updated"]> = []
+    ids.forEach((id) => {
+      const before = this.model.getSymbol(id)
+      if (!before || !!before.locked === locked) {
+        return
+      }
+      const draft = this.model.draftSymbol(id)
+      if (!draft) {
+        return
+      }
+      draft.locked = locked
+      this.model.commitSymbol(draft)
+      const after = this.model.getSymbol(id) ?? draft
+      this.renderer.drawSymbol(after)
+      updated.push({ before, after })
+    })
+    if (addToHistory && updated.length) {
+      this.history.push({ updated })
+    }
+    return updated.map(({ after }) => after)
+  }
+
+  /** The ids that may change; the locked symbols among them are reported as refused */
+  #withoutLocked(ids: string[]): string[] {
+    const refused: TSymbol[] = []
+    const free = ids.filter((id) => {
+      const symbol = this.model.getSymbol(id)
+      if (symbol?.locked) {
+        refused.push(symbol)
+      }
+      return !symbol?.locked
+    })
+    if (refused.length) {
+      this.event.emitLockedRefused(refused)
+    }
+    return free
+  }
+
+  /** Shows the user why nothing happened: a padlock on the top-right corner of the refused symbols */
+  #flashLockRefused(symbols: TSymbol[]): void {
+    const registered = symbols.filter((s) => symbolRegistry.has(s.type))
+    if (!registered.length) {
+      return
+    }
+    const box = BoxOps.createFromBoxes(registered.map((s) => OBBOps.toBox(SymbolGeometry.boundsOf(s))))
+    this.renderer.flashLockIcon({ x: box.x + box.width, y: box.y })
   }
 
   /** A font alone changes nothing but a text */
@@ -788,6 +868,10 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    */
   async replaceSymbols(oldSymbols: TSymbol[], newSymbols: TSymbol[], addToHistory = true): Promise<void> {
     this.logger.info("replaceSymbols", { oldSymbols, newSymbols })
+    // A replacement stands for the whole set it replaces: it cannot apply to part of it
+    if (this.#withoutLocked(oldSymbols.map((s) => s.id)).length !== oldSymbols.length) {
+      return
+    }
     this.manageIdleState(false)
 
     const oldStrokes = this.extractStrokesFromSymbols(oldSymbols)
@@ -832,11 +916,16 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    * @param position - New position (first, last, forward, backward)
    */
   changeOrderSymbols(symbols: TSymbol[], position: "first" | "last" | "forward" | "backward"): void {
-    symbols.forEach((s) => {
+    const freeIds = new Set(this.#withoutLocked(symbols.map((s) => s.id)))
+    const free = symbols.filter((s) => freeIds.has(s.id))
+    if (!free.length) {
+      return
+    }
+    free.forEach((s) => {
       this.model.changeOrderSymbol(s.id, position)
       this.renderer.changeOrderSymbol(s, position)
     })
-    this.history.push({ order: { symbols, position } })
+    this.history.push({ order: { symbols: free, position } })
   }
 
   /**
@@ -971,6 +1060,9 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    */
   async removeSymbol(id: string, addToHistory = true): Promise<void> {
     this.logger.info("removeSymbol", { id })
+    if (!this.#withoutLocked([id]).length) {
+      return
+    }
     const symbol = this.model.getSymbol(id)
     if (symbol) {
       this.manageIdleState(false)
@@ -1011,7 +1103,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.logger.info("removeSymbols", { ids })
     const symbolsRemoved: TSymbol[] = []
     const strokesIds: string[] = []
-    ids.forEach((id) => {
+    this.#withoutLocked(ids).forEach((id) => {
       const sym = this.model.getSymbol(id)
       if (sym) {
         symbolsRemoved.push(sym)
@@ -1632,7 +1724,9 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     try {
       this.logger.info("clear")
       this.manageIdleState(false)
-      if (this.model.symbols.length) {
+      if (this.model.symbols.some((s) => s.locked)) {
+        await this.#clearUnlocked()
+      } else if (this.model.symbols.length) {
         this.selector.removeSelectedGroup()
         const erased = this.model.symbols
         this.renderer.clear()
@@ -1651,6 +1745,13 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.clearOperation("Recognizing")
       this.manageError(error)
     }
+  }
+
+  /** Locked symbols survive a clear: erase the others one by one instead of resetting the server */
+  async #clearUnlocked(): Promise<void> {
+    const unlockedIds = this.model.symbols.filter((s) => !s.locked).map((s) => s.id)
+    await this.removeSymbols(unlockedIds)
+    this.event.emitSelected(this.model.symbolsSelected)
   }
 
   #isCopyableSymbol(symbol: TSymbol): boolean {

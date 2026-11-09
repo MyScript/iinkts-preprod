@@ -134,13 +134,16 @@ export class IIConversionManager extends IIAbstractManager {
     }
     const text = TextUtil.createText(charSymbols, point, boundingBox, strokes[0].style)
     const strokeIds = new Set(strokes.map((s) => s.id))
+    // A block holding a locked stroke is dropped before it is applied (#withoutLockedStrokes): its
+    // decorators must survive this build, or they would be lost with nothing replacing them
+    const blockLocked = strokes.some((s) => this.model.getSymbol(s.id)?.locked)
 
     // Find standalone IIDecorator symbols in model whose targets overlap with converted strokes
     const appliedKinds = new Set<DecoratorKind>()
     const decoratorsToRemove: TDecorator[] = []
 
     for (const sym of this.model.symbols) {
-      if (!isDecorator(sym)) {
+      if (!isDecorator(sym) || blockLocked || sym.locked) {
         continue
       }
       const dec = sym as TDecorator
@@ -699,6 +702,14 @@ export class IIConversionManager extends IIAbstractManager {
     }
   }
 
+  /**
+   * A conversion replacing a locked stroke is dropped whole: a block converts entirely or not at all,
+   * so a typeset symbol never lands on top of the locked ink it would have replaced.
+   */
+  #withoutLockedStrokes<T extends { strokes: TStroke[] }>(conversions: T[]): T[] {
+    return conversions.filter((c) => !c.strokes.some((s) => this.model.getSymbol(s.id)?.locked))
+  }
+
   async apply(symbols: TSymbol[] = []): Promise<TSymbol[]> {
     return this.canvas.trackOperation("Converting", async () => this.#applyInternal(symbols))
   }
@@ -765,7 +776,7 @@ export class IIConversionManager extends IIAbstractManager {
     }
 
     // Apply all pre-fetched conversions with progressive rendering
-    for (const conversion of mathConversions) {
+    for (const conversion of this.#withoutLockedStrokes(mathConversions)) {
       await this.canvas.removeSymbols(
         conversion.strokes.map((s) => s.id),
         false
@@ -830,6 +841,7 @@ export class IIConversionManager extends IIAbstractManager {
           }
         }
 
+        conversionResults = this.#withoutLockedStrokes(conversionResults)
         // Progressive rendering: process this block's conversions
         if (conversionResults.length) {
           // First remove all strokes for this block

@@ -78,6 +78,7 @@ export const DefaultMenuConfiguration: TMenuConfiguration = {
     math: true,
     group: true,
     duplicate: true,
+    lock: true,
     remove: true,
     selectAll: true,
   },

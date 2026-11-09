@@ -48,6 +48,12 @@ export type TBaseSymbol = {
    * matrix restores the value bit for bit, where re-transforming coordinates accumulated rounding.
    */
   transform: TMatrixTransform
+  /**
+   * A locked symbol can be selected, copied and exported, but nothing changes it: no move, resize,
+   * rotation, erase, conversion or restyle, whether the user or the API asks. `clear()` keeps it.
+   * Set it with `lockSymbols` / `unlockSymbols`. Absent means unlocked.
+   */
+  locked?: boolean
 }
 
 /**

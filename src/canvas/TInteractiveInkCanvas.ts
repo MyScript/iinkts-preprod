@@ -118,6 +118,8 @@ export type TInteractiveInkCanvas = {
   changeOrderSymbols(symbols: TSymbol[], position: "first" | "last" | "forward" | "backward"): void
   removeSymbol(id: string, addToHistory?: boolean): Promise<void>
   removeSymbols(ids: string[], addToHistory?: boolean): Promise<TSymbol[]>
+  lockSymbols(ids: string[], addToHistory?: boolean): Promise<TSymbol[]>
+  unlockSymbols(ids: string[], addToHistory?: boolean): Promise<TSymbol[]>
   extractStrokesFromSymbols(symbols: TSymbol[] | undefined): TStroke[]
   duplicate(symbols?: TSymbol[]): Promise<TSymbol[]>
 

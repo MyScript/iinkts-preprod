@@ -817,4 +817,51 @@ describe("IIC-1999, a selection of typeset symbols", () => {
       expect(newDeco.transform.ty).toBe(50)
     })
   })
+  describe("locked symbols in the selection", () => {
+    const setup = () => {
+      const canvas = createCanvasMock()
+      canvas.snaps.snapConfiguration.guide = false
+      canvas.snaps.snapConfiguration.symbol = false
+      canvas.client.transformTranslate = jest.fn(() => Promise.resolve())
+      canvas.renderer.setAttribute = jest.fn()
+      canvas.renderer.setSymbolTransform = jest.fn()
+      const manager = new IITranslateManager(asCanvas(canvas))
+      const locked: TStroke = { ...buildIIStroke(), locked: true }
+      const free = buildIIStroke()
+      canvas.model.addSymbol(locked)
+      canvas.model.addSymbol(free)
+      canvas.model.selectSymbol(locked.id)
+      canvas.model.selectSymbol(free.id)
+      const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+      group.setAttribute("id", "group-id")
+      group.setAttribute("role", SvgElementRole.InteractElementsGroup)
+      const handle = document.createElementNS("http://www.w3.org/2000/svg", "circle")
+      group.appendChild(handle)
+      return { canvas, manager, locked, free, handle }
+    }
+
+    test("start reports the locked symbols it will leave in place", () => {
+      const { canvas, manager, locked, handle } = setup()
+      manager.start(handle, { x: 0, y: 0 })
+      expect(canvas.event.emitLockedRefused).toHaveBeenCalledWith([locked])
+    })
+
+    test("continue previews only the unlocked symbols", () => {
+      const { canvas, manager, locked, free, handle } = setup()
+      manager.start(handle, { x: 0, y: 0 })
+      manager.continue({ x: 10, y: 0 })
+      const ids = (canvas.renderer.setAttribute as jest.Mock).mock.calls.map(([id]) => id)
+      expect(ids).toContain(free.id)
+      expect(ids).not.toContain(locked.id)
+    })
+
+    test("end moves only the unlocked symbols and tells the server about them alone", async () => {
+      const { canvas, manager, locked, free, handle } = setup()
+      manager.start(handle, { x: 0, y: 0 })
+      await manager.end({ x: 10, y: 0 })
+      expect(canvas.model.getSymbol(locked.id)).toBe(locked)
+      expect(canvas.model.getSymbol(free.id)?.transform.tx).toBe(10)
+      expect(canvas.client.transformTranslate).toHaveBeenCalledWith([free.id], 10, 0)
+    })
+  })
 })

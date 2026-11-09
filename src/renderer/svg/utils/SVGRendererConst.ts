@@ -8,6 +8,14 @@ export const SVGRendererConst = {
   selectionHaloClassName: "ms-selection-halo",
   /** Class a symbol's element carries while the eraser passes over it; the stylesheet fades it */
   deletingClassName: "ms-deleting",
+  /** Class a locked symbol's element carries; the stylesheet tones it down */
+  lockedClassName: "ms-locked",
+  /** Class of the padlock drawn on a locked selection or where a change was refused */
+  lockIconClassName: "ms-lock-icon",
+  /** Class added to a padlock shown briefly where a change was refused; the stylesheet fades it */
+  lockIconFlashClassName: "ms-lock-icon-flash",
+  /** How long, in milliseconds, a refused-change padlock stays on screen */
+  lockIconFlashDuration: 900,
   crossMarker: "cross-marker",
   noSelection:
     "pointer-events: none; -webkit-touch-callout: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;",

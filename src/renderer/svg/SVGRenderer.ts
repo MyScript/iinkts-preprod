@@ -9,6 +9,7 @@ import { arrowHeadEndMarkerId, arrowHeadStartMarkerId, SymbolGeometry, symbolReg
 import { BaseRenderer } from "../base"
 import type { TIIRendererConfiguration } from "../RendererConfiguration"
 import { SvgElementRole } from "./SvgElementRole"
+import { createLockIcon } from "./utils/LockIcon"
 import { SVGBuilder } from "./utils/SVGBuilder"
 import { GUIDE_PATH_ATTRS, SUB_GUIDE_PATH_ATTRS, SVGRendererConst } from "./utils/SVGRendererConst"
 
@@ -433,9 +434,18 @@ export class SVGRenderer extends BaseRenderer<SVGSVGElement, TIIRendererConfigur
     // "no util for symbol" for a util that existed but had no draw method, which said the wrong
     // thing about a registration that had in fact worked.
     const element = util.getSVGElement(symbol)
+    element?.classList.toggle(SVGRendererConst.lockedClassName, !!symbol.locked)
     // Applied here, where every element is built, so a redraw, a deferred rebuild or a symbol coming
     // back into view keeps its outline without each of them having to remember it
     return element && this.#selectedIds.has(symbol.id) ? this.#outlineSelected(symbol, element) : element
+  }
+
+  /** Shows a padlock at `point` for a moment, to say a change there was refused because of a lock */
+  flashLockIcon(point: TPoint): void {
+    const icon = createLockIcon(point)
+    icon.classList.add(SVGRendererConst.lockIconFlashClassName)
+    this.layer.appendChild(icon)
+    setTimeout(() => icon.remove(), SVGRendererConst.lockIconFlashDuration)
   }
 
   prependElement(el: Element): void {

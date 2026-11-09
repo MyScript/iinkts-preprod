@@ -346,6 +346,8 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
     changeOrderSymbols: jest.fn(),
     removeSymbol: jest.fn().mockResolvedValue(undefined),
     removeSymbols: jest.fn().mockResolvedValue([]),
+    lockSymbols: jest.fn().mockResolvedValue([]),
+    unlockSymbols: jest.fn().mockResolvedValue([]),
     extractStrokesFromSymbols: jest
       .fn()
       .mockImplementation((syms: TSymbol[] | undefined) =>

@@ -33,6 +33,7 @@
   --ms-ink-text-muted: #717171;
   --ms-ink-guide-color: #c8c8c8;
   --ms-ink-selection-color: #3e68ff;
+  --ms-ink-locked-opacity: 0.55;
 
   --ms-ink-menu-bg: #ffffff;
   --ms-ink-menu-title-bg: #b3dfff;
@@ -155,6 +156,36 @@
 /* A symbol the eraser is passing over. Plain opacity, no filter: see the selection outline above */
 .ms-ink .ms-layer-rendering .ms-deleting {
   opacity: 0.25;
+}
+
+/* A locked symbol: toned down so fixed content reads apart from the user's own. Set
+   --ms-ink-locked-opacity to 1 to show locked symbols as any other */
+.ms-ink .ms-layer-rendering .ms-locked {
+  opacity: var(--ms-ink-locked-opacity);
+}
+
+/* The padlock on a locked selection, and the one shown briefly where a change was refused */
+.ms-ink .ms-lock-icon {
+  pointer-events: none;
+}
+
+.ms-ink .ms-lock-icon.ms-lock-icon-flash {
+  animation: ms-lock-icon-flash 900ms ease-out forwards;
+}
+
+@keyframes ms-lock-icon-flash {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 .ms-ink .ms-layer-rendering .ms-rendering-canvas {

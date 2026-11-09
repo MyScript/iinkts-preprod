@@ -1,6 +1,6 @@
-import { beforeAll, describe, test, expect } from "@jest/globals"
+import { beforeAll, describe, test, expect, jest } from "@jest/globals"
 import { buildIICircle, buildIIEraser, buildIILine, buildIIStroke, buildIIText } from "../helpers"
-import { BoxOps, DefaultIIRendererConfiguration, Geometry2d, MatrixTransform, OBBOps, Polygon2d, SVGRenderer, SVGRendererConst, StrokeUtil, SymbolUtil, TBaseSymbol, TBox, TIIRendererConfiguration, TPartialDeep, TPoint, TSymbol, TSymbolChar, TTransformContext, applyMatrixToPoint, registerBuiltinSymbolUtils, symbolRegistry } from "@/iink"
+import { BoxOps, DefaultIIRendererConfiguration, Geometry2d, MatrixTransform, OBBOps, Polygon2d, SVGRenderer, SVGRendererConst, SvgElementRole, StrokeUtil, SymbolUtil, TBaseSymbol, TBox, TIIRendererConfiguration, TPartialDeep, TPoint, TSymbol, TSymbolChar, TTransformContext, applyMatrixToPoint, registerBuiltinSymbolUtils, symbolRegistry } from "@/iink"
 
 beforeAll(() => {
   registerBuiltinSymbolUtils()
@@ -209,6 +209,24 @@ describe("SVGRenderer.ts", () => {
 
       renderer.updateSelectedState(stroke, false)
       expect(el.classList.contains(SVGRendererConst.selectedClassName)).toBe(false)
+    })
+    test("should mark a locked symbol with a class, and drop it once unlocked", () => {
+      const stroke = buildIIStroke()
+      renderer.drawSymbol({ ...stroke, locked: true })
+      expect(renderer.getElementById(stroke.id)?.classList.contains(SVGRendererConst.lockedClassName)).toBe(true)
+
+      renderer.drawSymbol({ ...stroke, locked: false })
+      expect(renderer.getElementById(stroke.id)?.classList.contains(SVGRendererConst.lockedClassName)).toBe(false)
+    })
+    test("should flash a padlock where a change was refused, then take it away", () => {
+      jest.useFakeTimers()
+      renderer.flashLockIcon({ x: 40, y: 50 })
+      const icon = divElement.querySelector(`[role=${SvgElementRole.Lock}]`)
+      expect(icon?.classList.contains(SVGRendererConst.lockIconFlashClassName)).toBe(true)
+
+      jest.advanceTimersByTime(SVGRendererConst.lockIconFlashDuration)
+      expect(divElement.querySelector(`[role=${SvgElementRole.Lock}]`)).toBeNull()
+      jest.useRealTimers()
     })
     test("should keep a selected stroke outlined when it is redrawn", () => {
       const stroke = buildIIStroke()
