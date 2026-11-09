@@ -79,7 +79,9 @@ export class InteractiveInkSSRCanvas extends AbstractCanvas {
 
     this.tool = CanvasTool.Write
     this.#model = new Model()
-    this.history = new HistoryManager(this.#configuration["undo-redo"], this.event)
+    // The server owns the undo/redo state: only its contentChanged emits "changed", the local
+    // stack, which holds no symbols here, would otherwise overwrite it with empty/canRedo wrong.
+    this.history = new HistoryManager(this.#configuration["undo-redo"], { emitChanged: () => {} })
   }
 
   get initializationPromise(): Promise<void> {
