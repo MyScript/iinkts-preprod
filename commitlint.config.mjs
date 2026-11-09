@@ -4,6 +4,13 @@ export default {
   extends: ["@commitlint/config-conventional"],
   // Bitbucket's merge commits: "Pull request #551: IIC-2163 hmac server signing"
   ignores: [(message) => /^Pull request #\d+:/.test(message)],
+  // A commit written by an AI agent starts with "[ai] ": the type is read after that prefix
+  parserPreset: {
+    parserOpts: {
+      headerPattern: /^(?:\[ai\] )?(\w*)(?:\((.*)\))?!?: (.*)$/,
+      breakingHeaderPattern: /^(?:\[ai\] )?(\w*)(?:\((.*)\))?!: (.*)$/,
+    },
+  },
   rules: {
     // Subjects often start with a ticket id or a class name: "IIC-2163 …", "InkCanvas …"
     "subject-case": [0],

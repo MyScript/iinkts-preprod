@@ -7,6 +7,8 @@
  * - `feat`: minor
  * - anything else: patch
  *
+ * The `[ai] ` prefix that marks a commit written by an AI agent is dropped before the type is read.
+ *
  * `package.json#version` is never read: CI writes the result there, so starting from it would add
  * a patch on every build. `Pull request #…` merges and `chore(release)` commits carry no change of
  * their own and are skipped, which is what makes a run on the release commit give the same version.
@@ -20,6 +22,7 @@ const BREAKING_SUBJECT = /^\w+(\([^)]*\))?!:/
 const BREAKING_FOOTER = /^BREAKING[ -]CHANGE:/m
 const FEAT_SUBJECT = /^feat(\([^)]*\))?:/
 const SKIPPED_SUBJECT = /^(Pull request #|chore\(release\))/
+const AI_PREFIX = /^\[ai\] /
 
 const LEVELS = ["patch", "minor", "major"]
 
@@ -63,7 +66,7 @@ function compareParts(a, b) {
  * @returns {"major" | "minor" | "patch" | undefined} undefined for a commit that does not count
  */
 export function bumpLevel(message) {
-  const subject = message.trimStart().split("\n", 1)[0]
+  const subject = message.trimStart().split("\n", 1)[0].replace(AI_PREFIX, "")
   if (!subject || SKIPPED_SUBJECT.test(subject)) return undefined
   if (BREAKING_SUBJECT.test(subject) || BREAKING_FOOTER.test(message)) return "major"
   if (FEAT_SUBJECT.test(subject)) return "minor"
