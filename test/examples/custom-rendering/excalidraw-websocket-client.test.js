@@ -35,6 +35,15 @@ const underline = underlineAt(268)
 // server's JIIX box: the stroke sits on that bottom so the box may shrink or grow on any backend
 const convertedTextUnderline = underlineAt(258)
 
+// No dataset holds a scratch-out over a shape: a zigzag wider and taller than rectangleShape,
+// whose strokes span x 211-343 and y 195-272
+const rectangleScratch = {
+  pointers: Array.from({ length: 9 }, (_, pass) => [
+    { x: 195, y: 185 + pass * 12.5 },
+    { x: 360, y: 191 + pass * 12.5 },
+  ][pass % 2 ? "reverse" : "slice"]()).flat().map((p, i) => ({ ...p, t: i * 40, p: 0.5 }))
+}
+
 // Excalidraw draws on a canvas: the scene is read through the API the example exposes
 const readScene = (page) => page.evaluate(() => ({
   elements: window.excalidrawAPI.getSceneElements().map(e => ({ id: e.id, type: e.type, text: e.text, strokeWidth: e.strokeWidth, strokeColor: e.strokeColor })),
@@ -168,6 +177,17 @@ test.describe("Excalidraw WebSocket client", { tag: "@touch" }, () => {
 
   test("should erase the converted text under a scratch-out", async ({ page }) => {
     await convertContentThenGesture(page, threeScratchOut.strokes)
+
+    await expect.poll(async () => (await readScene(page)).elements, { timeout: 5_000 }).toEqual([])
+  })
+
+  test("should erase the converted shape under a scratch-out", async ({ page }) => {
+    await writeStrokes(page, await shift(page, rectangleShape.strokes))
+    await expect.poll(() => countOf(page, "freedraw")).toBe(rectangleShape.strokes.length)
+    await page.getByTestId("convert-button").click()
+    await expect.poll(() => countOf(page, "rectangle")).toBe(1)
+
+    await writeStrokes(page, await shift(page, [rectangleScratch]))
 
     await expect.poll(async () => (await readScene(page)).elements, { timeout: 5_000 }).toEqual([])
   })
