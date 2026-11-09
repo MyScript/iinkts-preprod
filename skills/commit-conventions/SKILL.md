@@ -13,6 +13,7 @@ description: >
 type(scope): brief description
 ```
 
+- **A commit written by an AI agent starts with `[ai] `** (lower-case, one space, before the type): `[ai] fix(grabber): capture the pointer IIC-2184`. Commitlint and `scripts/next-version.mjs` read the type after it
 - Subject line only — the house style. Aim for **≤72 chars**, imperative mood ("add" not "added"), no period, ticket id at the end when there is one
 - A body is accepted with a commitlint warning (`body-empty`), after a blank line, only when the why isn't obvious from the code
 - `!` before the colon when the change breaks the public API
@@ -72,11 +73,13 @@ build: replace the Makefile with a testcontainers stack
 ci: always build lib and gate perf stages on run_perf only
 docs(examples): add interactive_canvas_math_variables example
 chore(deps): upgrade rollup to 4.x
+[ai] fix(grabber): keep a gesture's pointer events on the canvas IIC-2184
 ```
 
 ## Rules
 
 - Never `--no-verify`
+- Every commit message an AI agent writes or proposes starts with `[ai] `
 - Never amend a published commit
 - Never include AI attribution ("Co-authored-by: Claude")
 - One logical change per commit — split if unrelated changes crept in

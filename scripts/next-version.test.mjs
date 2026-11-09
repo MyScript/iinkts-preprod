@@ -49,6 +49,12 @@ describe("bumpLevel", () => {
     assert.equal(bumpLevel("Pull request #551: IIC-2163 hmac server signing"), undefined)
     assert.equal(bumpLevel("chore(release): 4.2.0 [skip ci]"), undefined)
   })
+  test("reads the type after the [ai] prefix of a commit written by an AI agent", () => {
+    assert.equal(bumpLevel("[ai] feat(canvas): add zoomToFit"), "minor")
+    assert.equal(bumpLevel("[ai] fix(canvas)!: drop override.grabber"), "major")
+    assert.equal(bumpLevel("[ai] fix(grabber): capture the pointer"), "patch")
+    assert.equal(bumpLevel("[ai] chore(release): 4.2.0 [skip ci]"), undefined)
+  })
 })
 
 describe("nextVersion", () => {

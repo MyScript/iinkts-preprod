@@ -112,7 +112,7 @@ export default function App()
     if (!api || !recognizer) return
     const sync = new Synchronizer(recognizer)
     sync.onError = addError
-    sync.applyGesture = stroke => gestureManagerRef.current?.applyOnConvertedText(recognizer, stroke) ?? Promise.resolve(false)
+    sync.applyGesture = stroke => gestureManagerRef.current?.applyOnConverted(recognizer, stroke) ?? Promise.resolve(false)
     const unsubscribe = api.onChange((elements, appState) => sync.onChange(elements, appState))
     setSynchronizer(sync)
     return () =>

@@ -14,6 +14,7 @@ Commit messages follow [Conventional Commits](https://www.conventionalcommits.or
 type(scope): subject
 ```
 
+- **`[ai] `**, first, on a commit written by an AI agent: lower-case, followed by one space. The type is read after it, so it changes nothing to the version
 - **type**, lower-case, one of `feat`, `fix`, `perf`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`, `style`, `revert`
 - **scope**, optional, lower-case: the area touched (`canvas`, `client`, `manager`, `symbol-utils`, `examples`…). Several scopes are separated by a comma: `refactor(symbol-utils,manager): …`
 - **`!`** right before the colon when the change breaks the public API
@@ -38,6 +39,7 @@ fix(client): handle the WebSocket reconnection after a timeout
 refactor(symbol-utils,manager): move the hit-testing into the symbol utils
 fix(canvas)!: remove the never-emitted POINTEREVENTS IIC-2163
 chore(deps): upgrade rollup to 4.x
+[ai] fix(grabber): keep a gesture's pointer events on the canvas IIC-2184
 ```
 
 ### Incorrect, and how to fix them
@@ -53,6 +55,8 @@ chore(deps): upgrade rollup to 4.x
 | `fix (canvas): keep the session` | `type may not be empty` (space before the scope) | `fix(canvas): keep the session` |
 | `fix(canvas): keep the session.` | `subject may not end with full stop` | `fix(canvas): keep the session` |
 | `fix(canvas): ` | `subject may not be empty` | `fix(canvas): keep the session when only the solver changes` |
+| `[AI] fix(canvas): keep the session` | `type may not be empty` (the prefix is lower-case) | `[ai] fix(canvas): keep the session` |
+| `[ai]fix(canvas): keep the session` | `type may not be empty` (missing space after the prefix) | `[ai] fix(canvas): keep the session` |
 | a 130-character subject | `header must not be longer than 120 characters` | shorten it; put the why in the ticket, or in a body |
 
 These pass commitlint but are still wrong:

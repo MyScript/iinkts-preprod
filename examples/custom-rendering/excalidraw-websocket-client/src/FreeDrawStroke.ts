@@ -1,4 +1,4 @@
-import type { ExcalidrawElement, ExcalidrawFreeDrawElement, ExcalidrawTextElement } from "@excalidraw/excalidraw/element/types"
+import type { ExcalidrawElement, ExcalidrawFreeDrawElement, ExcalidrawLinearElement, ExcalidrawTextElement } from "@excalidraw/excalidraw/element/types"
 import type { TRecognitionStroke } from "iink-ts"
 
 /**
@@ -12,6 +12,10 @@ export type TBox = { minX: number, minY: number, maxX: number, maxY: number }
 export const isFreeDraw = <T extends ExcalidrawElement>(element: T): element is T & ExcalidrawFreeDrawElement =>
   element.type === "freedraw"
 
+type TPointsElement = ExcalidrawFreeDrawElement | ExcalidrawLinearElement
+
+const hasPoints = (element: ExcalidrawElement): element is TPointsElement => "points" in element
+
 export const isText = <T extends ExcalidrawElement>(element: T): element is T & ExcalidrawTextElement =>
   element.type === "text"
 
@@ -24,7 +28,7 @@ export const geometrySignature = (element: ExcalidrawFreeDrawElement): string =>
 /**
  * Points are relative to (x, y); Excalidraw rotates an element around the center of its points bounds
  */
-export const toScenePoints = (element: ExcalidrawFreeDrawElement): { x: number, y: number }[] =>
+export const toScenePoints = (element: TPointsElement): { x: number, y: number }[] =>
 {
   const xs = element.points.map(([x]) => x)
   const ys = element.points.map(([, y]) => y)
@@ -42,7 +46,8 @@ export const toScenePoints = (element: ExcalidrawFreeDrawElement): { x: number, 
 
 export const sceneBox = (element: ExcalidrawElement): TBox =>
 {
-  const points = isFreeDraw(element) ? toScenePoints(element) : [{ x: element.x, y: element.y }, { x: element.x + element.width, y: element.y + element.height }]
+  // A line's (x, y) is its first point, not its top-left corner: its bounds come from its points
+  const points = hasPoints(element) ? toScenePoints(element) : [{ x: element.x, y: element.y }, { x: element.x + element.width, y: element.y + element.height }]
   return {
     minX: Math.min(...points.map(p => p.x)),
     minY: Math.min(...points.map(p => p.y)),
