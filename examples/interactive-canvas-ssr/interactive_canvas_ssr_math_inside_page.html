@@ -311,7 +311,7 @@
         canvas.event.addEventListener('changed', (event) => {
           undoElement.disabled = !event.detail.canUndo
           redoElement.disabled = !event.detail.canRedo
-          convertElement.disabled = !event.detail.empty
+          convertElement.disabled = event.detail.empty
         })
         hideMainLoader()
       }
