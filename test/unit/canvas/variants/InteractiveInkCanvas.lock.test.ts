@@ -128,7 +128,7 @@ describe("InteractiveInkCanvas lock", () => {
   })
 
   describe("refusal feedback", () => {
-    test("a refused change flashes a padlock at the top-right corner of the locked symbols", async () => {
+    test("a refused change flashes a padlock at the centre of the locked symbols, clear of the frame badge", async () => {
       const canvas = await buildCanvas()
       canvas.renderer.flashLockIcon = jest.fn()
       const { locked } = addStrokes(canvas)
@@ -136,7 +136,7 @@ describe("InteractiveInkCanvas lock", () => {
 
       await canvas.removeSymbols([locked.id])
 
-      expect(canvas.renderer.flashLockIcon).toHaveBeenCalledWith({ x: box.x + box.width, y: box.y })
+      expect(canvas.renderer.flashLockIcon).toHaveBeenCalledWith({ x: box.x + box.width / 2, y: box.y + box.height / 2 })
     })
   })
 

@@ -1,5 +1,5 @@
 import { LeftClickEventMock } from "../__mocks__/EventMock"
-import { type InteractiveInkCanvas, Minimap } from "@/iink"
+import { createLockIcon, type InteractiveInkCanvas, Minimap, SvgElementRole } from "@/iink"
 
 function buildMockCanvas(overrides: Partial<any> = {}): InteractiveInkCanvas {
   const mockMainLayer = document.createElementNS("http://www.w3.org/2000/svg", "svg")
@@ -155,6 +155,24 @@ describe("Minimap", () => {
       await new Promise((resolve) => requestAnimationFrame(resolve))
 
       expect(canvas.renderer.getBounds).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("content copy", () => {
+    it("leaves out a refused-change padlock, which lives on the canvas for a moment only", async () => {
+      const canvas = buildMockCanvas()
+      const minimap = new Minimap(canvas)
+      const mainLayer = canvas.renderer.getRenderingContext()
+      const symbol = document.createElementNS("http://www.w3.org/2000/svg", "g")
+      mainLayer.appendChild(symbol)
+      mainLayer.appendChild(createLockIcon({ x: 0, y: 0 }))
+
+      await Promise.resolve()
+      await new Promise((resolve) => requestAnimationFrame(resolve))
+
+      const copy = minimap.getElement()
+      expect(copy.querySelector(`[role=${SvgElementRole.Lock}]`)).toBeNull()
+      expect(copy.querySelectorAll("g").length).toBeGreaterThan(0)
     })
   })
 

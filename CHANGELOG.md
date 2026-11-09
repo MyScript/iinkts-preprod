@@ -15,7 +15,7 @@ A locked symbol stays selectable, copyable and exportable, and is still recogniz
 - a conversion block holding a locked stroke is left unconverted; a connected edge that is locked no longer follows its shape; decorating a locked text is refused, while decorating a locked stroke still works (the decorator is a symbol of its own)
 - undo/redo replay history as recorded and ignore the lock: add content the user must not undo away with `addToHistory = false` before locking it
 - new event `CanvasEventName.LOCKED_REFUSED` (`event.addLockedRefusedListener`), detail = the locked symbols a change skipped
-- rendering: a locked symbol's element carries the `ms-locked` class, toned down through `--ms-ink-locked-opacity` (default `0.55`; set it to `1` to show locked symbols as any other). A fully locked selection shows a dashed frame with a padlock and no handle; a refused change flashes a padlock on the symbols (`SVGRenderer.flashLockIcon`)
+- rendering: a locked symbol's element carries the `ms-locked` class, toned down through `--ms-ink-locked-opacity` (default `0.55`; set it to `1` to show locked symbols as any other). A fully locked selection shows a dashed frame with a padlock and no handle; a refused change flashes a padlock at the centre of the symbols (`SVGRenderer.flashLockIcon`)
 - menu: context entry Lock / Unlock, `menu.context.lock` (default `true`); set it to `false` to keep locking to the API
 - new: `LockContextMenu`, `createLockIcon`, `LOCK_ICON_SIZE`, `SvgElementRole.Lock`, `SVGRendererConst.lockedClassName` / `lockIconClassName` / `lockIconFlashClassName` / `lockIconFlashDuration`
 

@@ -1007,5 +1007,15 @@ describe("createInteractElementsGroup skips unregistered symbol types", () => {
       group.querySelector(`[role=${SvgElementRole.Translate}]`)!.dispatchEvent(new Event("pointerdown"))
       expect(canvas.event.emitLockedRefused).toHaveBeenCalledWith([locked])
     })
+
+    test("pressing a fully locked selection does not reach the canvas behind it", async () => {
+      const { canvas, group } = await setup([{ ...buildIIStroke(), locked: true }])
+      const behind = jest.fn()
+      canvas.renderer.layer.addEventListener("pointerdown", behind)
+
+      group.querySelector(`[role=${SvgElementRole.Translate}]`)!.dispatchEvent(new Event("pointerdown", { bubbles: true }))
+
+      expect(behind).not.toHaveBeenCalled()
+    })
   })
 })

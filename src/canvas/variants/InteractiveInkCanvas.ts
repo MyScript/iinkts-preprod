@@ -802,14 +802,17 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     return free
   }
 
-  /** Shows the user why nothing happened: a padlock on the top-right corner of the refused symbols */
+  /**
+   * Shows the user why nothing happened: a padlock at the centre of the refused symbols — not on
+   * their corner, where a locked selection frame already carries one
+   */
   #flashLockRefused(symbols: TSymbol[]): void {
     const registered = symbols.filter((s) => symbolRegistry.has(s.type))
     if (!registered.length) {
       return
     }
     const box = BoxOps.createFromBoxes(registered.map((s) => OBBOps.toBox(SymbolGeometry.boundsOf(s))))
-    this.renderer.flashLockIcon({ x: box.x + box.width, y: box.y })
+    this.renderer.flashLockIcon({ x: box.x + box.width / 2, y: box.y + box.height / 2 })
   }
 
   /** A font alone changes nothing but a text */

@@ -485,7 +485,13 @@ export class IISelectionManager extends IIAbstractManager {
       "vector-effect": "non-scaling-stroke",
       style: "cursor:not-allowed",
     })
-    outline.addEventListener("pointerdown", () => this.canvas.event.emitLockedRefused(symbols))
+    // Stopped here like the handles of an unlocked frame: let through, the press would start a
+    // rubber-band selection behind the frame and drop it
+    outline.addEventListener("pointerdown", (ev) => {
+      ev.preventDefault()
+      ev.stopPropagation()
+      this.canvas.event.emitLockedRefused(symbols)
+    })
     group.appendChild(outline)
     group.appendChild(createLockIcon({ x: frame.x + frame.width, y: frame.y }))
     return group
