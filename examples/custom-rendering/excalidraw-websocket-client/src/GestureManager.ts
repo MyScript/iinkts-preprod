@@ -12,9 +12,9 @@ import { TElementPatch, updateScene } from "./Scene"
 const STROKE_WIDTHS = [1, 2, 4]
 
 /**
- * How close to a converted text a stroke must end to be checked as a gesture on it
+ * How close to converted content a stroke must end to be checked as a gesture on it
  */
-const CONVERTED_TEXT_MARGIN_PX = 10
+const CONVERTED_MARGIN_PX = 10
 
 const UNDERLINE_WIDTH = 2
 
@@ -36,6 +36,17 @@ const isCrossedAt = (gestureBox: TBox, text: TBox, from: number, to: number): bo
   return isBetween(textCenter.x, gestureBox.minX, gestureBox.maxX)
     && isBetween(center(gestureBox).y, textCenter.y + height * from, textCenter.y + height * to)
 }
+
+/**
+ * Same rule as the iinkTS interactive canvas: a scratch erases the strokes and texts it crosses,
+ * and the shapes and lines it covers whole, so scratching a text inside a shape keeps the shape
+ */
+const isScratched = (gestureBox: TBox, element: ExcalidrawElement): boolean =>
+  isFreeDraw(element) || isText(element)
+    ? boxOverlaps(gestureBox, sceneBox(element))
+    : boxContains(gestureBox, sceneBox(element))
+
+const isConverted = (element: ExcalidrawElement): boolean => !isFreeDraw(element)
 
 const toGesture = (gestureType: TGestureType, gestureStrokeId: string, strokeIds: string[]): TGesture =>
   ({ gestureType, gestureStrokeId, strokeIds, strokeBeforeIds: [], strokeAfterIds: [] })
@@ -97,10 +108,10 @@ export class GestureManager
     updateScene(this.api, { erase: [gesture.gestureStrokeId], patches, add: convertToExcalidrawElements(lines) })
   }
 
-  private textsNear(gestureBox: TBox): ExcalidrawTextElement[]
+  private convertedNear(gestureBox: TBox): ExcalidrawElement[]
   {
-    const area = expandBox(gestureBox, CONVERTED_TEXT_MARGIN_PX)
-    return this.api.getSceneElements().filter(isText).filter(t => boxOverlaps(area, sceneBox(t)))
+    const area = expandBox(gestureBox, CONVERTED_MARGIN_PX)
+    return this.api.getSceneElements().filter(isConverted).filter(e => boxOverlaps(area, sceneBox(e)))
   }
 
   private horizontalGesture(gestureId: string, gestureBox: TBox, texts: ExcalidrawTextElement[]): TGesture | undefined
@@ -117,10 +128,16 @@ export class GestureManager
     return hasSurrounded ? toGesture("SURROUND", gestureId, []) : undefined
   }
 
+  private scratchGesture(gestureId: string, gestureBox: TBox, elements: readonly ExcalidrawElement[]): TGesture | undefined
+  {
+    const scratched = elements.filter(e => e.id !== gestureId && isScratched(gestureBox, e))
+    return scratched.length ? toGesture("SCRATCH", gestureId, scratched.map(e => e.id)) : undefined
+  }
+
   /**
-   * Turns the shape the server saw into a gesture on the converted texts it touches
+   * Turns the shape the server saw into a gesture on the converted content it touches
    */
-  private toTextGesture(answer: TWebSocketClientMessageContextlessGesture, gestureBox: TBox, texts: ExcalidrawTextElement[]): TGesture | undefined
+  private toConvertedGesture(answer: TWebSocketClientMessageContextlessGesture, gestureBox: TBox, converted: ExcalidrawElement[]): TGesture | undefined
   {
     const gestureId = answer.strokeId
     switch (answer.gestureType) {
@@ -128,30 +145,28 @@ export class GestureManager
         return this.surroundGesture(gestureId, gestureBox, this.api.getSceneElements())
       case "left-right":
       case "right-left":
-        return this.horizontalGesture(gestureId, gestureBox, texts)
-      case "scratch": {
-        const scratched = texts.filter(t => boxOverlaps(gestureBox, sceneBox(t)))
-        return scratched.length ? toGesture("SCRATCH", gestureId, scratched.map(t => t.id)) : undefined
-      }
+        return this.horizontalGesture(gestureId, gestureBox, converted.filter(isText))
+      case "scratch":
+        return this.scratchGesture(gestureId, gestureBox, this.api.getSceneElements())
       default:
         return
     }
   }
 
   /**
-   * A converted text has no strokes on the server, which therefore cannot see a gesture drawn on it:
+   * Converted content (texts, shapes, lines) has no strokes on the server, which therefore cannot see a gesture drawn on it:
    * a stroke ending near one is first classified on its own shape, the way the iinkTS interactive
    * canvas does for its converted symbols. Resolves whether the stroke was applied as a gesture
    */
-  async applyOnConvertedText(client: WebSocketClient, stroke: TRecognitionStroke): Promise<boolean>
+  async applyOnConverted(client: WebSocketClient, stroke: TRecognitionStroke): Promise<boolean>
   {
     const gestureElement = this.api.getSceneElements().find(e => e.id === stroke.id)
     if (!gestureElement) return false
     const gestureBox = sceneBox(gestureElement)
-    const texts = this.textsNear(gestureBox)
-    if (!texts.length) return false
+    const converted = this.convertedNear(gestureBox)
+    if (!converted.length) return false
     const answer = await client.recognizeGesture(stroke)
-    const gesture = answer && this.toTextGesture(answer, gestureBox, texts)
+    const gesture = answer && this.toConvertedGesture(answer, gestureBox, converted)
     if (!gesture) return false
     this.apply(gesture)
     return true
