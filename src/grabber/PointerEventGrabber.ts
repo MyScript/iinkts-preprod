@@ -246,9 +246,22 @@ export class PointerEventGrabber {
     }
     this.capturing = true
     this.pointerType = evt.pointerType
+    this.capturePointer(evt)
 
     if (this.onPointerDown) {
       this.onPointerDown(pointerInfo)
+    }
+  }
+
+  /**
+   * Keeps every event of the gesture on the canvas once the pointer leaves it, until the pointer is
+   * released: the page around neither starts a text selection nor reacts to a drag it never saw begin.
+   */
+  protected capturePointer(evt: PointerEvent): void {
+    try {
+      this.layerCapture.setPointerCapture(evt.pointerId)
+    } catch {
+      // The pointer is already gone (or the event is synthetic): there is nothing left to capture.
     }
   }
 
