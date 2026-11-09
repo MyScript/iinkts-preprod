@@ -572,4 +572,46 @@ describe("PointerEventGrabber.ts", () => {
       grabber.detach()
     })
   })
+
+  describe("pointer capture", () => {
+    const setup = () => {
+      const wrapperHTML = document.createElement("div")
+      document.body.appendChild(wrapperHTML)
+      wrapperHTML.setPointerCapture = jest.fn()
+      const grabber = new PointerEventGrabber(DefaultGrabberConfiguration)
+      grabber.attach(wrapperHTML)
+      grabber.onPointerDown = jest.fn()
+      return { wrapperHTML, grabber }
+    }
+
+    test("should capture the pointer of a gesture so the page outside the canvas never receives it", () => {
+      const { wrapperHTML, grabber } = setup()
+      wrapperHTML.dispatchEvent(
+        new LeftClickEventMock("pointerdown", { pointerId: 7, pointerType: "pen", clientX: 0, clientY: 0, pressure: 1 })
+      )
+      expect(wrapperHTML.setPointerCapture).toHaveBeenCalledWith(7)
+      grabber.detach()
+    })
+
+    test("should not capture the pointer of a click that opens no gesture", () => {
+      const { wrapperHTML, grabber } = setup()
+      wrapperHTML.dispatchEvent(
+        new RightClickEventMock("pointerdown", { pointerType: "mouse", clientX: 0, clientY: 0, pressure: 1 })
+      )
+      expect(wrapperHTML.setPointerCapture).not.toHaveBeenCalled()
+      grabber.detach()
+    })
+
+    test("should still open the gesture when the pointer can not be captured", () => {
+      const { wrapperHTML, grabber } = setup()
+      wrapperHTML.setPointerCapture = jest.fn(() => {
+        throw new DOMException("No active pointer with the given id is found.", "NotFoundError")
+      })
+      wrapperHTML.dispatchEvent(
+        new LeftClickEventMock("pointerdown", { pointerType: "pen", clientX: 0, clientY: 0, pressure: 1 })
+      )
+      expect(grabber.onPointerDown).toHaveBeenCalledTimes(1)
+      grabber.detach()
+    })
+  })
 })
