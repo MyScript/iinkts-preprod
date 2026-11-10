@@ -19,5 +19,9 @@ echo "$source" > commit.txt
 sh scripts/build-info.sh "$source"
 # Keeps GitHub Pages from running Jekyll, which would drop TypeDoc's files starting with _
 echo "TypeDoc added this file to prevent GitHub Pages from using Jekyll." > .nojekyll
-git add -f dist examples docs index.html commit.txt .nojekyll
+# -f is needed for the ignored build outputs, but must not sweep in the dependencies the tldraw and
+# excalidraw examples install next to their sources: ~32k files that time GitHub Pages deployment out
+git add -f dist examples docs index.html commit.txt .nojekyll \
+  ':(exclude)examples/**/node_modules/**' ':(exclude)examples/**/.yarn/**' \
+  ':(exclude)examples/dev-env-loader.generated.js'
 git commit-tree "$(git write-tree)" -m "$message"
