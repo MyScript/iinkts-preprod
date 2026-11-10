@@ -1,323 +1,175 @@
+# Changelog
+
+One line per change. The full record of a version is in `changelog/<version>.md`; step-by-step upgrade instructions are in [MIGRATION.md](./MIGRATION.md).
+
+Badges: **breaking** = code stops compiling or behaves differently · **behaviour** = same API, different result · **type** = signature change only · **subclass** = only affects a class you extend.
+
 # [v5.0.0](https://github.com/MyScript/iinkTS/tree/v5.0.0)
 
-See [MIGRATION.md](./MIGRATION.md) for step-by-step upgrade instructions.
+Full record: [changelog/5.0.0.md](changelog/5.0.0.md)
 
-## Breaking Changes
+### What's new
 
-### Strokes: pen nibs, width and timing
-A stroke's width used to be read off each pointer's `p`, which the capture overwrote with a value derived from the gap to the previous pointer. Spacing is only a proxy for speed while the sampling rate holds steady, and the browser coalesces samples under load: the same gesture came out **17% thicker** when sampled twice as densely.
-- `p` is now exactly what the device reported and is never written back. Width is derived at draw time from distance over elapsed time, independent of sampling density. A pen reporting its own pressure overrides the estimate; a constant pressure (mouse, most touch devices) is read as "no measurement"
-- `TStyle.pen` names a nib: `ballpoint` (uniform line, blunt ends), `pencil` (default), `fountain`, `brush`, in order of how strongly speed and pressure move the line. It sits on the style, not the tool, so a reopened document redraws each stroke with its own nib; an unknown value falls back to the default instead of throwing. **Strokes drawn by an earlier version render differently**: every nib reaches full width on a deliberate stroke and thins as the pen accelerates; `ballpoint` is the constant-width one
-- nib behaviour: thinning is measured against a reference speed, not from a standstill, so slow parts keep full width; a nib may carry a **broad edge** (`edgeAngle`) — width then follows the angle between travel and edge, from geometry alone, so it works without timing (`fountain`: 45°, 7:1 ratio on a circle); a nib's ceiling (`max`) may exceed the nominal width (`brush` reaches 1.6); the end taper is capped at a share of the stroke's length; `smoothing` averages width over neighbouring pointers (`brush`). A stroke whose `dt` was filled in from the pointer index is left unshaded
-- `TStyle.penAngle`, `penSmoothing`, `penSpeed` override the nib's values on a single stroke (`readNibOverrides`)
-- menu: the write tool becomes a submenu (`ms-menu-tool-write-pencil` is the trigger, one button per nib); the style menu gains a nib picker that also applies to the selection — **an existing stroke takes the new nib and redraws**; the action menu gains a `Pen` submenu for the tunables, disabling those the current nib ignores
-- SVG, SSR and Canvas renderers go through the same width profile
-- new: `computeWidthProfile`, `computeOutlinePointers`, `isPenNib`, `PEN_NIBS`, `DEFAULT_PEN_NIB`, `TPenNib`, `TNibProfile`, `readNibOverrides`; example `interactive_canvas_pen_nibs.html`
-- removed: `_computePressure` on the stroke, `Model.computePressure`, and `TStroke.length`/`TLegacyStroke.length` (a hand-maintained accumulator with no reader left) → `SymbolGeometry.lengthOf(symbol)` (document frame) or `SymbolGeometry.rawOf(stroke).length` (stroke frame)
-- **`TPointer.t` is renamed `TPointer.dt`** and now counts milliseconds since the stroke began (first pointer at 0) instead of epoch milliseconds. The absolute instant is `stroke.creationTime + dt`, which `toWireStroke` sends. The rename is deliberate: same name, new meaning would have compiled and silently mis-timed every reader
-- **old documents still load**: `StrokeUtil.createFromPartial` and `IIPlaybackManager.play` accept an absolute `t` and rebase it, recovering both the intervals and the stroke's `creationTime`
-- pointer times are no longer rounded to whole milliseconds (18% of intervals in a reference capture were exactly zero): `DefaultGrabberConfiguration.timestampFloatPrecision` `0` → `-1`. Each coalesced sample is timed from its own event rather than one clock read per batch
-- `StrokeUtil.split` and the insert gesture's sub-strokes inherit the origin of the stroke they were cut from; the sub-strokes also keep the original `pointerType`, previously dropped
-- new: `TPointerImport`, `TStrokeImport`, `resolvePointerDelta`, `resolveStrokeOrigin`, `TPointerInfo.gestureStartTime`, a third `creationTime` argument to `StrokeUtil.createEmpty`
-- fixed: `IIPlaybackManager.play` ordered strokes by their first pointer's timestamp; it orders by stroke origin now
+**Writing**
+- **Pen nibs**: `ballpoint`, `pencil`, `fountain`, `brush`, picked from the tool menu, for ink that responds to speed and pressure; width no longer changes with the sampling rate
+- **Pen-only input on tablets**: a resting palm no longer inks nor takes over the pen stroke
+- **Writing near the edge** no longer drags the view away from the pen, and a stroke that leaves the canvas keeps going until the pen lifts
 
-### The document is immutable
-Symbols are frozen when committed and handed to readers directly instead of the document being deep-cloned on every read: `model.symbols` on 500 strokes goes from 11.59 ms to 0.0012 ms; building a 200-stroke model is 28% slower.
-- mutating a symbol read from `model` throws (runtime `Object.freeze`, not types) — use `model.draftSymbol(id)` then `model.commitSymbol(draft)`. A committed draft is frozen, so a per-frame gesture needs a fresh draft each frame
-- `model.selectedIds` is a `ReadonlySet`; `modificationDate` and `exports` are getters
-- **renamed**: `IIModel.getRootSymbol(id)` → `IIModel.getSymbol(id)`. Same behaviour: the committed, frozen symbol, no copy — the cheap read, against `draftSymbol(id)` for a write
-- new: `SymbolStore`, `TDraft`, `TReadonlyDeep`, `TSymbolOrder`, `IIModel.symbolCount`, `IIModel.decoratorsByTargetId`, `IIModel.selectionVersion`
-- fixed: `changeOrderSymbol` was a no-op; partially erasing characters was never stored; undo/redo replay rewrote the entry it was replaying; edge-connection anchors were silently dropped behind a swallowed throw
+**Interface**
+- **Menus where you want them**: 8 layout slots for the menus, the connection state and the minimap, changeable at runtime
+- **Your own menu items** in any menu, without subclassing and without a flash on load
+- **Math solver settings** in the Math menu: angle unit, decimals, decimal separator, rounding
+- **Gesture menu**: turn each gesture on or off and choose what it does; a new join mode closes the gap between words
 
-### Everything a symbol type knows lives on its util
-Behaviour was split between `*Ops` objects and `*Util` classes with no rule for which held what, and the transform managers reached per-type code through a `switch (symbol.type)` — so a custom symbol could be registered, drawn and selected, but not moved. The utils now hold everything; the type file holds the type.
-- **removed from the public API**: `StrokeOps`, `ShapeOps`, `ShapeCircleOps`, `ShapeEllipseOps`, `ShapePolygonOps`, `EdgeOps`, `EdgeLineOps`, `EdgeArcOps`, `EdgePolyLineOps`, `TextOps`, `MathOps`, `DecoratorOps`. Members moved to their family's util as statics, same name except on collision: `ShapeCircleOps.create`/`createFromPartial`/`createBetweenPoints`/`getSVGPath` → `ShapeUtil.createCircle`/`createCircleFromPartial`/`createCircleBetweenPoints`/`getCirclePath` (same for ellipse, polygon); `EdgeLineOps.create`/`moveVertex`/`getSVGPath` → `EdgeUtil.createLine`/`moveLineVertex`/`getLinePath` (same for arc, polyline); `TextOps.create` → `TextUtil.createText`; `MathOps.create` → `MathUtil.createMath`; `DecoratorOps.create` → `DecoratorUtil.createDecorator`; `StrokeOps.create` → `StrokeUtil.createEmpty`. `EraserOps` stays (transient tool artefact, no util)
-- type guards that were `*Ops` members are util statics: `ShapeUtil.isShape`, `EdgeUtil.isEdge`, `isLineEdge`, `isArcEdge`, `isPolyEdge`. `isStroke`, `isText`, `isMath`, `isDecorator` are unchanged
-- new: dispatching `ShapeUtil.getSVGPath(symbol)`/`EdgeUtil.getSVGPath(symbol)` for any kind of the family
-- removed: `EdgeOps.computeEdgeBounds` (an edge's geometry applies its padding), `EdgeOps.getEdgeResizePoints` → `symbolRegistry.getUtilFor(symbol).getResizePoints(symbol)`, `StrokeOps.formatToSend` → `toWireStroke` (see below); `StrokeOps`' five `_`-prefixed path helpers are private to `StrokeUtil`
-- new, concrete on `SymbolUtil`: `translate`/`rotate`/`resize(symbol, context)`, each composing `context.matrix` onto `symbol.transform` via `applyTransform` — no built-in type overrides them, a custom util inherits all three. `TTransformContext` (`{ matrix }`) replaces `TTranslateContext`/`TRotateContext`/`TResizeContext`, which had become identical
-- new: `SymbolUtil.getResizePoints(symbol)` (empty by default; edge kinds offer per-vertex handles), `TResizePoint` (`{ point, vertexIndex }`, structural)
-- new: `SymbolUtil.keepsAspectRatio(symbol)`, `false` by default; `true` for text and math (`TypesetUtil`) and the circle. `IIResizeManager` no longer tests types, and a custom symbol can now require a locked ratio
-- new: `TypesetUtil` (`src/symbol-utils/typeset/`), the abstract base of `TextUtil` and `MathUtil`
-- `IIAbstractTransformManager`: the type switch, `applyToStroke`/`applyToShape`/`applyToEdge`/`applyOnText`/`applyOnMath`, `transformName` and `IIResizeManager.applyOnTypeset` are gone; a subclass implements one `protected abstract applyThroughUtil(symbol, matrix)`. A decorator is no longer skipped early: `DecoratorUtil` implements the three operations as deliberate no-ops. An unregistered type fails from `symbolRegistry.getUtilFor` with `No util is registered for type "x". Registered types: …` (was `Can't apply resize on symbol, type unknown: {…}`)
-- **`SymbolUtil.getSVGElement(symbol)` is abstract**: a custom util omitting it no longer compiles (return `undefined` for a state you do not draw). The SVG renderer's "no util for symbol" error now means just that. `InkCanvasDeprecated` (INK_V1) still draws through `CanvasRenderer`'s fixed tables, so a custom symbol is invisible there and logs "symbol type unknown"
+**Content**
+- **One export API**: `exportAs` / `download` for 10 formats, now including Markdown, Mermaid, PlantUML, LLM, JIIX, and PDF through the browser's print dialog
+- **Shapes and edges stay connected** when moved, resized or rotated, before and after conversion
+- **Change the language or any recognition setting live**, without reloading the canvas
+- **Update symbols by id with a patch**: one call for style, font or any change
 
-### A symbol's geometry is computed, and answers for itself
-`bounds`, `vertices`, `snapPoints` and `edges` are gone from every stroke, shape and edge type. They were copies kept in step by hand, and a stale box surfaced later in hit-testing rather than where the write happened. They are computed on read, cached on the frozen record's identity (a mutated symbol is a new object, so nothing to invalidate).
-- new: `SymbolGeometry.boundsOf`, `verticesOf`, `snapPointsOf`, `edgesOf`, `lengthOf` (document frame, raw × scale), `of(symbol)` and `rawOf(symbol)` (pre-transform) returning a `Geometry2d`. All work detached: `symbols.map(SymbolGeometry.boundsOf)`
-- new in `@/core/geometry`: `Geometry2d` and its shapes `PointSet2d` (stroke), `Polyline2d`, `Polygon2d`, `Circle2d`, `Ellipse2d`, `PointsGeometry2d`, answering overlap, containment, distance and transformation
-- `SymbolUtil.getGeometry(symbol): Geometry2d` is the only geometry method a custom type implements; `overlaps`, `bounds`, `vertices`, `edges`, `length`, `containsPoint`, `nearestPoint`, `hitTestPoint` derive from it. **`SymbolUtil.overlaps` is no longer abstract**
-- removed: `SymbolUtil.updateDerivedFields` and every per-kind/`*Ops` implementation, `StrokeOps.updateBounds`, and the `*Ops` geometry members (`computeBounds`, `computeVertices`, `computeEdges`, `computeSnapPoints`, `computeLength`, `overlaps`)
-- `TText.bounds` and `TMath.bounds` **stay**: measured from the DOM with `getBBox()`
-- behaviour: a query lying wholly inside a filled shape now selects it; a rotated symbol keeps a *rotated* box instead of its axis-aligned envelope (up to √2 wider); a circle stretched unevenly becomes an exact `Ellipse2d` instead of a re-tessellated outline
-- new on `OBBOps`: `createFromPointsAtAngle(points, angle)`, `toCorners`, `fromCorners`, `polygonOverlapsQuad`, `toUnrotatedBox`, `getSnapPoints`
+**Reliability and security**
+- **Offline resilience**: every change made while the connection is down is replayed on reconnection, and requests wait instead of failing
+- **Large imports** no longer close the session: messages are split under the server's size limit
+- **The HMAC key stays on your server**: `server.sign` signs requests there
+- **No more crashes on Safari/WebKit** when selecting or erasing many strokes
 
-### A symbol carries where it sits, as a matrix
-`TBaseSymbol.transform` is a persisted `TMatrixTransform`, identity by construction. Translate, rotate and resize compose into it; the symbol's own coordinates never move.
-- the renderer applies a transform by rewriting one attribute (`SVGRenderer.setSymbolTransform`) instead of rebuilding the element
-- undo is exact: no rounding accumulates across steps
-- reads go through `SymbolGeometry`; a write into a symbol's own frame maps the point back first — new: `applyInverseMatrixToPoint`, `isIdentityMatrix`, `mergeSymbolTransform`, and `applyMatrixToPoint`/`applyMatrixToPoints` (rounded to three decimals, previously a `protected` helper applied inconsistently across 13 sites) exported from `core/geometry`
-- removed: `TText.rotation`, `TMath.rotation`, `TRotation`, `TTypesetPort`, and `IIAbstractTransformManager.setTransformOrigin`/`translateElement`/`rotateElement`/`scaleElement` — a live gesture composes onto the stored matrix instead of writing a CSS transform, which is what made a rotated typeset symbol lose its rotation on drag
-- `StrokeSerializer` bakes the matrix at the network boundary; the wire format is unchanged
+**Performance**
+- **10 000× faster reads** on large documents (`model.symbols` on 500 strokes: 11.59 ms → 0.0012 ms)
+- **Synchronizing an unchanged 4000-stroke document**: 1.3 s → 27 ms
+- **Lighter DOM**: one SVG element per stroke instead of two; **shorter strokes on the wire** from server 4.6.0
 
-### A path symbol is its path, with no group around it
-Strokes, shapes and edges were each a `<g>` holding one `<path>` — a DOM node per symbol (4419 on the reference document) for nothing.
-- `getSVGElement` returns the `<path>`, carrying `id`, `type`, `kind` and the matrix
-- **`vector-effect` now applies** (it is not inherited): `non-scaling-stroke` keeps a shape's or edge's width as the canvas zooms
-- **selectors reaching through the group no longer match**: `#<id> path`, `g[type="stroke"]`
-- text and math keep their group; a decorator stays a single bare element
-- new: `PathSymbolUtil` (types implement `getPathData`/`getPathAttributes` instead of `getSVGElement`), `SymbolUtil.getGroupAttributes`
+**Extending the library**
+- **Custom symbol types** now move, rotate and resize like the built-in ones: everything a type knows lives on its util
+- **Every module is exported**, and clients have no `#private` member left: any of them can be overridden
+- **New examples**: Math Tutor, Excalidraw, pen nibs, menu layout, server-side signing
 
-### A decorator's box is named for where it comes from
-A decorator holds no coordinates: its box comes from the recognizer's word box, or the union of its targets'.
-- renamed: `TDecorator.bounds` → `TDecorator.targetBounds`, now optional; `DecoratorOps.setBounds` → `DecoratorUtil.setTargetBounds`
-- removed: `TDecorator.hasBounds` — presence of `targetBounds` is the flag (the boolean shadowed a zero-size box)
-- fixed: a decorator serialised by iinkTS (`TOBB`) came back with a NaN centre on re-import; erasing one target out of several threw `Cannot assign to read only property 'targetIds'`
-- a standalone decorator now takes the same matrix as its targets when they are translated, resized or rotated together (live preview included), so it turns with rotated ink instead of being re-derived as an axis-aligned box; `targetBounds` and `baseline` are in the decorator's local frame, placed by its `transform`. Only a partial move (some targets) refits the box, still in that frame. The decorator is recorded in the transform's history entry, so undo/redo restores it
-- new: `DecoratorUtil.refitTargetBounds(decorator, targets)`
+### Features
+- **Pen nibs** — four nibs on `TStyle.pen`, width from speed and pressure, nib picker in the style menu, per-stroke tuning (`penAngle`, `penSmoothing`, `penSpeed`). Try: `interactive_canvas_pen_nibs.html`. [details](changelog/5.0.0.md#strokes-pen-nibs-width-and-timing)
+- **Menu layout** — `configuration.layout` places menus, connection state and minimap in 8 slots; `canvas.layout.set/add/remove` at runtime; `options.extend` adds items before the first render. Try: `interactive_canvas_menu_layout.html`. [details](changelog/5.0.0.md#place-the-menus-where-you-want-configurationlayout)
+- **Custom menu items** — `canvas.menu.addItem(menu, key, factory, { zone, before, after, replace })` on the action, tool, style or context menu. [details](changelog/5.0.0.md#add-your-own-items-to-the-menus)
+- **Pen-only input** — `grabber.inputMode`: `"any"`, `"pen"`, `"auto"`. [details](changelog/5.0.0.md#pen-only-input-for-tablets)
+- **Math solver menu** — Math > Solver: angle unit, decimals, separator, rounding; each item can be hidden. New `overrideDeep`. [details](changelog/5.0.0.md#math-solver-settings-in-the-math-menu)
+- **Gesture menu** — one submenu per gesture (enable + action); new `JoinAction.CloseGap`, `IIGestureManager.isGestureEnabled`. [details](changelog/5.0.0.md#gesture-menu-one-submenu-per-gesture)
+- **Export** — `exportAs(format)` returns typed content, `download(format)` saves it; new formats Markdown, Mermaid, PlantUML, LLM, JIIX; new `ExportManager`, `IIExportManager`. [details](changelog/5.0.0.md#export)
+- **PDF export** — `download("pdf")` prints through the browser, with a page-settings dialog; new `PDFExportManager`. [details](changelog/5.0.0.md#pdf-export-via-native-browser-print)
+- **Shape ↔ edge connections** — edges follow their shape when translated, resized or rotated, raw or converted; new `getFollowedStrokeIds`. [details](changelog/5.0.0.md#shape--edge-connections)
+- **Live recognition configuration** — `updateRecognitionConfiguration(partial)` changes language, solver… and resynchronizes. [details](changelog/5.0.0.md#one-call-changes-the-recognition-configuration-changelanguage-is-gone)
+- **Update symbols by id** — `updateSymbols(ids, patch)` / `updateSymbol(id, patch)`, patch object or draft function. [details](changelog/5.0.0.md#one-call-updates-symbols-by-id-with-a-patch)
+- **Offline queue for every change** — strokes, transforms, undo/redo, clear queued and replayed in order; requests wait for the reconnection. [details](changelog/5.0.0.md#bug-fixes)
+- **Server-side signing** — `server.sign(message, applicationKey)` (`THmacSigner`). Try: `examples/server-signing/`. [details](changelog/5.0.0.md#the-hmac-signature-is-computed-on-your-server-serversign)
+- **Shorter strokes on the wire** — `t0` + `dt` instead of absolute `t`, from server 4.6.0. [details](changelog/5.0.0.md#shorter-strokes-on-the-wire-t0--dt)
+- **Custom symbol types** — a custom util inherits `translate`/`rotate`/`resize`, implements `getGeometry` only; new `SymbolUtil.getResizePoints`, `keepsAspectRatio`. [details](changelog/5.0.0.md#everything-a-symbol-type-knows-lives-on-its-util)
+- **Every module is exported** — `resolveHmac`, `parseApiError`, `TApiError`; `defineKind`, `resolveKind` (`@experimental`). [details](changelog/5.0.0.md#every-module-is-exported)
+- **Nameable return types** — `TAnchoredEdgesUpdateResult`, `TFollowedStroke`, `TShift`, `TSplitOutcome` exported. [details](changelog/5.0.0.md#types-returned-by-public-methods-can-be-named)
+- **Math Tutor example** — handwritten workbook that checks each line as it is written. Try: `interactive_canvas_math_tutor.html`. [details](changelog/5.0.0.md#math-tutor-example)
+- **Excalidraw example** — recognition and conversion into Excalidraw elements. Try: `examples/custom-rendering/excalidraw-websocket-client/`. [details](changelog/5.0.0.md#excalidraw-integration-example)
 
-### History: diff-only, records what changed
-Entries no longer store a `Model`/`IIModel` snapshot, and no longer describe a change by its parameters (delta, angle, factors, colour): a transform writes `symbol.transform` and a restyle `symbol.style`, so the record is the state and undo restores it exactly (a scale's `1 / scaleX` was `Infinity` at zero and ignored its origin).
-- removed: `TIHistoryStackItem`/`TIIHistoryStackItem`, `IHistoryManager.updateModelStack()`, `IIHistoryManager.update()`
-- `history.push(model, changes)` → `history.push(changes)`; `undo()`/`redo()` return `TIHistoryChanges`/`TIIHistoryChanges` instead of `{ model, changes }`. `InteractiveInkCanvas.undo()`/`redo()` replay them on the live model, independently from the backend replay message
-- removed: `TIIHistoryChanges.translate`, `rotate`, `scale`, `matrix`, `style`; `TIIHistoryBackendChanges.translate`, `rotate`, `scale`, `matrix` — undo/redo reach the server as a stroke replacement
-- `TIIHistoryChanges.updated`: `TSymbol[]` → `{ before: TSymbol; after: TSymbol }[]`. New `appendUpdated(changes, pairs)` for a step gathering symbols from several sources (assigning twice kept only the last)
-- `IITypesetManager.moveTextAfter` returns `{ before, after }[]` instead of `TSymbol[]`
-- `WebSocketClient.transformMatrix` still works but the library no longer calls it
-- fixed: a restyle never reached the server; `IITranslateManager.translate(symbols, …)` recorded the selection instead of `symbols` (undo applied nothing); thickening strokes by gesture recorded the old record as the new one (redo was a no-op); `IIHistoryManager` did not populate `possibleUndoCount`
+### Upgrading from v4
+- **breaking** Strokes: `TPointer.t` → `TPointer.dt` (ms since the stroke began), width computed at draw time, `TStroke.length` removed. Old documents still load; strokes from earlier versions render differently. [details](changelog/5.0.0.md#strokes-pen-nibs-width-and-timing)
+- **breaking** Symbols read from `model` are frozen: write through `draftSymbol(id)` → `commitSymbol(draft)`; `getRootSymbol` → `getSymbol`. [details](changelog/5.0.0.md#the-document-is-immutable) · [migration](MIGRATION.md#the-document-is-immutable-symbols-you-read-are-frozen)
+- **breaking** `*Ops` objects removed, their members moved to the family's util (`ShapeCircleOps.create` → `ShapeUtil.createCircle`…); transform managers implement one `applyThroughUtil`; `getSVGElement` is abstract. [details](changelog/5.0.0.md#everything-a-symbol-type-knows-lives-on-its-util) · [migration](MIGRATION.md#a-ops-object-is-now-its-familys-util)
+- **breaking** `bounds`, `vertices`, `snapPoints`, `edges` removed from strokes, shapes and edges: read them through `SymbolGeometry`. [details](changelog/5.0.0.md#a-symbols-geometry-is-computed-and-answers-for-itself) · [migration](MIGRATION.md#geometry-is-computed-not-stored)
+- **breaking** A symbol's position is a matrix in `transform`; `TText.rotation`, `TMath.rotation` removed. [details](changelog/5.0.0.md#a-symbol-carries-where-it-sits-as-a-matrix) · [migration](MIGRATION.md#a-symbol-carries-where-it-sits-as-a-matrix)
+- **breaking** Strokes, shapes and edges render as a bare `<path>`: selectors such as `#<id> path` no longer match. [details](changelog/5.0.0.md#a-path-symbol-is-its-path-with-no-group-around-it) · [migration](MIGRATION.md#a-stroke-shape-or-edge-is-drawn-as-a-bare-path)
+- **breaking** `TDecorator.bounds` → `targetBounds`, `hasBounds` removed. [details](changelog/5.0.0.md#a-decorators-box-is-named-for-where-it-comes-from) · [migration](MIGRATION.md#a-decorators-box-is-renamed-for-where-it-comes-from)
+- **breaking** History stores diffs only: `history.push(changes)`, `updated` holds `{ before, after }` pairs. [details](changelog/5.0.0.md#history-diff-only-records-what-changed) · [migration](MIGRATION.md#history-one-form-for-every-change)
+- **breaking** `StrokeOps.formatToSend` → `toWireStroke`; `TStrokeMinimal` → `TStrokeCapture`. [details](changelog/5.0.0.md#the-client-owns-the-stroke-shape-it-sends) · [migration](MIGRATION.md#the-client-owns-the-stroke-shape-it-sends)
+- **breaking** `src/utils/` dissolved: deep imports only, the exported names are unchanged. [details](changelog/5.0.0.md#internal-layout-srcutils-dissolved) · [migration](MIGRATION.md#internal-layout-srcutils-no-longer-exists)
+- **breaking** `SELECTION_MARGIN` split into `SELECTION_PADDING`, `HIT_TOLERANCE`, `DUPLICATE_OFFSET`, `TESSELLATION_SEGMENT_LENGTH`. [details](changelog/5.0.0.md#selection_margin-split-by-meaning-constants-dissolved) · [migration](MIGRATION.md#selection_margin-is-split-by-meaning)
+- **breaking** `IIConnectorManager.updateAnchoredEdges()` returns what it moved, to include in the history entry. [details](changelog/5.0.0.md#shape--edge-connections-1)
+- **breaking** `updateSymbolsStyle` / `updateTextFontStyle` → `updateSymbols(ids, patch)`. [details](changelog/5.0.0.md#one-call-updates-symbols-by-id-with-a-patch) · [migration](MIGRATION.md#one-call-updates-symbols-by-id-with-a-patch)
+- **breaking** `changeLanguage(code)` → `updateRecognitionConfiguration({ lang })`. [details](changelog/5.0.0.md#one-call-changes-the-recognition-configuration-changelanguage-is-gone) · [migration](MIGRATION.md#changelanguage-becomes-updaterecognitionconfiguration)
+- **behaviour** The math solver works in radians by default. [details](changelog/5.0.0.md#the-math-solver-works-in-radians-by-default) · [migration](MIGRATION.md#the-math-solver-defaults-to-radians)
+- **breaking** Nine export methods → `exportAs` / `download`. [details](changelog/5.0.0.md#export-one-exportas-one-download) · [migration](MIGRATION.md#exports-nine-methods-become-two)
+- **breaking** `hmacKey` is a string only, the function form is removed: sign with `server.sign`. [details](changelog/5.0.0.md#the-hmac-signature-is-computed-on-your-server-serversign) · [migration](MIGRATION.md#hmackey-is-a-string-only-sign-on-your-server-with-serversign)
+- **breaking** `CanvasEventName.POINTEREVENTS` removed (never emitted). [details](changelog/5.0.0.md#canvaseventnamepointerevents-is-removed)
+- **breaking** `server.websocket.offlineQueueEnabled` removed: `autoReconnect` is the only reconnection switch. [details](changelog/5.0.0.md#bug-fixes) · [migration](MIGRATION.md#autoreconnect-is-the-only-reconnection-switch)
+- **behaviour** `isOffline` is true whenever the connection is down after a first success, queued changes or not. [details](changelog/5.0.0.md#bug-fixes)
+- **behaviour** A network drop is a connection state (`offline`/`syncing`), no longer an `error`. [details](changelog/5.0.0.md#bug-fixes)
+- **behaviour** Writing never pans the view; a stroke goes on past the canvas edge until `pointerup`. [details](changelog/5.0.0.md#bug-fixes)
+- **behaviour** Auto-compute asks the server for every math block (vertical operations included). [details](changelog/5.0.0.md#bug-fixes)
+- **behaviour** The `changed` event of `InteractiveInkCanvas` carries the local history state, not the backend's. [details](changelog/5.0.0.md#bug-fixes)
+- **behaviour** `mergeDeep` drops `__proto__`, `constructor`, `prototype` keys; `WebSocketSSRClient` reports `restore.session.not.found` as `NO_SESSION_FOUND`. [details](changelog/5.0.0.md#bug-fixes)
+- **breaking** Selection and erase effects are CSS classes: `selectionFilterId` → `selectedClassName`, `removalFilterId` → `deletingClassName`. [details](changelog/5.0.0.md#bug-fixes)
+- **breaking** CSS: menu position classes → `ms-menu-action`, `ms-menu-style`, `ms-menu-tool`. [details](changelog/5.0.0.md#place-the-menus-where-you-want-configurationlayout) · [migration](MIGRATION.md#menus-sit-in-a-layout-position-classes-are-gone)
+- **type** `options.override.menu` takes menu classes (`TMenuOverride`); thicken gesture takes `widths`/`fontWeights`; `clearSolverOutputs()` returns the removed strokes; `SYNC_YIELD_CHUNK_SIZE` → `SYNC_YIELD_BUDGET_MS`. [details](changelog/5.0.0.md#bug-fixes)
+- **type** History event, `override.client`, `Logger`, websocket messages, `mergeDeep` typings; `override.grabber` removed. [details](changelog/5.0.0.md#type-only)
+- **subclass** Clients: `#private` members become protected (`sendOnSocket`, `offlineQueue`…), one pending-request queue replaces the `*Deferred` fields, `reconnectionCount` removed; menus share `IIAbstractMenu`. [details](changelog/5.0.0.md#bug-fixes)
 
-### The client owns the stroke shape it sends
-The protocol conversion moved to the client, which no longer depends on the symbol layer.
-- removed: `StrokeOps.formatToSend(stroke)` → `toWireStroke(stroke)`
-- new: `TRecognitionStroke` (`{ id, pointerType, pointers }`, what you hand the recognizer), `TRecognitionPointer`, `TWireStroke` (the column-array wire form)
-- a pointer's `dt` and `p` are **optional**, so geometry alone can be sent. Supply `dt` whenever the source has it: the recognizer uses inter-point timing to segment characters and resolve ambiguous shapes (measurably worse on cursive text and multi-pass shapes without it). `TWireStroke.t`/`.p` are optional to match and emitted all-or-nothing, so a column never misaligns with `x`/`y`
-- `TStrokeGroupToSend.strokes` and `THTTPClientV2PostData.strokes` are `TWireStroke[]`; `WebSocketClient.addStrokes`/`replaceStrokes`/`recognizeGesture` and `HTTPClientV2.send` take `TRecognitionStroke` (a `TStroke` still satisfies it)
-- renamed: `TStrokeMinimal` → `TStrokeCapture`, still the base of `TStroke`
-- `WebSocketClient`: the protected `buildAddStrokesMessage` and `buildReplaceStrokesMessage` take `TWireStroke[]`, so `addStrokes`/`replaceStrokes` convert each stroke once instead of twice (once to size the frame, once to send it). A subclass overriding them receives wire strokes. Messages are routed through the new protected `messageHandlers` (`TWebSocketClientMessageHandlers`, one entry per `TWebSocketClientMessageType`) instead of a `switch`; overriding a `manage*` method still takes effect
+### Performance
+- `InteractiveInkCanvas.select(ids)`: O(n·m) → O(n)
+- Removing symbols: one pass over the document instead of two copies
+- Synchronizing an unchanged 4000-stroke document: 128 ms → 94 ms of work, 80 frames → 1
+- Conversion deduplicates strokes in O(n) (`uniqueById`)
+- One `RafCoalescer` replaces six hand-written frame throttles
 
-### Internal layout: `src/utils/` dissolved
-Every helper moved to the lowest layer its inputs allow; the new `core` layer imports nothing else from the library. The exported surface is unchanged (787 names), so only deep imports are affected.
-- helpers now live in `core/geometry`, `core/math`, `core/std`, `core`, `client`, `export`, `dom`
-- `TPoint`, `TPointer`, `TSegment`, `TBox`, `TOBB` moved from `symbol/primitives` to `core/geometry`
-- see [MIGRATION.md](./MIGRATION.md) for the full mapping
+[details](changelog/5.0.0.md#performance)
 
-### `SELECTION_MARGIN` split by meaning, `Constants` dissolved
-One value of 10 served three unrelated purposes, so tuning the selection frame also changed how finely circles are drawn and how close a click must land on an edge.
-- **removed**: `SELECTION_MARGIN` → `SELECTION_PADDING` (10, selection frame and handles, `getSymbolsBounds` default), `HIT_TOLERANCE` (5, per side around a thin edge — the former `SELECTION_MARGIN / 2`), `DUPLICATE_OFFSET` (10, where `duplicate` places the copy), `TESSELLATION_SEGMENT_LENGTH` (10, target segment length when a curve becomes a polyline). Values are unchanged
-- the other constants moved next to their owner: `CanvasTool` (`manager/base`), `CanvasWriteTool`, `GESTURE_OPERATION_LABELS`, `ResizeDirection` (`manager/interactive`), `TCanvasOperationLabel` (`canvas`), `SvgElementRole` (`renderer`), `EdgeDecoration` (`symbol`), `MathDiagnosticMessages` (`components`). Still exported under the same names, so only deep imports of `Constants` are affected
+<details>
+<summary>Bug fixes</summary>
 
-### Shape ↔ edge connections
-- `IIConnectorManager.updateAnchoredEdges()` returns `TAnchoredEdgesUpdateResult` (`{ rigidStrokeIds, oldSymbols, newSymbols }`: the pre-convert edge strokes it moved and the edges it recomputed) instead of `void` — callers must include them in their history entry
+**Math**
+- Undo to an empty page then redo showed every result ever computed; variable values are now in the history
+- Auto-compute never computed a vertical operation
 
-### One call updates symbols: by id, with a patch
-`InteractiveInkCanvas.updateSymbols(ids, patch, addToHistory?)` and `updateSymbol(id, patch, addToHistory?)` take ids and a patch instead of records, and replace `updateSymbolsStyle` and `updateTextFontStyle`, with **no compatibility shim**. The patch is an object, `{ style?, font? }` (new `TSymbolPatch`), or a function that changes a draft of each symbol (new `TSymbolUpdate`): `updateSymbolsStyle(ids, style)` → `updateSymbols(ids, { style })`, `updateTextFontStyle(ids, { fontSize, fontWeight })` → `updateSymbols(ids, { font: { size, weight } })`, `updateSymbol(draft)` → `updateSymbol(id, (draft) => …)`. `updateSymbol` resolves `undefined` for an unknown id. `InkCanvas.updateSymbolsStyle` is unchanged
-- one path for every update: only the symbols named are drafted (O(m), not a scan of the document); the committed record is the history snapshot, so nothing is cloned; texts and maths are re-measured; the backend hears only of strokes that appeared or disappeared, and `idle(false)` is emitted only then (a restyle or an edge handle drag emitted it with nothing sent)
-- fix: a change that made a text wider or narrower — a restyle, a label edit — slid the texts after it on its row without recording them (or, for an edit, did not slide them), so undo left them where they had moved; they are in the same history entry now, as they were for a font change
-- a font change takes `addToHistory` (`updateTextFontStyle` always recorded one); an id with no symbol, or a font on no text, records nothing
+**Writing and gestures**
+- Writing within 20 px of the edge made the view run away from the pen
+- A gesture leaving the canvas with the button down drove the page around it
+- The underline gesture in `Thicken` mode did nothing on text or math
+- A gesture missing from `raw-content.gestures` was still applied without context
+- A JOIN gesture between non-text symbols left the next one in place (since 4.0.0)
+- `replaceSymbols()` mutated the array it was handed
+- A rotated text or math block reported a mirrored box, so surrounding it did not select it
 
-### One call changes the recognition configuration: `changeLanguage` is gone
-`InteractiveInkCanvas.updateRecognitionConfiguration(partial)` replaces `changeLanguage(code)`, with **no compatibility shim**: `changeLanguage("fr_FR")` → `updateRecognitionConfiguration({ lang: "fr_FR" })`. It also changes the math solver, e.g. `{ math: { solver: { "angle-unit": "deg" } } }`.
-- opens a new session with the merged configuration and re-sends every user stroke. An array in the partial **replaces** the current one; an explicit `undefined` clears a key
-- the canvas is read-only while it runs, then restored to its previous read-only state; concurrent calls are serialized and those waiting together are applied in one resynchronization
-- on failure the previous configuration is restored, the error goes through the `error` event and the promise rejects (`changeLanguage` kept the new value while the server ran on the old one)
-- solver outputs are cleared before the new session, then recomputed if auto-compute is on (`changeLanguage` re-sent them as ink)
-- fix(client): `WebSocketClient.newSession(config)` merged with `mergeDeep`, which appends arrays, duplicating every array (`raw-content` types, `gestures`, `mimeTypes`…) on each new session; arrays in `config` now replace
-- fix(client): a message sent while `WebSocketClient.close()` was tearing down (typically the debounced synchronize during `newSession()`) was re-sent to the next session — an `export` on the previous part that settled the new session's export with stale content, and `mathSolver` requests on reused block ids, so auto-compute computed nothing after a resynchronization. Such a message is now dropped
+**Connection**
+- A failed HMAC resolution left `init()` waiting forever
+- An application key holding `&`, `=` or `#` broke the websocket URL
+- The HTTP clients signed the body before adapting it to old servers: wrong signature
+- `send()` resolved, or silently dropped, a message the socket failed to send
+- `WebSocketSSRClient.destroy()` left pending requests hanging
+- Math solver and support requests never settled after an abnormal drop
+- A late handshake failure broke every following reconnection attempt
+- A network drop reopened the error modal every `reconnectDelay`, losing the strokes drawn meanwhile
+- Two concurrent exports of the same type: the first never resolved
+- An export superseded by a change hung every caller, and recognition stopped
+- An idle healthy connection closed after 5 minutes (ping counter)
+- `newSession()` duplicated every array of the configuration
+- A message sent during `close()` leaked into the next session
+- Messages over 500 KB made the backend close the session
+- `HTTPClientV2` did not strip `jiix.text.lines` for servers below 3.2.0
+- `HTTPClientV1` turned a non-JSON error body into a generic connection error
+- `getAvailableLanguageList()` / `getAvailableFontList()` failures were not reported as errors
+- `updateRecognitionConfiguration()` on an empty sheet stayed "Recognizing" forever
 
-### The math solver works in radians by default
-`DefaultSolverConfiguration["angle-unit"]` is now `"rad"` (was `"deg"`), and `DefaultRecognitionWebSocketConfiguration.recognition.math.solver` spreads `DefaultSolverConfiguration` instead of declaring its own. `sin(90)` no longer evaluates to `1` by default; set `recognition.math.solver["angle-unit"]` to `"deg"` to keep the previous behaviour.
+**Security**
+- The clients logged `applicationKey` / `hmacKey` in plaintext
+- `mergeDeep` could pollute `Object.prototype`
+- `InteractiveInkSSRSmartGuide` executed script from a crafted JIIX label
 
-### Export: one `exportAs`, one `download`
-Every export on `InteractiveInkCanvas` goes through two functions instead of nine, with **no compatibility shim**.
+**Leaks and lifecycle**
+- `InteractiveInkCanvas.destroy()` left thirteen managers alive
+- `IISynchronizerManager` left a 5 s timer per math block on every sync
+- `IDebugSVGManager` leaked pointer listeners on every drag
+- `IIMenuContext.destroy()` leaked `document` listeners
+- Nine swallowed errors and floating promises now reach the caller
+- `clear()` did not await the server
 
-| Removed | Replacement |
-|---|---|
-| `downloadAsJson(selection?)` | `download("json", { scope })` |
-| `downloadAsSVG(selection?)` | `download("svg", { scope })` |
-| `downloadAsPNG(selection?)` | `download("png", { scope })` |
-| `downloadAsText(selection?)` | `download("text", { scope })` |
-| `printAsPDF(selection?, options?)` | `download("pdf", { scope, ...options })` |
-| `toMarkdown()` | `exportAs("markdown")` |
-| `toMermaid()` | `exportAs("mermaid")` |
-| `toPlantUML()` | `exportAs("plantuml")` |
-| `toLLM()` | `exportAs("llm")` |
+**Rendering and model**
+- Selecting or erasing many strokes crashed WebKit
+- `pan()` left symbols scrolled into view undrawn
+- `Minimap` cloned the whole layer on every change
+- `EraseManager` threw on Safari < 18.4
+- Shape/edge type picker never closed its dropdown
+- `emit()` turned any falsy payload into `null`
+- `override.menu` was lost on the first `setConfig`
+- Synchronizer metadata left stale after a throw, or cleared exports
+- Word/char grouping returned `[]` after an exports clear
+- Translating an unknown edge kind failed silently
+- `Model.addStroke()` accepted a duplicate id
 
-- `selection: boolean` → `{ scope: "all" | "selection" }`, plus `{ symbols: TSymbol[] }` (wins over `scope`) and `{ filename }` on `download`
-- both are always `async`, including `json`/`svg`/`png`; `exportAs("png")` resolves with a fully rasterized `Blob` (previously returned before `image.onload`)
-- `exportAs("pdf")` does not compile: `pdf` only exists on `download`
-- `export(mimeTypes)` is unchanged and stays public as the low-level server export
-- default file names use a truncated ISO instant (`iink-ts-2026-08-26T14-30-15.svg`) instead of `toLocaleDateString`, which put slashes and colons in the name under `fr-FR`
-- `PDFExportManager.openExportDialog(onConfirm, onCancel?)`: new optional cancel callback, so `download("pdf")` settles on cancellation instead of hanging
-- `TExportActionItemsConfig`/`TContextExportItemsConfig` gained `markdown`, `mermaid`, `plantuml`, `llm`, `jiix` (enabled by default; `markdown` only built with `text` recognition, `mermaid`/`plantuml` only with `shape`)
+[details](changelog/5.0.0.md#bug-fixes)
 
-### The HMAC signature is computed on your server: `server.sign`
-`server.hmacKey` put the HMAC key in the browser, where anyone could read it; its function form only fetched the same key from elsewhere before exposing it the same way.
-- new: `server.sign(message, applicationKey) => Promise<string>` (`THmacSigner`) resolves the signature of the WebSocket HMAC challenge or of the HTTP request body, so the key stays on a server you own. It takes precedence over `hmacKey`. `resolveHmac` calls it
-- **removed**: the function form of `hmacKey`. `TServerHTTPConfiguration.hmacKey` is a `string`, kept for development; anything else makes `resolveHmac` throw
-- `WebSocketClient`/`WebSocketSSRClient` no longer check the type of `hmacKey` before answering a challenge: `resolveHmac` does, and its error still rejects `init()`
-- new example `examples/server-signing/`: a dependency-free Node signing server and a page that holds no credential
-
-### `CanvasEventName.POINTEREVENTS` is removed
-It was declared but never emitted.
-
-### Type-only
-- `AbstractHistoryStack.event` and its constructor take `THistoryEvent` (new: `{ emitChanged(context) }`, which `CanvasEvent` satisfies) instead of `CanvasEvent`: the history no longer imports the canvas. No runtime change
-- `TInteractiveInkCanvasOptions.override.client` is typed `typeof WebSocketClient`, the class the canvas instantiates, instead of an instance, which the canvas cast to a class. No runtime change
-- `TInkCanvasOptions.override.client` is typed `typeof HTTPClientV2` in the same way. `TInkCanvasOptions.override.grabber` is removed: it was declared but never read, each manager creates its own `PointerEventGrabber`. No runtime change
-- `Logger.debug`/`info`/`warn`/`error` take `...data: unknown[]` instead of `...data: any`. No runtime change
-- `TWebSocketClientMessageReceived` is derived from the new `TWebSocketClientMessageReceivedMap` (one entry per `TWebSocketClientMessageType`, a missing one no longer compiles) instead of a hand-kept union; it resolves to the same members. Likewise `TWebSocketClientMessageMathSolverResult` comes from the new `TMathSolverResultMap` (`result` type by action) through the new generic `TWebSocketClientMessageMathSolver<A extends TMathSolverAction>`; the eleven `TWebSocketClientMessageMathSolver*` aliases stay, now one-liners over it. `WebSocketClient` now checks a message's `type` before dispatching it and logs an unknown one with its raw payload (it used to print `[object Object]`). No other runtime change
-- `WebSocketSSRClient` messages are a discriminated union: `TWebSocketSSRClientMessage<T extends string = string>` takes its `type` as a parameter, each received message type fixes it (`TWebSocketSSRClientMessageSVGPatch.type` is `"svgPatch"`, no longer any string), and the new `TWebSocketSSRClientMessageReceived` is built from the new `TWebSocketSSRClientMessageReceivedMap`. The `manage*Message` handlers take their own message type instead of the base one and cast. New: `TWebSocketSSRClientMessageAck` (`TWebSocketSSRClientMessageHMACChallenge` now extends it), `TWebSocketSSRClientMessageNewPart`, `TWebSocketSSRClientMessageIdle`, `TWebSocketSSRClientMessagePong`. A message of unknown type is logged with its raw payload. No other runtime change
-- `TWebSocketClientMessageExport.exports` and `TWebSocketSSRClientMessageExport.exports` are typed `TExportWire` (new: every format a string) instead of `TExport`: the websocket protocols send JIIX as a JSON string, which `TExport` declared an object. `parseExportedJIIX(wire)` returns the `TExport` instead of rewriting the message in place; the handlers resolve and emit that. No runtime change
-- `mergeDeep(target: any, ...sources): any` → `mergeDeep<T extends TMergeable>(target: TPartialDeep<T>, ...sources): T`. With the usual empty-object `target`, pass the type argument explicitly: `mergeDeep<TServerHTTPConfiguration>({}, DefaultServerHTTPConfiguration, override)`. No runtime change
-
-## Bug Fixes
-- fix(math): undoing to an empty page then redoing to the end showed every result ever computed, and the backend lost the variable values set on blocks. Replacing a drawn result is now one history step (old result erased, new one added), and setting or removing a variable value is recorded too, with the result it clears. Undo/redo sends the value back to the backend, to the block the strokes belong to after the next synchronization: the backend renames a block whose strokes come back. Whether a block shows a drawn result is read from the model, so a result removed by undo is computed again. Auto-compute pauses while there is something to redo, because a result drawn then cut off the rest of the redo stack. New: `TIIHistoryChanges.variables`, `TIIHistoryVariableChange`, `IIMathManager.replayVariableChanges()`, an `addToHistory` argument to `IIMathComputationSubManager.addSolverOutputStrokes()`. **Type change**: `IIMathComputationSubManager.clearSolverOutputs()` returns the strokes it removed and no longer pushes anything to history
-- fix(manager): writing within 20 px of the view's edge panned the view on every pointer move: the pen stays put on screen, so each pan pushed the next pointer, converted with the new viewBox, further into the margin, and the view ran away (hundreds of px in one stroke) with the ink drifting from the pen. **Behaviour change**: `IIWriterManager.continue()` no longer calls `renderer.ensurePointVisible()`, writing never pans the view; `SVGRenderer.ensurePointVisible()` stays available
-- fix(grabber): a gesture that left the canvas with the button still down ended there, and the rest of the drag went to the page around: it started a text selection or drove whatever lay under the pointer. The grabber now captures the pointer on `pointerdown` (`setPointerCapture`), so every event of the gesture stays on the canvas until the pointer is released. **Behaviour change**: a stroke no longer ends when the pointer crosses the canvas edge, it goes on until `pointerup`. New: `PointerEventGrabber.capturePointer()` (protected)
-- fix(manager): the underline gesture in `UnderlineAction.Thicken` mode did nothing on converted text or math: it only doubled stroke widths. It now moves each target one level up the style menu: a stroke to the next value of `menu.style.thicknessList` (the first above its width), a text or math block to the next value of `menu.style.fontWeightList` (`auto` left out); past the last level, back to the first. A math block is an underline target in this mode only. The change goes through `updateSymbols`, so the texts it slides along are in the same history entry. **Type change**: the `thicken` variant of `TGestureAnnotation` takes `widths` and `fontWeights` instead of `factor`. New: `StrokeUtil.isBold()` (the rule the conversion already used to pick a font weight), `TextUtil.isBold()`, `MathUtil.isBold()`
-- fix(math): auto-compute never computed a vertical operation: it only tried blocks whose label ends with `=` or `?`, and a vertical operation's label ends with `\end{array}`. **Behaviour change**: `IIMathManager.tryAutoCompute()` now asks the server for every math block and computes each one it offers `numerical-computation` for (it does for `2+3=` and an empty result row, not for `2+3`)
-- fix(canvas): `InteractiveInkCanvas.manageError()` takes `unknown` and hands the error listeners an `Error`: a call that rejected with anything else (a string) reached them as is, against their type
-- fix(canvas): `InteractiveInkCanvas.replaceSymbols()` shifted the first symbol off the `oldSymbols` array it was handed. The scratch-out gesture hands it the array of its own history entry, which then lost that symbol. The caller's array is now left untouched
-- refactor(menu): `IIMenuAction`, `IIMenuStyle`, `IIMenuTool` and `IIMenuContext` extend the new `IIAbstractMenu<TConfig>`, which holds what they duplicated: the item map and its `update`/`destroy`, `show`/`hide`, the dropdown mechanics (`createDropdown`) and a protected `addItem(key, item, options)`. Each menu has two zones, `"bar"` (always visible) and `"dropdown"` (behind a trigger), new `TMenuZone`/`TMenuItemOptions`; a zone is built on its first item, so the built-in menus render the same DOM. New zones an item can now go to: a row beside the style palette, a "…" dropdown at the end of the tool bar, a row of quick actions above the context menu list. One change: a style menu with every item disabled no longer shows an empty palette trigger. **API change for subclasses**: `wrapper` is typed `HTMLElement` on every menu (`HTMLDivElement` on style and tool); `IIMenuContext`'s logger and scroll handler are protected (`logger`, `scrollHandler`); the rendered items live in the protected `items` map
-- fix(menu): `IIMenuManager.setConfig()` rebuilt the menus from the built-in classes, so a menu replaced through `options.override.menu` was lost on the first `canvas.menu.setConfig(...)`. And an override class was constructed with `(canvas)` alone, never seeing `configuration.menu.<menu>`. Overrides now survive `setConfig`, and every menu is constructed `(canvas, id, config)`. **Type change**: `options.override.menu` takes menu classes, typed by the new `TMenuOverride` (it declared instances, while classes were expected and cast), and now accepts `context` too
-- fix(manager): `IISynchronizerManager` never cancelled the timeout racing each math block's dependency enrichment: every sync left one 5 s timer per math block running, long after the enrichment had settled. They are cleared now. Its retry delay and that timeout are exposed as `RETRY_DELAY_MS` and `ENRICH_TIMEOUT_MS`; `SYNCHRONIZE_TIMEOUT`, which nothing read, is gone
-- fix(client): `WebSocketClient` reported only `canUndo`/`canRedo` of a `contentChanged` message, cast to a full `THistoryContext`: `InteractiveInkCanvas`'s `changed` event then carried `empty`, `stackIndex` and `possibleUndoCount` as `undefined` (and `canClear` always `true`). **Behaviour change**: that `changed` event now carries the local history state, like the ones the history emits on push/undo/redo, instead of the backend's; `onContentChanged()` no longer takes the context. Both websocket clients now read the whole state through the new `readHistoryContext(message)`. `WebSocketSSRClient`'s reconnection no longer re-sends a pen style, style classes or theme that was never set (new protected `restoreStyles()`). Error message typo: "Client must be initilized" → "Client must be initialized". Also new: `toRecognitionContentType` (shared by the HTTP clients), `PX_TO_MM_RATIO` (exported from `core/math`)
-- fix(client): an HMAC key that could not be resolved (an `hmacKey` function that rejects) left `WebSocketClient.init()`/`WebSocketSSRClient.init()` waiting forever: only the `error` listeners heard of it. `init()` now rejects with it (new protected `failInitialization`): the server only sends a challenge when it requires the signature. The HTTP clients keep sending the request unsigned, the signature being optional there
-- fix(client): the websocket URLs did not encode `server.applicationKey`; a key holding `&`, `=` or `#` broke the query string
-- **API change for subclasses**: the clients have no `#private` member left, so an integrator can override any of them. `WebSocketClient`'s offline queue, reconnection loop, connection/closing promises and export queue are now protected under the same names (`offlineQueue`, `scheduleReconnectAttempt`, `connectingPromise`, `exportQueue`…); `#send` becomes `sendOnSocket`, not to clash with the public `send()`. All four clients expose their `logger` as protected. Same for the menu classes `options.override.menu` replaces: `IIMenuStyle`, `IIMenuTool` and `IIMenuAction` expose `logger` and (style, action) `documentPointerdownHandler` as protected
-- fix(client): `HTTPClientV1`/`HTTPClientV2` signed the request body before adapting the configuration to the server version: against a server below 3.2.0 (2.3.0 for V1's `convert`), the HMAC sent did not match the body, as soon as `export.jiix.text.lines` was set. The body is now serialized once, after the adaptation, and that string is what is signed and sent. Both clients now share `postRecognition`, `parseRecognitionResponse` and `toRecognitionError` (new, `src/client/http/HTTPRecognition.ts`); their `post`/`tryFetch` stay protected and overridable
-- fix(client): the four clients share one mapping of server error codes, `mapErrorCodeToMessage` (new, `ClientError.ts`). **Behaviour change**: `WebSocketSSRClient` now reports `restore.session.not.found` as `ClientError.NO_SESSION_FOUND`, and the HTTP clients map every known code, not only `access.not.granted`. Also new: `parseExportedJIIX` (the websocket clients' JIIX parsing, see `TExportWire` under Type-only) and `ensureServerVersion` (the version lookup all four repeated)
-- fix(client): `WebSocketClient.send()` resolved even when the socket failed to send (closed while waiting for initialization, or `socket.send` threw): the failure became an unhandled rejection. It now rejects
-- fix(client): `WebSocketSSRClient.send()` silently dropped the message when the socket was closed with `autoReconnect` off, or still connecting; it now rejects. A non-JSON payload from the server (e.g. a proxy's 502 page) threw out of the message handler; it is now reported through `error` with the payload, as in `WebSocketClient`
-- fix(client): `WebSocketSSRClient.destroy()` dropped the requests still waiting for an answer, leaving their callers hanging (e.g. the canvas' "Recognizing" state); they now resolve with an empty export, as on a deliberate `WebSocketClient.close()`. `init()` no longer goes through `destroy()` but through the new protected `resetConnection()`; new protected `resolvePendingRequests()`
-- fix(client): `WebSocketClient` math solver requests and `sendToSupport()` pending when the connection dropped abnormally (or the server sent an error) never settled: they were dropped without being rejected. They are rejected now. Two concurrent `evaluate()` calls on the same block left the second hanging, and a request whose send failed stayed queued and took the answer to the next one. **API change for subclasses**: the eleven protected `*Deferred` math queues, `resolveFirstInQueue` and `resolveAllInQueue` are replaced by `requestMathSolver(action, blockId, parameters)`, on the single pending-request queue below. New `typedKeys(object)` in core/std
-- refactor(client): `WebSocketClient` keeps every request waiting on the server in one queue, `pendingRequests` (new `TPendingRequest`), filled by `waitForAnswer(key, neutral)`, settled by `answer(key, value, all?)`, registered only once its message is sent (a request waiting for a reconnection must not be failed by the close of a reconnection attempt), and failed, answered neutrally or forgotten in one pass by `rejectDeferredPending`/`resolveDeferredPending`/`resetAllDeferred`. **API change for subclasses**: the protected `contextlessGestureDeferred`, `exportDeferredMap`, `closeDeferred`, `waitForIdleDeferred` and `sendToSupportDeferred` are removed
-- feat(client): `WebSocketClient` keeps every change made while the connection is down, not only strokes: `addStrokes`, `replaceStrokes`, `eraseStrokes`, the four `transform*`, `undo`, `redo` and `clear` are queued and replayed in order on reconnection (new protected `sendChange`). Requests that wait on an answer (`export`, `waitForIdle`, math solver, `recognizeGesture`, `sendToSupport`) wait for the reconnection, after the replay, and reject only when the client gives up. A change or a request made during the reconnection itself, once the socket is open but before the replay, waits for the replay too: an export sent then answered with the content from before the drop (new protected `waitForReconnection`, `reconnection`). **Behaviour change**: `send()` no longer reconnects on its own, so `maxRetryCount` no longer affects `WebSocketClient` (still read by `WebSocketSSRClient`). **API change for subclasses**: the protected `reconnectionCount` is removed
-- fix(client): a reconnection attempt whose handshake failed late (the HMAC answered on a socket already closing) rejected the handshake of the next attempt, which then failed with no close event to recover from — and so did every attempt after it, until the client gave up. Each attempt now has its own `initialized`, a handshake step for a socket no longer open is ignored, and a socket a failed attempt left open is closed before the next one
-- **Breaking**: `server.websocket.offlineQueueEnabled` is removed; `autoReconnect` is the only reconnection switch of `WebSocketClient` — on (default), changes are queued and requests wait across a drop; off, both reject at once. See MIGRATION.md
-- **Behaviour change**: `WebSocketClient.isOffline` (and `InteractiveInkCanvas.isOffline`) is true while the connection is down after a first one succeeded, whether changes are queued or not — it used to mean "changes are queued", so a dropped client with nothing queued read as online. `offlineQueueLength` still counts the queue, and the canvas badge's tooltip now reads "N change(s) waiting to be sent"
-- fix(client): with `offlineQueueEnabled` (the default), a network drop (1006, also each failed reconnection attempt) was emitted as `error`: the canvas reopened its error modal over the ink every `reconnectDelay`, and strokes drawn meanwhile were lost on its backdrop. **Behaviour change**: once connected, such a drop is only a connection state (`offline`/`syncing`); other close codes, a failure before the first connection and a disabled queue still emit `error`
-- fix(canvas): `updateRecognitionConfiguration()` on an empty sheet (e.g. right after `clear()`) left "Recognizing" open for good, the canvas stuck `online-working`: the reopened session never sends the `contentChanged` that closes it. It is now closed when there is no ink to read
-- fix(renderer): selecting several strokes crashed WebKit's renderer, which painted the SVG selection filter on each. The outline is now a CSS `drop-shadow` on the new `ms-selected` class, colored by the new `--ms-ink-selection-color` token. **API change**: `SVGRendererConst.selectionFilterId` → `SVGRendererConst.selectedClassName`; `#selection-filter` removed
-- fix(renderer): erasing crashed WebKit's renderer, which painted the SVG removal filter on each stroke the eraser passed over. The fade is now a CSS `filter: opacity(25%)` on the new `ms-deleting` class. **API change**: `SVGRendererConst.removalFilterId` → `SVGRendererConst.deletingClassName`; `#removal-filter` removed
-- fix(client): of two concurrent `WebSocketClient.export()` calls for the same mime type, the first never resolved: the second overwrote its pending answer. Exports now run one after another
-- fix(canvas): a second export superseded by a model change cleared the shared retry's debounce timer without re-arming it, so every caller hung; with the synchronizer among them, no sync ran again and new strokes were never recognized
-- fix(menu): picking a shape/edge type in `ShapeTool`/`EdgeTool` never closed the dropdown (queried `.sub-menu-content-shape`/`-edge` instead of `.sub-menu-content`), and `update()` could leave two buttons active
-- fix(canvas,client): `CanvasEvent.emit()`/`ClientEvent.emit()` delivered any falsy payload (`emitIdle(false)`, `0`, `""`) as `detail: null`; now checks `data !== undefined`
-- fix(client): `HTTPClientV2.post()` lacked the runtime check stripping `recognition.export.jiix.text.lines` for servers below 3.2.0 when the version is auto-detected
-- fix(client): `HTTPClientV1.post()` called `response.json()` on any non-2xx response, so a non-JSON error body (proxy HTML page, empty 502/503) surfaced as a generic connection error. Both HTTP clients now share `parseApiError(response)` (`src/client/http/ClientApiError.ts`)
-- fix(client): `WebSocketClient`/`WebSocketSSRClient` reset the ping liveness counter on every message except `Pong`, so an idle healthy connection closed with `MAXIMUM_PING_REACHED` after `maxPingLostCount * pingDelay` (default 5 min). Now resets only on `Pong`
-- fix(client): all four client constructors logged `server.applicationKey`/`hmacKey` in plaintext at `info` level; they are now redacted by the new exported `redactServerSecrets(config)` (`src/client/shared/ServerConfiguration.ts`), which returns a shallow copy with both replaced by `"[REDACTED]"`
-- fix(core): `mergeDeep` could write through `__proto__` onto `Object.prototype` (`JSON.parse` makes `__proto__` an own key, passing the `hasOwnProperty` guard). **Behaviour change on an exported function**: `__proto__`, `constructor` and `prototype` keys are now dropped; no library configuration uses them
-- fix(smartguide): `InteractiveInkSSRSmartGuide` interpolated JIIX candidate labels into `innerHTML`, so a crafted label executed script. Candidates are now built with `textContent`, the container emptied with `replaceChildren()`. The path was untested because `EventMock` never sets `bubbles`
-- fix(manager): `IDebugSVGManager.drawRecognitionBox()` leaked 3 `pointerup`/`pointerleave`/`pointercancel` listeners on `renderer.layer` per drag
-- fix(manager): `EraseManager.end()` used ES2024 `Iterator.prototype.toArray`, throwing on Safari <18.4 and older browsers
-- fix(menu): `IIMenuContext.destroy()` never destroyed its `contextMenus` entries, leaking `document` listeners on every `IIMenuManager.setConfig()`
-- fix(renderer): `SVGRenderer.pan()` skipped virtualization reconciliation, leaving symbols scrolled into/out of view stuck until the next zoom or `setViewBox`
-- fix(components): `Minimap` deep-cloned the whole rendering layer on every mutation of the main canvas; sync is now coalesced to one per animation frame
-- fix(canvas): `InteractiveInkCanvas.clear()` did not await `client.clear()`: a failure became an unhandled rejection while `await canvas.clear()` resolved (local content wiped, server kept) and the "Recognizing" badge stayed lit. It is awaited now and still reports through the `error` event
-- fix(canvas,manager): `InteractiveInkCanvas.destroy()` left thirteen managers alive, leaking a full set on every `Canvas.load()`. It now destroys all fourteen in reverse construction order, guarded by a test enumerating the canvas. `IIMathManager.onDestroy()` runs for the first time, and `IIJiixQueryManager` gained an `onDestroy()` releasing its index and text metadata
-- fix(canvas,manager,menu,components,client): nine swallowed errors and floating promises now reach the caller — the debounced `synchronize()` (a failure also skipped `updateLayerUI()`/`emitChanged()`), `IWriterManager`'s auto-export, both `UndoRedoMenuAction` buttons, `EditContextMenu`'s save, `WebSocketClient.messageCallback` (its `try` now covers only `JSON.parse`, so a handler fault is reported as itself), `IIMathVariableSubManager.asVariableDefinition` (no longer caches `null` on failure) and both math variable dialogs (now surface the error and always close)
-- fix(manager): `IISynchronizerManager` recorded an element's fingerprint before its writes, so a throw midway left its text metadata permanently stale; the snapshot is recorded once every write has landed
-- fix(manager): `IISynchronizerManager`'s metadata bookkeeping called `model.updateSymbol(stroke)` and cleared `model.exports` right after `canvas.export()`; it now passes `updateSymbol(stroke, false)`
-- fix(manager): `IIJiixQueryManager.getStrokesGroupedByWord()`/`getStrokesGroupedByChar()` re-scanned `model.exports` instead of the index, returning `[]` after any transient exports clear
-- fix(manager): `IITranslateManager` silently returned an unknown edge kind untransformed while rotate and resize threw; all three now go through the util registry and fail alike
-- fix(symbol): a rotated text or math block reported a box mirrored about its rotation centre (and rotated twice), so surrounding it no longer selected it
-- fix(model): `Model.addStroke()` now throws `Stroke id already exist: <id>` on a duplicate id, like `IModel.addStroke`/`IIModel.addSymbol`
-- fix(client): `getAvailableLanguageList()` resolved with the server's error body when the request failed, and `getAvailableFontList()` threw a bare `TypeError`; both now reject with `GET <endpoint> failed: <status> <statusText>`. `LanguageMenuAction` never caught that request, so a failed language list was an unhandled rejection; it now logs it and leaves the select empty
-- fix(manager): a gesture recognized without context (a stroke next to typeset text, a shape or a math block) was applied even when missing from `raw-content.gestures` — with the default configuration, a vertical stroke there still joined or split rows although `join` and `insert` are off. `IIGestureManager.getGestureFromContextLess()` now returns nothing for a gesture that is not listed
-- fix(manager): a JOIN gesture between two strokes (or any two symbols that are not both texts) of a row left the first one after the gesture in place while shifting those behind it, which landed them over or in front of it (broken since 4.0.0). The whole remainder of the row moves together again
-- fix(client): `WebSocketClient` sent messages of any size, while the backend closes the connection (1009, "message too big") on an incoming message over 500 KB: a large import (`addStrokes` went a thousand strokes at a time, over 1 MB for long strokes), or a transform, erase or replace over many strokes, ended the session, and every gesture after it did nothing. `addStrokes`, `replaceStrokes`, `eraseStrokes` and the four `transform*` now split what they send to stay under the new protected `maxMessageBytes` (256 KiB), which a subclass can lower; `undo`/`redo` stay one message each, being one step of the server's history
-
-## Features
-
-### Every module is exported
-Each folder's barrel now reaches every file in it, so the helpers the built-in clients and symbol utils were written with are available to a custom one.
-- new: `resolveHmac`, `parseApiError`, `TApiError` (client helpers, for a custom client); `TKindDefinition`, `defineKind`, `resolveKind` (how the built-in families resolve their kinds — `@experimental`, not yet a stable contract)
-
-### Place the menus where you want: `configuration.layout`
-The canvas UI has 8 slots (`top-left`, `top-center`, `top-right`, `middle-left`, `middle-right`, `bottom-left`, `bottom-center`, `bottom-right`), and `configuration.layout` says what goes in each, in stacking order — e.g. `{ "bottom-center": ["action", "tool"] }` puts the action bar right above the tools.
-- occupants: the menus (`action`, `style`, `tool`) and, in `InteractiveInkCanvas` and `InkCanvas` (INK_V2), the connection state (`state`) and the minimap (`minimap`)
-- a slot you give replaces the default one; an occupant you leave out keeps its default slot (`enable: false` still hides a menu); one listed twice shows in its first slot only, with a warning
-- the default layout is today's look; new: `LayoutManager` (`canvas.layout`), `TLayoutConfiguration`, `TLayoutSlot`, `LAYOUT_SLOTS`, `DefaultLayoutConfiguration`
-- the slot shapes the menu: bars are horizontal at the top and bottom, vertical on the sides (`middle-*`), and every dropdown opens away from the slot's edge — down from the top, up from the bottom, inwards from a side — its items' sub-menus included, growing towards the inside of the canvas. A menu's `orientation` (`"horizontal"`/`"vertical"`) and `openTowards` (`"up"`/`"down"`/`"left"`/`"right"`) override its slot's; the style menu's `collapsed` forces its panel folded or open, folded by default on a narrow screen or in a shared horizontal slot
-- a menu hiding in a shared slot (the style menu, when the tool is neither write nor select) folds away with a short animation and the others close the gap — none under `prefers-reduced-motion`; alone in its slot, it keeps its room as before
-- at runtime: `canvas.layout.set(table)` (same rule; an occupant named in a given slot leaves the one it was in), `canvas.layout.add(key, factory, { slot, before, after })` for your own occupant and `canvas.layout.remove(key)`. The factory gets `(canvas, { slot, orientation, openTowards })` and runs again when its occupant changes slot; a menu that changes slot is rebuilt for it, the others don't move. The table stays the single source of truth: `slot` adds the key to it, and an occupant it places nowhere is not shown (with a warning)
-- example: `interactive_canvas_menu_layout.html` (layout presets switched with `canvas.layout.set`, a custom occupant); the menu items example now declares its items in `options.extend`
-- **no flash on load**: `options.extend` declares, next to `override`, what to add before the first render — `extend.menuItems` (like `canvas.menu.addItem`) and `extend.layout` (like `canvas.layout.add`). Item factories now get the canvas: `TMenuItemFactory` is `(canvas) => BaseMenuItem | HTMLElement` (a factory without parameter still fits). New: `TMenuItemRegistration`, `TLayoutOccupant`, `TLayoutOccupantFactory`, `TLayoutOccupantContext`, `TLayoutOccupantOptions`, `LayoutManager.onOccupantMoved`
-- new: `TMenuLayoutConfig`, `TMenuStyleLayoutConfig`, `TMenuOrientation`, `TMenuDirection`, `slotOrientation`/`slotOpenTowards`/`slotAnchor`, `BaseMenuItem.openPosition` (where an item opens its sub-menu, set by its menu); `TMenuPosition` gains `top-left`, `top-right`, `left-top`
-- **CSS change**: the menus no longer carry their position. `ms-menu-top-left` → `ms-menu-action`, `ms-menu-top-right` → `ms-menu-style`, `ms-menu-bottom` → `ms-menu-tool`; a slot is `.ms-layout-slot.ms-layout-<slot>`, each occupant sits in `.ms-layout-host-<name>`. The connection state and the minimap no longer position themselves either
-
-### Add your own items to the menus
-`canvas.menu.addItem(menu, key, factory, options?)` adds an item to the action, tool, style or context menu without subclassing it; `canvas.menu.removeItem(menu, key)` takes it away.
-- `factory` returns a `BaseMenuItem` (updated with the menu: the generic `ButtonMenuItem`, `CheckboxMenuItem`… or your own) or a raw `HTMLElement` (static: removed with the menu, never updated). It is called on every render, since the menus are rebuilt by `setConfig`, which now keeps the added items
-- `options.zone`: `"bar"` or `"dropdown"`, each menu having a default one; `options.before`/`options.after`: next to another item, by key; `options.replace`: take the place of a built-in item of the same key, refused otherwise
-- a shown menu is rebuilt at once; an open context menu stays open where it was
-- new: `TMenuName`, `TMenuItemFactory`, `TRegisteredMenuItem`, `IIMenuManager.getMenu`, `IIAbstractMenu.renderRegisteredItems`; `TMenuItemOptions` gains `before`, `after`, `replace`
-
-### Math Tutor example
-- feat(examples): `examples/interactive-canvas/interactive_canvas_math_tutor.html` (modules in `interactive_canvas_math_tutor/`), a handwritten math workbook for edtech demos: each line is transcribed and checked as it is written, and the first wrong one gets a hint on the mistake (sign, division, square root, slip). Level 3 checks a hand-drawn right triangle and its labelled sides; once solved, the hypotenuse follows the values written
-
-### Pen-only input for tablets
-- feat(grabber): new `grabber.inputMode` (`TGrabberInputMode`): `"any"` (default), `"pen"`, or `"auto"` (any pointer until the first pen, then pen only). A resting palm no longer inks nor takes over the pen stroke; rejected pointers are ignored, not routed to pan
-
-### Math solver settings in the Math menu
-- feat(menu): Math > **Solver** submenu: angle unit, number of decimals, decimal separator, rounding mode. Each change goes through `updateRecognitionConfiguration`; the decimals slider waits `MATH_SOLVER_DEBOUNCE_MS` (300 ms) after the last move
-- feat(menu): each setting can be hidden through `TMathActionItemsConfig.solver` — `false` hides the submenu, or an object of `TMathSolverItemsConfig` flags (`angleUnit`, `fractionalDigits`, `decimalSeparator`, `roundingMode`)
-- feat(menu): "Show Dependencies on Hover" and "Highlight on Select" are always built, shown only while automatic variable management (`math.solver["auto-variable-management"]` in the configuration) is on
-- feat(client): new exported `TScopingPolicy`, `TAutoVariableManagement`; `TRecognitionWebSocketConfiguration.math.solver` is now `TSolverConfiguration & { "auto-variable-management"?: TAutoVariableManagement }`
-- feat(core): new exported `overrideDeep(target, override)`, a `mergeDeep` that replaces arrays
-
-### Gesture menu: one submenu per gesture
-- feat(menu): Gesture lists one submenu per gesture listed in `raw-content.gestures`: Scratch-out, Surround, Strikethrough, Underline, Insert, Join. Each has an **Enable** checkbox, which adds or removes the gesture through `updateRecognitionConfiguration`, and, except Scratch-out (single behavior), an **Action on detection** select, disabled while the gesture is off. `TGestureActionItemsConfig` gains `join` and `scratchOut`
-- feat(manager): new `JoinAction` — `Join` (default, unchanged: glue the two words around the gesture, or pull the next row up) and `CloseGap` (close the gap down to a single word space, words kept apart, rows left in place). Set through `IIGestureManager.joinAction` or `configuration.gesture.join` (`TGestureConfiguration`)
-- feat(manager): new `IIGestureManager.isGestureEnabled(gestureType)`
-- feat(client): new exported `TRecognitionGesture`, the type of `raw-content.gestures` entries
-
-### Excalidraw integration example
-- feat(examples): `examples/custom-rendering/excalidraw-websocket-client/`, the Excalidraw counterpart of the TLDraw demo, on `WebSocketClient`. Freedraw is recognized as drawn; scratch-out/strike-through erase, surround selects, underline thickens; Convert turns the selection (or scene) into Excalidraw text, rectangle, ellipse, diamond, line and arrow elements
-
-### Shape ↔ edge connections
-- feat(connector): edges follow their connected shape when it is translated, resized or rotated, before Convert (raw ink strokes) as well as after (`TEdgeLine`/`TEdgePolyLine`/`TEdgeArc` with `startAnchor`/`endAnchor`)
-- feat(connector): new `IIConnectorManager.getFollowedStrokeIds(symbolIds)`, read-only counterpart of the rigid-follow pass
-
-### Export
-- feat(export): `InteractiveInkCanvas.exportAs(format, options?)` returns content in nine formats, typed by format: `json` → `TSymbol[]`; `svg`/`text`/`markdown`/`mermaid`/`plantuml` → `string`; `png` → `Blob`; `llm` → `TLLMExport`; `jiix` → `TJIIXExport`
-- feat(export): `InteractiveInkCanvas.download(format, options?)`, same formats plus `pdf`. New downloads: `markdown` (`.md`), `mermaid` (`.mmd`), `plantuml` (`.puml`), `llm` (`.json`), `jiix` (`.jiix`)
-- feat(manager): new `ExportManager` (`src/manager/base/`) — scope/symbol resolution, file naming, object-URL lifecycle, `json`/`svg`/`png`/`pdf`. Exposes `TExportFormat`, `TDownloadFormat`, `TExportResultMap`, `TExportOptions`, `TDownloadOptions`, `TPDFDownloadOptions`, `TExporterMap`, `EXPORT_EXTENSIONS`, `EXPORT_MIME_TYPES`
-- feat(manager): new `IIExportManager` (`src/manager/interactive/`, `canvas.exportManager`) — `text` from the JIIX stroke index, `jiix`/`markdown`/`mermaid`/`plantuml`/`llm` from one JIIX access point. Empty content yields empty output
-- feat(client): new exported `TRecognitionType` (`"text" | "shape" | "math"`)
-- feat(export): Markdown conversion derived locally from JIIX (`jiixToMarkdown`, `src/export/toMarkdown.ts`): Text → paragraphs, Math → `$$...$$`, diagram Node/Edge skipped
-- feat(export): Mermaid flowchart conversion derived locally from JIIX (`jiixToMermaid`, `src/export/toMermaid.ts`). Node kinds map to the closest Mermaid shape (rectangle/circle/ellipse/rhombus/parallelogram; triangle and polygon fall back to rectangle). Edge endpoints (Line/PolyEdge/Arc via `computePointOnEllipse`) are matched geometrically against node boxes, since JIIX `connected`/`ports` are always empty today
-
-### PDF export via native browser print
-- feat(canvas): `download("pdf", options?)` prints the content (or selection) through the browser's print dialog. With no PDF setting, opens a settings dialog (page format/orientation/page mode/scale) first and settles when it closes, cancellation included; with any setting, prints immediately with defaults for the rest
-- feat(manager): new `PDFExportManager` (`src/manager/base/`, `(canvas: TInteractiveInkCanvas | InkCanvas)`) — print-only DOM/CSS layer, page computation (`computePageCount`, `computeFitToPageScale`, `getPageDimensionsMm`), single-page fit and multi-page tiled modes (`buildSinglePagePrintContainer`/`buildMultiPagePrintContainer`), settings dialog (`openExportDialog`, reusing `Modal.ts`), `print()`. Exposes `TPDFPageFormat`, `TPDFOrientation`, `TPDFPageMode`, `TPDFExportDialogOptions`, `TPDFPageOptions`, `TPDFPageCount`, `TPDFPageSizeMm`, `PDFExportManager.DEFAULT_OPTIONS`
-- feat(menu): `ExportMenuAction`/`ExportContextMenu` build ten entries (JSON, SVG, PNG, Text, Markdown, Mermaid, PlantUML, LLM, JIIX, PDF), each toggleable via `TExportActionItemsConfig`/`TContextExportItemsConfig` and routed through `canvas.download()`; the context menu resolves its scope at click time
-
-### Shorter strokes on the wire: `t0` + `dt`
-From server 4.6.0, `WebSocketClient` and `HTTPClientV2` send each stroke's timing as `t0` (first pointer, absolute) plus `dt` (offsets from it, whole milliseconds) instead of absolute `t` instants, which shrinks every stroke sent. The server version is read once, as for the other version-dependent settings; an older or unknown server still gets `t`. `HTTPClientV2.send` now fetches the version before writing the strokes rather than just before posting.
-- new: `toWireStroke(stroke, { relativeTimestamps })`, `TWireStrokeOptions`, `supportsRelativeTimestamps(serverVersion)`, `TWireStroke.t0` and `TWireStroke.dt`
-
-### Types returned by public methods can be named
-- feat(manager): `TAnchoredEdgesUpdateResult`, `TFollowedStroke` (`IIConnectorManager`), `TShift` and `TSplitOutcome` (`InsertGestureHandler.computeChangesOnSplitText`) are exported
-
-## Performance
-- perf(canvas): `InteractiveInkCanvas.select(ids)` looked each symbol of the document up with `ids.includes`, O(n·m); it uses a `Set` now
-- perf(canvas): removing symbols from `InteractiveInkCanvas` scanned the whole document twice (decorators, then edge anchors), copying it each time; it is now one pass over the array `model.symbols` already returns fresh
-- perf(manager): `IISynchronizerManager` drafted (a `structuredClone`) every stroke of the document on every synchronize, before knowing whether its block changed, and redrafted and recommitted every edge stroke even when its anchors were unchanged. It now reads the committed strokes and drafts only the ones it writes: a sync of an unchanged 4000-stroke document (80 points each) goes from 128 ms to 94 ms. Its loop also yielded a frame every 50 elements, so that same sync took 80 frames (1.3 s) with nothing to do; it now yields once 8 ms of work are spent: 27 ms, 1 frame. **API change**: `IISynchronizerManager.SYNC_YIELD_CHUNK_SIZE` → `SYNC_YIELD_BUDGET_MS`
-- perf(manager): `IIConversionManager.convertNode()`/`convertEdge()` deduped strokes in O(n²), copy-pasted 4×; now the exported O(n) `uniqueById()` (`src/core/std/object.ts`)
-- perf: six hand-rolled "coalesce to one `requestAnimationFrame`" copies (`IIWriterManager`, `IIMoveManager`, `Minimap`, `IISelectionManager` arc-handle drag, `Chart.ts` pan, `InteractiveInkCanvas` wheel-zoom) replaced by the exported `RafCoalescer` (`src/dom/RafCoalescer.ts`)
-
-## Refactor
-- refactor(renderer): `CanvasRendererStroke`/`SVGStroker` share the stroke-outline point math — exported `computeLineOutlinePoints()`/`computeQuadraticOutlinePoints()`/`computeFinalOutlinePoints()` (`src/core/geometry/outline.ts`) — and only encode it into their own API
-- refactor(canvas): `AbstractCanvas` owns the cursor-class toggle (`setCursorStyle()`, new `abstract get tool(): CanvasTool`, `protected` hooks `cursorClasses`/`getCursorClass()`), previously copied into all four variants; `InteractiveInkCanvas` only overrides the hooks
-- refactor(canvas): `AbstractCanvas.resolveDimensions()` (new `abstract get minDimensions()`) replaces the size fallback repeated in all four `resize()`
-- refactor(canvas): `AbstractCanvas.teardownCommon()` (new `abstract renderer: { destroy(): void }`) replaces the teardown sequence repeated in all four `destroy()`; each still calls `clearRootElementReference()` last
-- refactor(client): `HTTPClientV1`/`HTTPClientV2` share `resolveHmac()` (`src/client/shared/HmacAuth.ts`); the WebSocket clients keep their own HMAC-challenge flow
-- refactor(client): every server URL comes from the new exported `serverUrl(server, endpoint, { websocket?, query? })` (`src/client/shared/ServerConfiguration.ts`) instead of seven copies of `${scheme}://${host}/api/v4.0/iink/…` in the four clients, `getAvailableFontList`, `getAvailableLanguageList` and `getApiInfos`
-- refactor(client): `getAvailableFontList`, `getAvailableLanguageList` and `getApiInfos` fetch through the new exported `getJSON(server, endpoint)`, which rejects on a non-2xx status instead of parsing the error body. `getApiInfos` keeps its fallback to 3.1.3, now with `gitCommit: "unknown"` whatever the failure
-- refactor(examples): the anti-flash-of-wrong-theme inline script, identical in 69 of 71 example pages, is now `examples/assets/js/theme-init.js`, loaded at the same head position
+</details>
 
 # [v4.1.0](https://github.com/MyScript/iinkTS/tree/v4.1.0)
 
