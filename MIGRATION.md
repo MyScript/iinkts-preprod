@@ -862,4 +862,4 @@ examples/offscreen-interactivity/ → examples/interactive-canvas/     (offscree
 
 ### Need help?
 
-Open an issue on [GitHub](https://github.com/MyScript/iinkTS/issues) or check the [Developer website](https://developer.myscript.com/docs/interactive-ink/latest/web/iinkts/).
+Open an issue on [GitHub](https://github.com/MyScript/iinkTS/issues) or check the [Developer website](https://developer.myscript.com/docs/cloud/latest/iinkts/get-started/).

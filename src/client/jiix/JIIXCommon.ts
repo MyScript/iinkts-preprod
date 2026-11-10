@@ -1,7 +1,7 @@
 import type { TBox, TPoint } from "@/core"
 /**
  * @group Client/Export
- * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#stroke-item | Stroke item}
+ * @remarks {@link https://developer.myscript.com/docs/cloud/latest/reference/jiix/#stroke-item | Stroke item}
  */
 export type TJIIXStrokeItem = {
   type: "stroke"
@@ -38,7 +38,7 @@ export type TJIIXElementBase<T = string> = TJIIXBase & {
 
 /**
  * @group Client/Export
- * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#word-object | Word object}
+ * @remarks {@link https://developer.myscript.com/docs/cloud/latest/reference/jiix/#word-object | Word object}
  */
 export type TJIIXWord = TJIIXBase & {
   id?: string
@@ -54,7 +54,7 @@ export type TJIIXWord = TJIIXBase & {
 
 /**
  * @group Client/Export
- * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#character-object | Character object}
+ * @remarks {@link https://developer.myscript.com/docs/cloud/latest/reference/jiix/#character-object | Character object}
  */
 export type TJIIXChar = TJIIXBase & {
   label: string
@@ -65,7 +65,7 @@ export type TJIIXChar = TJIIXBase & {
 
 /**
  * @group Client/Export
- * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#text-interpretation | Text Element }
+ * @remarks {@link https://developer.myscript.com/docs/cloud/latest/reference/jiix/#text-interpretation | Text Element }
  */
 export type TJIIXLine = {
   "baseline-y": number

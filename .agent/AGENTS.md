@@ -83,7 +83,7 @@ See the `code-quality-principles` skill for full detail.
 ## Documentation
 
 - **API Docs**: `yarn build:docs` → `docs/`
-- **External**: https://developer.myscript.com/docs/interactive-ink/latest/web/iinkts/
+- **External**: https://developer.myscript.com/docs/cloud/latest/iinkts/get-started/
 
 ## Architecture Memory
 

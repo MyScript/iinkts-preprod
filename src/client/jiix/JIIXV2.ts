@@ -13,7 +13,7 @@ export enum ExportV2Type {
 
 /**
  * @group Client/Export
- * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix  Element type}
+ * @remarks {@link https://developer.myscript.com/docs/cloud/latest/reference/jiix/  Element type}
  */
 
 /**
@@ -66,7 +66,7 @@ export type TJIIXV2Line = {
 
 /**
  * @group Client/Export
- * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#word-object | Word object}
+ * @remarks {@link https://developer.myscript.com/docs/cloud/latest/reference/jiix/#word-object | Word object}
  */
 export type TJIIXV2Expression = TJIIXV2Base &
   TJIIXWord & {
@@ -75,13 +75,13 @@ export type TJIIXV2Expression = TJIIXV2Base &
 
 /**
  * @group Client/Export
- * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix#text-interpretation | Text Element }
+ * @remarks {@link https://developer.myscript.com/docs/cloud/latest/reference/jiix/#text-interpretation | Text Element }
  */
 export type TJIIXV2TextElement = TJIIXV2ElementBase<"Text"> & TJIIXV2Expression
 
 /**
  * @group Client/Export
- * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix#text-interpretation | Math Element }
+ * @remarks {@link https://developer.myscript.com/docs/cloud/latest/reference/jiix/#text-interpretation | Math Element }
  */
 export type TJIIXV2MathElement = TJIIXV2ElementBase<"Math"> & TJIIXV2Expression
 
@@ -410,7 +410,7 @@ export type TJIIXV2RawContentElement = TJIIXV2RawContentItemText | TJIIXV2RawCon
 
 /**
  * @group Client/Export
- * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/web/JIIXV2 | Exports}
+ * @remarks {@link https://developer.myscript.com/docs/cloud/latest/reference/jiix/ | Exports}
  */
 export type TJIIXV2Element =
   TJIIXV2TextElement | TJIIXV2ShapeElement | TJIIXV2MathElement | TJIIXV2DrawingElement | TJIIXV2RawContentElement
@@ -434,7 +434,7 @@ export type TJIIXV2Export = TJIIXV2Base & {
  *
  * Attention the MIME types supported depend on the {@link TRecognitionTypeV1 | type of recognition}
  *
- * {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/JIIXV2 | Documentation}
+ * {@link https://developer.myscript.com/docs/cloud/latest/interactivity-integration/import-and-export-formats/ | Documentation}
  */
 export type TExportV2 = {
   /** @hidden */

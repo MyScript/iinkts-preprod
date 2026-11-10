@@ -47,7 +47,7 @@ export enum ExportType {
 
 /**
  * @group Client/Export
- * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix  Element type}
+ * @remarks {@link https://developer.myscript.com/docs/cloud/latest/reference/jiix/  Element type}
  */
 export enum JIIXElementType {
   Text = "Text",
@@ -59,7 +59,7 @@ export enum JIIXElementType {
 
 /**
  * @group Client/Export
- * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#diagram-item-blocks | Element node kind}
+ * @remarks {@link https://developer.myscript.com/docs/cloud/latest/reference/jiix/#diagram-item-blocks | Element node kind}
  */
 export enum JIIXNodeKind {
   Circle = "circle",
@@ -82,7 +82,7 @@ export enum JIIXEdgeKind {
 
 /**
  * @group Client/Export
- * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#text-interpretation | Text Element }
+ * @remarks {@link https://developer.myscript.com/docs/cloud/latest/reference/jiix/#text-interpretation | Text Element }
  */
 export type TJIIXTextElement = TJIIXElementBase<JIIXElementType.Text> & {
   id: string
@@ -197,7 +197,7 @@ export type TJIIXEdgeElementBase<K = string> = TJIIXElementBase<JIIXElementType.
 
 /**
  * @group Client/Export
- * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#line-item | Element line}
+ * @remarks {@link https://developer.myscript.com/docs/cloud/latest/reference/jiix/#line-item | Element line}
  */
 export type TJIIXEdgeLine = TJIIXEdgeElementBase<JIIXEdgeKind.Line> & {
   x1: number
@@ -217,7 +217,7 @@ export type TJIIXEdgePolyEdge = TJIIXEdgeElementBase<JIIXEdgeKind.PolyEdge> & {
 
 /**
  * @group Client/Export
- * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix/#arc-item | Element arc}
+ * @remarks {@link https://developer.myscript.com/docs/cloud/latest/reference/jiix/#arc-item | Element arc}
  */
 export type TJIIXEdgeArc = TJIIXEdgeElementBase<JIIXEdgeKind.Arc> & {
   cx: number
@@ -238,7 +238,7 @@ export type TJIIXEdgeElement = TJIIXEdgeLine | TJIIXEdgePolyEdge | TJIIXEdgeArc
 
 /**
  * @group Client/Export
- * @remarks {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/web/jiix | Exports}
+ * @remarks {@link https://developer.myscript.com/docs/cloud/latest/reference/jiix/ | Exports}
  */
 export type TJIIXElement = TJIIXTextElement | TJIIXMathElement | TJIIXNodeElement | TJIIXEdgeElement
 
@@ -263,7 +263,7 @@ export type TJIIXExport = {
  *
  * Attention the MIME types supported depend on the {@link TRecognitionTypeV1 | type of recognition}
  *
- * {@link https://developer.myscript.com/docs/interactive-ink/latest/reference/jiix | Documentation}
+ * {@link https://developer.myscript.com/docs/cloud/latest/reference/jiix/ | Documentation}
  */
 export type TExport = {
   /** @hidden */
