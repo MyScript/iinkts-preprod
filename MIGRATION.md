@@ -679,7 +679,7 @@ If you implement a util in this family, `PathSymbolUtil` assembles the element f
 
 **If you only use the built-in menus as they are, nothing changes visually.** The menus, the connection
 state and the minimap now sit in the slots of a layout, `configuration.layout`, whose default is the
-previous look. To move them, see the CHANGELOG ("Place the menus where you want").
+previous look. To move them, see [the v5.0.0 changelog](./changelog/5.0.0.md#place-the-menus-where-you-want-configurationlayout).
 
 **If your CSS targets a menu by its position class, rename it** — the class no longer exists, and the rule
 silently stops applying:
