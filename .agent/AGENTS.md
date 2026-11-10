@@ -21,7 +21,7 @@ No exceptions:
 - **Scope discipline** — fix bug, don't refactor adjacent code. Keep diffs minimal and reviewable.
 - **Typecheck before commit** — always run `yarn typecheck` after code changes. Never run bare `tsc`, never use `--no-verify`.
 - **No generated files** — never hand-edit `dist/`, `docs/`, or API report snapshots. Run owning generator command.
-- **Public API changes need note** — any change to exported types/functions requires mention in PR description and CHANGELOG entry.
+- **Public API changes need note** — any change to exported types/functions requires mention in PR description, a one-line entry in `CHANGELOG.md` (index, features first) and the full entry in `changelog/<version>.md`.
 - **Prefer targeted checks** — run the narrowest relevant test/lint first (single file/suite). Avoid full `test:unit`/`test:examples` runs unless the change is cross-cutting.
 - **Respect existing worktree changes** — don't revert or discard user changes unless explicitly asked.
 - **No AI attribution** — never add Co-Authored-By or similar AI attribution in commits, PR descriptions, or docs.
