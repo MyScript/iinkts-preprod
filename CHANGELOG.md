@@ -8,63 +8,50 @@ Badges: **breaking** = code stops compiling or behaves differently · **behaviou
 
 Full record: [changelog/5.0.0.md](changelog/5.0.0.md)
 
-### What's new
+## ✨ What's new
 
 **Writing**
-- **Pen nibs**: `ballpoint`, `pencil`, `fountain`, `brush`, picked from the tool menu, for ink that responds to speed and pressure; width no longer changes with the sampling rate
-- **Pen-only input on tablets**: a resting palm no longer inks nor takes over the pen stroke
-- **Writing near the edge** no longer drags the view away from the pen, and a stroke that leaves the canvas keeps going until the pen lifts
+- **Pen nibs**: `ballpoint`, `pencil`, `fountain`, `brush`, for ink that responds to speed and pressure; width no longer changes with the sampling rate. `TStyle.pen`, per-stroke `penAngle`/`penSmoothing`/`penSpeed`, nib picker in the tool and style menus · Try `interactive_canvas_pen_nibs.html` · [details](changelog/5.0.0.md#strokes-pen-nibs-width-and-timing)
+- **Pen-only input on tablets**: a resting palm no longer inks nor takes over the pen stroke. `grabber.inputMode`: `"any"` | `"pen"` | `"auto"` · [details](changelog/5.0.0.md#pen-only-input-for-tablets)
+- **Writing near the edge** no longer drags the view away from the pen, and a stroke that leaves the canvas keeps going until the pen lifts · [details](changelog/5.0.0.md#bug-fixes)
 
 **Interface**
-- **Menus where you want them**: 8 layout slots for the menus, the connection state and the minimap, changeable at runtime
-- **Your own menu items** in any menu, without subclassing and without a flash on load
-- **Math solver settings** in the Math menu: angle unit, decimals, decimal separator, rounding
-- **Gesture menu**: turn each gesture on or off and choose what it does; a new join mode closes the gap between words
+- **Menus where you want them**: 8 slots for the menus, the connection state and the minimap, changeable at runtime. `configuration.layout`, `canvas.layout.set/add/remove` · Try `interactive_canvas_menu_layout.html` · [details](changelog/5.0.0.md#place-the-menus-where-you-want-configurationlayout)
+- **Your own menu items** in the action, tool, style or context menu, without subclassing and without a flash on load. `canvas.menu.addItem(menu, key, factory, { zone, before, after, replace })`, `options.extend` · [details](changelog/5.0.0.md#add-your-own-items-to-the-menus)
+- **Math solver settings** in the Math menu: angle unit, decimals, decimal separator, rounding, each item can be hidden. `TMathActionItemsConfig.solver`, new `overrideDeep` · [details](changelog/5.0.0.md#math-solver-settings-in-the-math-menu)
+- **Gesture menu**: turn each gesture on or off and choose what it does; a new join mode closes the gap between words. `JoinAction.CloseGap`, `IIGestureManager.isGestureEnabled` · [details](changelog/5.0.0.md#gesture-menu-one-submenu-per-gesture)
 
 **Content**
-- **One export API**: `exportAs` / `download` for 10 formats, now including Markdown, Mermaid, PlantUML, LLM, JIIX, and PDF through the browser's print dialog
-- **Shapes and edges stay connected** when moved, resized or rotated, before and after conversion
-- **Change the language or any recognition setting live**, without reloading the canvas
-- **Update symbols by id with a patch**: one call for style, font or any change
+- **One export API** for 10 formats, now including Markdown, Mermaid, PlantUML, LLM and JIIX. `exportAs(format)` returns typed content, `download(format)` saves it; `ExportManager`, `IIExportManager` · [details](changelog/5.0.0.md#export)
+- **PDF export** through the browser's print dialog, with a page-settings dialog. `download("pdf")`, `PDFExportManager` · [details](changelog/5.0.0.md#pdf-export-via-native-browser-print)
+- **Shapes and edges stay connected** when moved, resized or rotated, before and after conversion. `IIConnectorManager.getFollowedStrokeIds` · [details](changelog/5.0.0.md#shape--edge-connections)
+- **Change the language or any recognition setting live**, without reloading the canvas. `updateRecognitionConfiguration(partial)` · [details](changelog/5.0.0.md#one-call-changes-the-recognition-configuration-changelanguage-is-gone)
+- **Update symbols by id with a patch**: one call for style, font or any change. `updateSymbols(ids, patch)`, `updateSymbol(id, patch)`, patch object or draft function · [details](changelog/5.0.0.md#one-call-updates-symbols-by-id-with-a-patch)
 
 **Reliability and security**
-- **Offline resilience**: every change made while the connection is down is replayed on reconnection, and requests wait instead of failing
-- **Large imports** no longer close the session: messages are split under the server's size limit
-- **The HMAC key stays on your server**: `server.sign` signs requests there
-- **No more crashes on Safari/WebKit** when selecting or erasing many strokes
+- **Offline resilience**: every change made while the connection is down (strokes, transforms, undo/redo, clear) is replayed in order on reconnection, and requests wait instead of failing · [details](changelog/5.0.0.md#bug-fixes)
+- **Large imports** no longer close the session: messages are split under the server's size limit (`maxMessageBytes`) · [details](changelog/5.0.0.md#bug-fixes)
+- **The HMAC key stays on your server**. `server.sign(message, applicationKey)` (`THmacSigner`) · Try `examples/server-signing/` · [details](changelog/5.0.0.md#the-hmac-signature-is-computed-on-your-server-serversign)
+- **No more crashes on Safari/WebKit** when selecting or erasing many strokes · [details](changelog/5.0.0.md#bug-fixes)
 
 **Performance**
-- **10 000× faster reads** on large documents (`model.symbols` on 500 strokes: 11.59 ms → 0.0012 ms)
-- **Synchronizing an unchanged 4000-stroke document**: 1.3 s → 27 ms
-- **Lighter DOM**: one SVG element per stroke instead of two; **shorter strokes on the wire** from server 4.6.0
+- **10 000× faster reads** on large documents (`model.symbols` on 500 strokes: 11.59 ms → 0.0012 ms) · [details](changelog/5.0.0.md#the-document-is-immutable)
+- **Synchronizing an unchanged 4000-stroke document**: 1.3 s → 27 ms · [details](changelog/5.0.0.md#performance)
+- **Lighter DOM**: one SVG element per stroke instead of two · [details](changelog/5.0.0.md#a-path-symbol-is-its-path-with-no-group-around-it)
+- **Shorter strokes on the wire** from server 4.6.0: `t0` + `dt` instead of absolute `t` · [details](changelog/5.0.0.md#shorter-strokes-on-the-wire-t0--dt)
 
 **Extending the library**
-- **Custom symbol types** now move, rotate and resize like the built-in ones: everything a type knows lives on its util
-- **Every module is exported**, and clients have no `#private` member left: any of them can be overridden
-- **New examples**: Math Tutor, Excalidraw, pen nibs, menu layout, server-side signing
+- **Custom symbol types** now move, rotate and resize like the built-in ones: a custom util implements `getGeometry` only and inherits `translate`/`rotate`/`resize`; new `SymbolUtil.getResizePoints`, `keepsAspectRatio` · [details](changelog/5.0.0.md#everything-a-symbol-type-knows-lives-on-its-util)
+- **Every module is exported**: `resolveHmac`, `parseApiError`, `TApiError`; `defineKind`, `resolveKind` (`@experimental`) · [details](changelog/5.0.0.md#every-module-is-exported)
+- **Any client can be overridden**: no `#private` member left, all protected · [details](changelog/5.0.0.md#bug-fixes)
+- **Return types can be named**: `TAnchoredEdgesUpdateResult`, `TFollowedStroke`, `TShift`, `TSplitOutcome` · [details](changelog/5.0.0.md#types-returned-by-public-methods-can-be-named)
 
-### Features
-- **Pen nibs** — four nibs on `TStyle.pen`, width from speed and pressure, nib picker in the style menu, per-stroke tuning (`penAngle`, `penSmoothing`, `penSpeed`). Try: `interactive_canvas_pen_nibs.html`. [details](changelog/5.0.0.md#strokes-pen-nibs-width-and-timing)
-- **Menu layout** — `configuration.layout` places menus, connection state and minimap in 8 slots; `canvas.layout.set/add/remove` at runtime; `options.extend` adds items before the first render. Try: `interactive_canvas_menu_layout.html`. [details](changelog/5.0.0.md#place-the-menus-where-you-want-configurationlayout)
-- **Custom menu items** — `canvas.menu.addItem(menu, key, factory, { zone, before, after, replace })` on the action, tool, style or context menu. [details](changelog/5.0.0.md#add-your-own-items-to-the-menus)
-- **Pen-only input** — `grabber.inputMode`: `"any"`, `"pen"`, `"auto"`. [details](changelog/5.0.0.md#pen-only-input-for-tablets)
-- **Math solver menu** — Math > Solver: angle unit, decimals, separator, rounding; each item can be hidden. New `overrideDeep`. [details](changelog/5.0.0.md#math-solver-settings-in-the-math-menu)
-- **Gesture menu** — one submenu per gesture (enable + action); new `JoinAction.CloseGap`, `IIGestureManager.isGestureEnabled`. [details](changelog/5.0.0.md#gesture-menu-one-submenu-per-gesture)
-- **Export** — `exportAs(format)` returns typed content, `download(format)` saves it; new formats Markdown, Mermaid, PlantUML, LLM, JIIX; new `ExportManager`, `IIExportManager`. [details](changelog/5.0.0.md#export)
-- **PDF export** — `download("pdf")` prints through the browser, with a page-settings dialog; new `PDFExportManager`. [details](changelog/5.0.0.md#pdf-export-via-native-browser-print)
-- **Shape ↔ edge connections** — edges follow their shape when translated, resized or rotated, raw or converted; new `getFollowedStrokeIds`. [details](changelog/5.0.0.md#shape--edge-connections)
-- **Live recognition configuration** — `updateRecognitionConfiguration(partial)` changes language, solver… and resynchronizes. [details](changelog/5.0.0.md#one-call-changes-the-recognition-configuration-changelanguage-is-gone)
-- **Update symbols by id** — `updateSymbols(ids, patch)` / `updateSymbol(id, patch)`, patch object or draft function. [details](changelog/5.0.0.md#one-call-updates-symbols-by-id-with-a-patch)
-- **Offline queue for every change** — strokes, transforms, undo/redo, clear queued and replayed in order; requests wait for the reconnection. [details](changelog/5.0.0.md#bug-fixes)
-- **Server-side signing** — `server.sign(message, applicationKey)` (`THmacSigner`). Try: `examples/server-signing/`. [details](changelog/5.0.0.md#the-hmac-signature-is-computed-on-your-server-serversign)
-- **Shorter strokes on the wire** — `t0` + `dt` instead of absolute `t`, from server 4.6.0. [details](changelog/5.0.0.md#shorter-strokes-on-the-wire-t0--dt)
-- **Custom symbol types** — a custom util inherits `translate`/`rotate`/`resize`, implements `getGeometry` only; new `SymbolUtil.getResizePoints`, `keepsAspectRatio`. [details](changelog/5.0.0.md#everything-a-symbol-type-knows-lives-on-its-util)
-- **Every module is exported** — `resolveHmac`, `parseApiError`, `TApiError`; `defineKind`, `resolveKind` (`@experimental`). [details](changelog/5.0.0.md#every-module-is-exported)
-- **Nameable return types** — `TAnchoredEdgesUpdateResult`, `TFollowedStroke`, `TShift`, `TSplitOutcome` exported. [details](changelog/5.0.0.md#types-returned-by-public-methods-can-be-named)
-- **Math Tutor example** — handwritten workbook that checks each line as it is written. Try: `interactive_canvas_math_tutor.html`. [details](changelog/5.0.0.md#math-tutor-example)
-- **Excalidraw example** — recognition and conversion into Excalidraw elements. Try: `examples/custom-rendering/excalidraw-websocket-client/`. [details](changelog/5.0.0.md#excalidraw-integration-example)
+**New examples**
+- **Math Tutor**: a handwritten math workbook that checks each line as it is written and hints at the first mistake. `interactive_canvas_math_tutor.html` · [details](changelog/5.0.0.md#math-tutor-example)
+- **Excalidraw**: recognition and conversion into Excalidraw elements, on `WebSocketClient`. `examples/custom-rendering/excalidraw-websocket-client/` · [details](changelog/5.0.0.md#excalidraw-integration-example)
+- **Pen nibs**, **menu layout**, **server-side signing**: see their entries above
 
-### Upgrading from v4
+## ⚠️ Upgrading from v4
 - **breaking** Strokes: `TPointer.t` → `TPointer.dt` (ms since the stroke began), width computed at draw time, `TStroke.length` removed. Old documents still load; strokes from earlier versions render differently. [details](changelog/5.0.0.md#strokes-pen-nibs-width-and-timing)
 - **breaking** Symbols read from `model` are frozen: write through `draftSymbol(id)` → `commitSymbol(draft)`; `getRootSymbol` → `getSymbol`. [details](changelog/5.0.0.md#the-document-is-immutable) · [migration](MIGRATION.md#the-document-is-immutable-symbols-you-read-are-frozen)
 - **breaking** `*Ops` objects removed, their members moved to the family's util (`ShapeCircleOps.create` → `ShapeUtil.createCircle`…); transform managers implement one `applyThroughUtil`; `getSVGElement` is abstract. [details](changelog/5.0.0.md#everything-a-symbol-type-knows-lives-on-its-util) · [migration](MIGRATION.md#a-ops-object-is-now-its-familys-util)
@@ -96,7 +83,7 @@ Full record: [changelog/5.0.0.md](changelog/5.0.0.md)
 - **type** History event, `override.client`, `Logger`, websocket messages, `mergeDeep` typings; `override.grabber` removed. [details](changelog/5.0.0.md#type-only)
 - **subclass** Clients: `#private` members become protected (`sendOnSocket`, `offlineQueue`…), one pending-request queue replaces the `*Deferred` fields, `reconnectionCount` removed; menus share `IIAbstractMenu`. [details](changelog/5.0.0.md#bug-fixes)
 
-### Performance
+## ⚡ Performance
 - `InteractiveInkCanvas.select(ids)`: O(n·m) → O(n)
 - Removing symbols: one pass over the document instead of two copies
 - Synchronizing an unchanged 4000-stroke document: 128 ms → 94 ms of work, 80 frames → 1
@@ -105,8 +92,7 @@ Full record: [changelog/5.0.0.md](changelog/5.0.0.md)
 
 [details](changelog/5.0.0.md#performance)
 
-<details>
-<summary>Bug fixes</summary>
+## 🐛 Bug fixes
 
 **Math**
 - Undo to an empty page then redo showed every result ever computed; variable values are now in the history
@@ -169,7 +155,6 @@ Full record: [changelog/5.0.0.md](changelog/5.0.0.md)
 
 [details](changelog/5.0.0.md#bug-fixes)
 
-</details>
 
 # [v4.1.0](https://github.com/MyScript/iinkTS/tree/v4.1.0)
 
