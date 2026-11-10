@@ -278,7 +278,7 @@ canvas.event.addChangedListener((context: THistoryContext) => { ... })
 - **SETUP**: [SETUP.md](../../../SETUP.md) — development setup, prefix guide
 - **Architecture**: [architecture/](../../../architecture/) — class diagrams and WebSocket protocol
 - **API Docs**: `yarn build:docs` → `docs/`
-- **External**: https://developer.myscript.com/docs/interactive-ink/latest/web/iinkts/
+- **External**: https://developer.myscript.com/docs/cloud/latest/iinkts/get-started/
 
 ## MyScript Cloud integration
 
