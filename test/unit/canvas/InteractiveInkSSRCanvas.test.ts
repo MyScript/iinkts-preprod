@@ -159,6 +159,17 @@ describe("InteractiveInkSSRCanvas.ts", () => {
         await canvas.synchronizeModelWithBackend()
         await expect(canvas.renderer.clearErasingStrokes).toHaveBeenCalledTimes(1)
       })
+      test("should keep the server content state once the strokes are answered", async () => {
+        const serverContext = { canUndo: true, canRedo: false, empty: false, stackIndex: 1, possibleUndoCount: 1 }
+        canvas.client.addStrokes = jest.fn(() => {
+          canvas.client.event.emitContentChanged(serverContext)
+          return Promise.resolve({} as TExport)
+        })
+        const changedDetails: { empty: boolean }[] = []
+        canvas.event.addEventListener("changed", (e) => changedDetails.push((e as CustomEvent).detail))
+        await canvas.synchronizeModelWithBackend()
+        expect(changedDetails.at(-1)).toMatchObject({ empty: false, canUndo: true, canRedo: false })
+      })
     })
     describe("with exportContent = 'DEMAND", () => {
       const options: TInteractiveInkSSRCanvasOptions = JSON.parse(JSON.stringify(DefaultInteractiveInkSSRCanvasOptions))
