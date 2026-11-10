@@ -2,7 +2,7 @@
 
 [![npm version](https://badge.fury.io/js/iink-ts.svg)](https://badge.fury.io/js/iink-ts)
 [![Examples](https://img.shields.io/badge/Link%20to-examples-blue.svg)](https://myscript.github.io/iinkTS/examples/)
-[![Documentation](https://img.shields.io/badge/Link%20to-documentation-green.svg)](https://developer.myscript.com/docs/interactive-ink/latest/web/iinkts/)
+[![Documentation](https://img.shields.io/badge/Link%20to-documentation-green.svg)](https://developer.myscript.com/docs/cloud/latest/iinkts/get-started/)
 
 > The fastest way to integrate rich **handwriting** features in your webapp.
 >
@@ -51,7 +51,7 @@ It integrates all you need:
 - **Customizable**: themes and styles, menus you can extend or replace, keyboard shortcuts, minimap, zoom and pan.
 - **Resilient**: reconnects on its own after a network drop and replays what was written offline.
 
-You can discover all the features on our Developer website for [Text](https://developer.myscript.com/features/text) and [Math](https://developer.myscript.com/features/math).
+You can discover all the features on our Developer website for [Text](https://developer.myscript.com/docs/cloud/latest/recognition-capabilities/text-languages/) and [Math](https://developer.myscript.com/docs/cloud/latest/interactivity-integration/math-features/).
 
 ## Gallery
 
@@ -74,8 +74,8 @@ All examples run live on the [examples page](https://myscript.github.io/iinkTS/e
 ## Requirements
 
 1. Have [npm](https://www.npmjs.com/get-npm), [yarn](https://yarnpkg.com/en/docs/install).
-2. Have a MyScript developer account. You can create one [here](https://developer.myscript.com/support/account/registering-myscript-cloud/).
-3. Get your keys and the free monthly quota to access MyScript Cloud at [developer.myscript.com](https://developer.myscript.com/getting-started/web)
+2. Have a MyScript developer account. You can create one [here](https://developer.myscript.com/support/cloud/registering-myscript-cloud/).
+3. Get your keys and the free monthly quota to access MyScript Cloud at [developer.myscript.com](https://developer.myscript.com/#getting-started)
 
 ## Installation
 
@@ -180,7 +180,7 @@ yarn add iink-ts
 
 7. Open `index.html` in your browser or serve your folder content using any web server.
 
-You can find this guide, and a more complete example on the [MyScript Developer website](https://developer.myscript.com/docs/interactive-ink/latest/web/iinkts/).
+You can find this guide, and a more complete example on the [MyScript Developer website](https://developer.myscript.com/docs/cloud/latest/iinkts/get-started/).
 
 ### ECMAScript module (ESM)
 
@@ -300,11 +300,11 @@ node --env-file=.env.local examples/server-signing/server.js
 
 You can find a complete documentation with the following sections on our Developer website:
 
-- **Get Started**: [how to use iinkTS with a full example](https://developer.myscript.com/docs/interactive-ink/latest/web/iinkts/get-started/),
-- **Editing**: [how to interact with content](https://developer.myscript.com/docs/interactive-ink/latest/web/iinkts/editing/),
-- **Conversion**: [how to convert your handwritten content](https://developer.myscript.com/docs/interactive-ink/latest/web/iinkts/conversion/),
-- **Import and Export**: [how to import and export your content](https://developer.myscript.com/docs/interactive-ink/latest/web/iinkts/import-and-export/),
-- **Styling**: [how to style content](https://developer.myscript.com/docs/interactive-ink/latest/web/iinkts/styling/).
+- **Get Started**: [how to use iinkTS with a full example](https://developer.myscript.com/docs/cloud/latest/iinkts/get-started/),
+- **Editing**: [how to interact with content](https://developer.myscript.com/docs/cloud/latest/iinkts/interactive-ink-canvas/interactive-ink-canvas/),
+- **Conversion**: [how to convert your handwritten content](https://developer.myscript.com/docs/cloud/latest/iinkts/interactive-ink-canvas/interactive-ink-canvas/),
+- **Import and Export**: [how to import and export your content](https://developer.myscript.com/docs/cloud/latest/interactivity-integration/import-and-export-formats/),
+- **Styling**: [how to style content](https://developer.myscript.com/docs/cloud/latest/iinkts/reference/configuration-iinkts/).
 
 We also provide a complete [API Reference](https://myscript.github.io/iinkTS/docs/).
 
