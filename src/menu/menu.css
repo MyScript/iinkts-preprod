@@ -173,3 +173,34 @@
   margin-bottom: 4px;
   border-bottom: 1px solid var(--ms-ink-input-border);
 }
+
+/* Search bar: floats at the top center of the canvas, outside the layout */
+.ms-ink .ms-menu-search {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 101;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 0 0 5px 5px;
+}
+
+.ms-ink .ms-menu-search input {
+  width: 220px;
+  padding: 4px 8px;
+  font-size: 14px;
+  color: var(--ms-ink-input-color);
+  background-color: var(--ms-ink-input-bg);
+  border: 1px solid var(--ms-ink-input-border);
+  border-radius: 4px;
+}
+
+.ms-ink .ms-menu-search-count {
+  min-width: 3em;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  opacity: 0.8;
+}

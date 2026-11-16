@@ -1,0 +1,145 @@
+import type { TInteractiveInkCanvas } from "@/canvas"
+import { DOMFactory } from "@/dom"
+import { LoggerCategory, LoggerManager } from "@/logger"
+import type { TSearchMatch } from "@/manager"
+
+/**
+ * @group Menu
+ * @remarks Configuration of the search bar
+ */
+export type TMenuSearchConfig = {
+  /** Ctrl+F (Cmd+F) opens the search bar instead of the browser's find */
+  shortcut?: boolean
+}
+
+/**
+ * @group Menu
+ * @remarks Search bar over the canvas: finds the query in the recognized content with `canvas.search`, highlights
+ * every match and steps through them. Opened by {@link open}, or Ctrl+F when `menu.search.shortcut` is on.
+ */
+export class IIMenuSearch {
+  protected logger = LoggerManager.getLogger(LoggerCategory.MENU)
+  canvas: TInteractiveInkCanvas
+  id: string
+  wrapper?: HTMLElement
+  protected input?: HTMLInputElement
+  protected count?: HTMLElement
+  /** Index of the revealed match in `canvas.search.highlighted`, -1 when none */
+  protected activeIndex = -1
+
+  constructor(canvas: TInteractiveInkCanvas, id = "ms-menu-search") {
+    this.canvas = canvas
+    this.id = id
+  }
+
+  /** Whether the search bar is shown */
+  get isOpen(): boolean {
+    return !!this.wrapper && this.wrapper.style.display !== "none"
+  }
+
+  render(layer: HTMLElement): void {
+    if (!this.canvas.configuration.menu.search.enable) {
+      return
+    }
+    this.logger.info("Rendering search bar")
+    this.input = this.createInput()
+    this.count = DOMFactory.span({ id: `${this.id}-count`, className: "ms-menu-search-count" })
+    this.wrapper = DOMFactory.div({ id: this.id, className: ["ms-menu", "ms-menu-search"] })
+    this.wrapper.append(
+      this.input,
+      this.count,
+      this.createButton("previous", "‹", "Previous match (Shift+Enter)", () => this.step(-1)),
+      this.createButton("next", "›", "Next match (Enter)", () => this.step(1)),
+      this.createButton("close", "✕", "Close (Escape)", () => this.close())
+    )
+    this.wrapper.style.display = "none"
+    layer.appendChild(this.wrapper)
+  }
+
+  protected createInput(): HTMLInputElement {
+    const input = DOMFactory.textInput({ id: `${this.id}-input`, placeholder: "Search…" })
+    input.type = "search"
+    input.autocomplete = "off"
+    input.addEventListener("input", () => this.search())
+    input.addEventListener("keydown", (event) => this.onKeyDown(event))
+    return input
+  }
+
+  protected createButton(name: string, label: string, title: string, action: () => void): HTMLButtonElement {
+    return DOMFactory.button({ id: `${this.id}-${name}`, className: "square", label, title, onClick: action })
+  }
+
+  protected onKeyDown(event: KeyboardEvent): void {
+    if (event.key === "Enter") {
+      event.preventDefault()
+      this.step(event.shiftKey ? -1 : 1)
+    } else if (event.key === "Escape") {
+      event.preventDefault()
+      this.close()
+    } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
+      // Already open: keep the browser's find closed
+      event.preventDefault()
+      this.input?.select()
+    }
+  }
+
+  /** Show the search bar and focus its query, selected; a query kept from before is searched again */
+  open(): void {
+    if (!this.wrapper || !this.input) {
+      return
+    }
+    this.wrapper.style.display = ""
+    this.input.focus()
+    this.input.select()
+    if (this.input.value) {
+      this.search()
+    }
+  }
+
+  /** Hide the search bar and remove the highlight */
+  close(): void {
+    if (!this.wrapper) {
+      return
+    }
+    this.wrapper.style.display = "none"
+    this.activeIndex = -1
+    this.canvas.search.clear()
+  }
+
+  /** Find the query and highlight every match, none revealed yet */
+  protected search(): void {
+    this.activeIndex = -1
+    const matches = this.canvas.search.find(this.input?.value ?? "")
+    this.canvas.search.highlight(matches)
+    this.updateCount(matches)
+  }
+
+  /** Reveal the match `offset` away from the current one, wrapping around */
+  protected step(offset: number): void {
+    // The highlight follows the content as it changes: step through its matches, not the ones first found
+    const matches = this.canvas.search.highlighted
+    if (!matches.length) {
+      return
+    }
+    const from = this.activeIndex < 0 && offset < 0 ? 0 : this.activeIndex
+    this.activeIndex = (from + offset + matches.length) % matches.length
+    const active = matches[this.activeIndex]
+    this.canvas.search.highlight(matches, active)
+    this.canvas.search.reveal(active)
+    this.updateCount(matches)
+  }
+
+  protected updateCount(matches: TSearchMatch[]): void {
+    if (this.count) {
+      this.count.textContent = `${this.activeIndex + 1}/${matches.length}`
+    }
+  }
+
+  destroy(): void {
+    this.wrapper?.remove()
+    this.wrapper = undefined
+    this.input = undefined
+    this.count = undefined
+    this.activeIndex = -1
+  }
+}

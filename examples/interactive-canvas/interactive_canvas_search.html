@@ -45,6 +45,11 @@
       font-size: 12px;
     }
 
+    .search-nav {
+      display: flex;
+      gap: 4px;
+    }
+
     #search-count {
       font-variant-numeric: tabular-nums;
       opacity: 0.8;
@@ -128,9 +133,8 @@
       <div class="ex-panel-divider"></div>
       <div class="ex-panel-item">
         <div class="ex-panel-item-desc"><strong>Try it:</strong><br>
-          1. Search <em>derivative</em>, then press <kbd>Enter</kbd> / <kbd>Shift+Enter</kbd> to jump between results<br>
-          2. Search an expression such as <em>f(x)</em><br>
-          3. Click <span class="highlight">Convert</span>, search again: the typeset text is found too
+          1. Search <em>derivative</em>, then click <span class="highlight">Next</span> / <span class="highlight">Prev</span> (or <kbd>Enter</kbd> / <kbd>Shift+Enter</kbd>) to jump between occurrences<br>
+          2. Search an expression such as <em>f(x)</em>
         </div>
       </div>
     </aside>
@@ -140,7 +144,10 @@
         <input id="search-input" type="search" placeholder="Search the handwriting…" autocomplete="off" disabled />
         <div class="search-bar-row">
           <span id="search-count"></span>
-          <button id="convert-btn" class="btn-secondary" disabled>Convert</button>
+          <span class="search-nav">
+            <button id="prev-btn" class="classic-btn" title="Previous occurrence (Shift+Enter)" disabled>‹ Prev</button>
+            <button id="next-btn" class="classic-btn" title="Next occurrence (Enter)" disabled>Next ›</button>
+          </span>
         </div>
         <div id="search-status">Loading the notes…</div>
         <ul id="search-results"></ul>
@@ -172,9 +179,10 @@
     const searchCount = document.getElementById('search-count')
     const searchStatus = document.getElementById('search-status')
     const resultsList = document.getElementById('search-results')
-    const convertBtn = document.getElementById('convert-btn')
+    const prevBtn = document.getElementById('prev-btn')
+    const nextBtn = document.getElementById('next-btn')
 
-    const NOTES_URL = '../assets/datas/math-notes-derivatives.json'
+    const NOTES_URL = '../assets/datas/pride&prejudice.json'
 
     let canvas
     let matches = []
@@ -209,6 +217,7 @@
         item.append(renderContext(match), tag)
         return item
       }))
+      prevBtn.disabled = nextBtn.disabled = !matches.length
       const query = searchInput.value.trim()
       if (!query) {
         searchCount.textContent = ''
@@ -251,19 +260,18 @@
       const item = event.target.closest('.search-result')
       if (item) activate(Number(item.dataset.index))
     })
-    convertBtn.addEventListener('click', () => canvas?.convert())
+    prevBtn.addEventListener('click', () => activate(activeIndex - 1))
+    nextBtn.addEventListener('click', () => activate(activeIndex + 1))
 
     async function loadNotes() {
       const strokes = await (await fetch(NOTES_URL)).json()
       searchStatus.textContent = `Recognizing ${strokes.length} strokes…`
       await canvas.createSymbols(strokes)
-      canvas.zoomToFit()
     }
 
     function onSynchronized() {
       searchStatus.textContent = 'Recognized. Search away.'
       searchInput.disabled = false
-      convertBtn.disabled = false
       runSearch()
     }
 

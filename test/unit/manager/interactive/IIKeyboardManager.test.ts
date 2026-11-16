@@ -21,8 +21,10 @@ describe("IIKeyboardManager", () => {
         pan: jest.fn(),
         parent: { clientWidth: 800, clientHeight: 600 },
       },
+      configuration: { menu: { enable: true, search: { enable: true, shortcut: true } } },
       menu: {
         action: { update: jest.fn() },
+        search: { open: jest.fn() },
       },
     }
 
@@ -358,6 +360,36 @@ describe("IIKeyboardManager", () => {
       mockCanvas.renderer.getZoom.mockReturnValue(2)
       window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key: "+" }))
       expect(mockCanvas.renderer.setZoom).toHaveBeenCalledWith(2 * IIKeyboardManager.ZOOM_STEP, 400, 300)
+    })
+  })
+
+  describe("search shortcut", () => {
+    beforeEach(() => {
+      manager.attach()
+    })
+
+    it("should open the search bar on Ctrl+F instead of the browser's find", () => {
+      const event = new KeyboardEvent("keydown", { ctrlKey: true, key: "f", cancelable: true })
+      window.dispatchEvent(event)
+      expect(mockCanvas.menu.search.open).toHaveBeenCalled()
+      expect(event.defaultPrevented).toBe(true)
+    })
+
+    it("should open the search bar on Cmd+F", () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { metaKey: true, key: "F" }))
+      expect(mockCanvas.menu.search.open).toHaveBeenCalled()
+    })
+
+    it.each([
+      ["the shortcut is off", { enable: true, search: { enable: true, shortcut: false } }],
+      ["the search bar is off", { enable: true, search: { enable: false, shortcut: true } }],
+      ["the menus are off", { enable: false, search: { enable: true, shortcut: true } }],
+    ])("should leave Ctrl+F to the browser when %s", (_, menu) => {
+      mockCanvas.configuration.menu = menu
+      const event = new KeyboardEvent("keydown", { ctrlKey: true, key: "f", cancelable: true })
+      window.dispatchEvent(event)
+      expect(mockCanvas.menu.search.open).not.toHaveBeenCalled()
+      expect(event.defaultPrevented).toBe(false)
     })
   })
 

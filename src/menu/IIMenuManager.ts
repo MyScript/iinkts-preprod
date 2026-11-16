@@ -14,6 +14,8 @@ import type { TMenuActionConfig } from "./IIMenuAction"
 import { IIMenuAction } from "./IIMenuAction"
 import type { TMenuContextConfig } from "./IIMenuContext"
 import { IIMenuContext } from "./IIMenuContext"
+import type { TMenuSearchConfig } from "./IIMenuSearch"
+import { IIMenuSearch } from "./IIMenuSearch"
 import type { TMenuStyleConfig } from "./IIMenuStyle"
 import { IIMenuStyle } from "./IIMenuStyle"
 import type { TMenuToolConfig } from "./IIMenuTool"
@@ -34,6 +36,7 @@ export type TMenuConfigUpdate = {
   context?: TMenuContextConfig & {
     enable?: boolean
   }
+  search?: TMenuSearchConfig & { enable?: boolean }
 }
 
 /**
@@ -82,6 +85,8 @@ export class IIMenuManager {
   tool!: IIMenuTool
   context!: IIMenuContext
   style!: IIMenuStyle
+  /** The search bar: outside the layout, over the canvas */
+  search: IIMenuSearch
 
   /** The classes the menus are built from: the overrides, else the built-in ones */
   protected menuClasses: Required<TMenuOverride>
@@ -105,6 +110,7 @@ export class IIMenuManager {
     // Declared at load: in the registry before the first render, so they show from the start
     items.forEach(({ menu, key, factory, options }) => this.register(menu, key, factory, options))
     MENU_NAMES.forEach((name) => this.createMenu(name))
+    this.search = new IIMenuSearch(canvas)
     this.canvas.layout.onOccupantMoved((occupant) => this.onOccupantMoved(occupant))
   }
 
@@ -185,6 +191,7 @@ export class IIMenuManager {
       const styleElement = DOMFactory.style(style as string, { "ms-menu-style": "" })
       this.layer.prepend(styleElement)
       MENU_NAMES.forEach((name) => this.renderMenu(name))
+      this.search.render(this.layer)
     }
   }
 
@@ -207,6 +214,10 @@ export class IIMenuManager {
     MENU_NAMES.forEach((name) => this.createMenu(name))
     MENU_NAMES.forEach((name) => this.renderMenu(name))
     this.restoreContext(contextState)
+    this.search.destroy()
+    if (this.canvas.configuration.menu.enable) {
+      this.search.render(this.layer)
+    }
   }
 
   /**
@@ -264,5 +275,6 @@ export class IIMenuManager {
 
   destroy(): void {
     MENU_NAMES.forEach((name) => this.getMenu(name).destroy())
+    this.search.destroy()
   }
 }

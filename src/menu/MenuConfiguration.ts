@@ -1,6 +1,7 @@
 import type { TMenuLayoutConfig } from "./IIAbstractMenu"
 import type { TMenuActionConfig } from "./IIMenuAction"
 import type { TMenuContextConfig } from "./IIMenuContext"
+import type { TMenuSearchConfig } from "./IIMenuSearch"
 import type { TMenuStyleConfig, TMenuStyleLayoutConfig } from "./IIMenuStyle"
 import type { TMenuToolConfig } from "./IIMenuTool"
 import {
@@ -21,6 +22,7 @@ export type TMenuConfiguration = {
   context: TMenuContextConfig & {
     enable: boolean
   }
+  search: TMenuSearchConfig & { enable: boolean }
 }
 
 /**
@@ -81,5 +83,9 @@ export const DefaultMenuConfiguration: TMenuConfiguration = {
     lock: true,
     remove: true,
     selectAll: true,
+  },
+  search: {
+    enable: true,
+    shortcut: true,
   },
 }

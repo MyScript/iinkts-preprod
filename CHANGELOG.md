@@ -24,6 +24,7 @@ Ctrl+F on handwriting: find a word or an expression in the recognized text and m
 - new: `canvas.search` (`IISearchManager`): `find(query)` → `TSearchMatch[]` (`text`, `context`, `kind`, `source`, `symbolIds`, `boxes`, `bounds`), `highlight(matches, active?)`, `clear()`, `reveal(match)`, `highlighted`
 - matching: case- and accent-insensitive, partial, literal; in text any whitespace run matches one space (phrases span line breaks); math compares without spaces in reading order (`3x+2`, `f'(x)`), inline math inside a text is read in place; exponents read linearly (`x2` finds `x²`)
 - the highlight follows the last query as the content changes (erase, move, convert); a converted block is found once, as typeset
+- menu: search bar `canvas.menu.search` (`IIMenuSearch`: `open()`, `close()`, `isOpen`) at the top center of the canvas: query, `x/n` count, previous / next (Enter / Shift+Enter), Escape closes and clears the highlight; Ctrl+F (Cmd+F) opens it instead of the browser's find. `menu.search.enable` (default `true`), `menu.search.shortcut` (default `true`; set it to `false` to leave Ctrl+F to the browser), type `TMenuSearchConfig`
 - rendering: rects with `ms-search-highlight` / `ms-search-highlight-active`, colors `--ms-ink-search-highlight` (default `#ffd54f`) and `--ms-ink-search-highlight-active` (default `#ff9800`)
 - new: `IIJiixQueryManager.getElements()`, `strokeIdsFromJIIXItems`, `LoggerCategory.SEARCH`, types `TSearchMatch`, `TSearchKind`, `TSearchSource`, `TSearchUnit`, `TSearchUnitChar`
 - example: `interactive_canvas_search.html`

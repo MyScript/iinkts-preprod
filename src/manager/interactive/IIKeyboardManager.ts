@@ -86,6 +86,8 @@ export class IIKeyboardManager extends IIAbstractManager {
         event.preventDefault()
         this.canvas.cut()
         return true
+      case "f":
+        return this.#openSearch(event)
       case "0":
       case "à": // AZERTY: unshifted value of the 0 key
         event.preventDefault()
@@ -120,6 +122,17 @@ export class IIKeyboardManager extends IIAbstractManager {
       default:
         return false
     }
+  }
+
+  /** Opens the search bar instead of the browser's find, unless the configuration leaves Ctrl+F to the browser */
+  #openSearch(event: KeyboardEvent): boolean {
+    const { menu } = this.canvas.configuration
+    if (!menu.enable || !menu.search.enable || !menu.search.shortcut) {
+      return false
+    }
+    event.preventDefault()
+    this.canvas.menu.search.open()
+    return true
   }
 
   #handleDelete(event: KeyboardEvent): void {
