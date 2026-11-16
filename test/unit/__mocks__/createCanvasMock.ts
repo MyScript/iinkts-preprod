@@ -239,6 +239,7 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
         return s
       })(),
     synchronizer: overrides.synchronizer ?? stubManager(),
+    search: overrides.search ?? stubManager(),
     exportManager: overrides.exportManager ?? stubManager(),
     jiix:
       overrides.jiix ??

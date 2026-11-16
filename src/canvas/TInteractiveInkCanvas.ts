@@ -15,6 +15,7 @@ import type {
   IIMoveManager,
   IIOverlayManager,
   IIPlaybackManager,
+  IISearchManager,
   IISelectionManager,
   IISnapManager,
   IISynchronizerManager,
@@ -101,6 +102,7 @@ export type TInteractiveInkCanvas = {
   readonly snaps: IISnapManager
   readonly synchronizer: IISynchronizerManager
   readonly jiix: IIJiixQueryManager
+  readonly search: IISearchManager
   readonly exportManager: IIExportManager
   readonly math: IIMathManager
   readonly connector: IIConnectorManager

@@ -19,6 +19,15 @@ A locked symbol stays selectable, copyable and exportable, and is still recogniz
 - menu: context entry Lock / Unlock, `menu.context.lock` (default `true`); set it to `false` to keep locking to the API
 - new: `LockContextMenu`, `createLockIcon`, `LOCK_ICON_SIZE`, `SvgElementRole.Lock`, `SVGRendererConst.lockedClassName` / `lockIconClassName` / `lockIconFlashClassName` / `lockIconFlashDuration`
 
+### Search in recognized content (INTERACTIVE_INK)
+Ctrl+F on handwriting: find a word or an expression in the recognized text and math, handwritten or converted, highlight the matched characters and bring an occurrence into view.
+- new: `canvas.search` (`IISearchManager`): `find(query)` → `TSearchMatch[]` (`text`, `context`, `kind`, `source`, `symbolIds`, `boxes`, `bounds`), `highlight(matches, active?)`, `clear()`, `reveal(match)`, `highlighted`
+- matching: case- and accent-insensitive, partial, literal; in text any whitespace run matches one space (phrases span line breaks); math compares without spaces in reading order (`3x+2`, `f'(x)`), inline math inside a text is read in place; exponents read linearly (`x2` finds `x²`)
+- the highlight follows the last query as the content changes (erase, move, convert); a converted block is found once, as typeset
+- rendering: rects with `ms-search-highlight` / `ms-search-highlight-active`, colors `--ms-ink-search-highlight` (default `#ffd54f`) and `--ms-ink-search-highlight-active` (default `#ff9800`)
+- new: `IIJiixQueryManager.getElements()`, `strokeIdsFromJIIXItems`, `LoggerCategory.SEARCH`, types `TSearchMatch`, `TSearchKind`, `TSearchSource`, `TSearchUnit`, `TSearchUnitChar`
+- example: `interactive_canvas_search.html`
+
 # [v5.0.0](https://github.com/MyScript/iinkTS/tree/v5.0.0)
 
 Full record: [changelog/5.0.0.md](changelog/5.0.0.md)

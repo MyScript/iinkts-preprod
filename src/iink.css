@@ -34,6 +34,8 @@
   --ms-ink-guide-color: #c8c8c8;
   --ms-ink-selection-color: #3e68ff;
   --ms-ink-locked-opacity: 0.55;
+  --ms-ink-search-highlight: #ffd54f;
+  --ms-ink-search-highlight-active: #ff9800;
 
   --ms-ink-menu-bg: #ffffff;
   --ms-ink-menu-title-bg: #b3dfff;
@@ -162,6 +164,18 @@
    --ms-ink-locked-opacity to 1 to show locked symbols as any other */
 .ms-ink .ms-layer-rendering .ms-locked {
   opacity: var(--ms-ink-locked-opacity);
+}
+
+/* Search matches (canvas.search.highlight): a marker stroke over the ink, the active one stronger */
+.ms-ink .ms-search-highlight {
+  fill: var(--ms-ink-search-highlight);
+  fill-opacity: 0.55;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.ms-ink .ms-search-highlight.ms-search-highlight-active {
+  fill: var(--ms-ink-search-highlight-active);
 }
 
 /* The padlock on a locked selection, and the one shown briefly where a change was refused */

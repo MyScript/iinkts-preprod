@@ -37,4 +37,5 @@ export const DefaultLoggerConfiguration: TLoggerConfiguration = {
   [LoggerCategory.MATH]: LoggerLevel.ERROR,
   [LoggerCategory.SNAP]: LoggerLevel.ERROR,
   [LoggerCategory.TEXT]: LoggerLevel.ERROR,
+  [LoggerCategory.SEARCH]: LoggerLevel.ERROR,
 }

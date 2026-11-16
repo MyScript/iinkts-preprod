@@ -37,6 +37,7 @@ export enum LoggerCategory {
   MATH = "MATH",
   SNAP = "SNAP",
   TEXT = "TEXT",
+  SEARCH = "SEARCH",
 }
 
 /**

@@ -9,7 +9,7 @@ import type {
   TJIIXStrokeItem,
   TJIIXTextElement,
 } from "@/client"
-import { JIIXElementType } from "@/client"
+import { JIIXElementType, strokeIdsFromJIIXItems } from "@/client"
 import type { TBox } from "@/core"
 import { BoxOps, convertBoundingBoxMillimeterToPixel, convertMillimeterToPixel, OBBOps } from "@/core"
 import { LoggerCategory } from "@/logger"
@@ -533,7 +533,16 @@ export class IIJiixQueryManager extends IIAbstractManager {
 
   /** Stroke ids referenced by a JIIX item list, preferring `full-id` over the element-local `id`. */
   #strokeIdsFromItems(items?: TJIIXStrokeItem[]): string[] {
-    return (items || []).map((item) => item["full-id"] || item.id).filter((id): id is string => !!id)
+    return strokeIdsFromJIIXItems(items)
+  }
+
+  /**
+   * The JIIX elements the current index was built from, in JIIX order.
+   * Kept across a transient clear of `model.exports`, like every other query here.
+   */
+  getElements(): TJIIXElement[] {
+    this.ensureIndexValid()
+    return [...(this.#index?.elementById.values() ?? [])]
   }
 
   /**
