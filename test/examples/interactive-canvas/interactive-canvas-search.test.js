@@ -14,7 +14,7 @@ test.describe("Interactive ink canvas search", { tag: "@slow" }, () => {
   })
 
   test("should list, highlight and reveal the occurrences of a word", async ({ page }) => {
-    await page.locator("#search-input").fill("derivative")
+    await page.locator("#search-input").fill("Bennet")
 
     const results = page.locator("#search-results .search-result")
     await expect.poll(() => results.count(), { timeout: 20 * 1000 }).toBeGreaterThanOrEqual(2)
@@ -38,10 +38,10 @@ test.describe("Interactive ink canvas search", { tag: "@slow" }, () => {
     await expect(page.locator('#rootEl [data-overlay="search"]')).toHaveCount(0)
   })
 
-  test("should find a handwritten expression", async ({ page }) => {
-    await page.locator("#search-input").fill("f'(a)")
+  test("should find a phrase", async ({ page }) => {
+    await page.locator("#search-input").fill("Netherfield Park")
     // Cloud recognition of the notes varies a little run to run: assert presence, not an exact count
     await expect(page.locator("#search-results .search-result").first()).toBeVisible({ timeout: 20 * 1000 })
-    await expect(page.locator("#search-results .search-result-tag").first()).toContainText("math")
+    await expect(page.locator("#search-results .search-result-tag").first()).toContainText("text")
   })
 })
