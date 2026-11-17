@@ -25,7 +25,7 @@ export type TMathResultMode = "draw" | "ghost"
 export type TMathComputationConfig = {
   /** How solver output is displayed */
   resultMode: TMathResultMode
-  /** Automatically compute every block the server offers numerical computation for (ending with = or ?, or a vertical operation with an empty result row) */
+  /** Automatically compute every block the server offers numerical computation for (ending with =, or a vertical operation with an empty result row) */
   autoCompute: boolean
   /** Color applied to result strokes (both draw and ghost modes) */
   resultColor: string
@@ -52,8 +52,8 @@ export class IIMathComputationSubManager extends IIAbstractManager {
   protected managerName = "IIMathComputationSubManager"
 
   static readonly DEFAULT_CONFIG: TMathComputationConfig = {
-    resultMode: "draw",
-    autoCompute: false,
+    resultMode: "ghost",
+    autoCompute: true,
     resultColor: "#4caf50",
   }
 

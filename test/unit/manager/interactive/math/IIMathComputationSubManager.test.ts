@@ -37,6 +37,11 @@ function writeThroughAddSymbols(canvas: ReturnType<typeof createCanvasMock>): vo
 }
 
 describe("IIMathComputationSubManager.ts", () => {
+  test("defaults to auto-computed ghost results, so a dependent block follows its variables", () => {
+    const manager = new IIMathComputationSubManager(asCanvas(createCanvasMock()))
+    expect(manager.getConfig()).toMatchObject({ autoCompute: true, resultMode: "ghost" })
+  })
+
   describe("computeNumericalResult", () => {
     test("draw result is frozen: a later recompute must not query the client nor touch the model", async () => {
       const canvas = createCanvasMock()
