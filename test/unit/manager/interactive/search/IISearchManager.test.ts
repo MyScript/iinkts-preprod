@@ -352,6 +352,24 @@ describe("IISearchManager.ts", () => {
       expect(matches[0].source).toBe("typeset")
     })
   })
+  describe("available", () => {
+    test("should be false while nothing is recognized", () => {
+      const { search } = setup()
+      expect(search.available).toBe(false)
+    })
+
+    test("should be true once a handwritten text is recognized", () => {
+      const { search } = textCanvas(DERIVATIVE)
+      expect(search.available).toBe(true)
+    })
+
+    test("should be true with a converted text only", () => {
+      const canvas = createCanvasMock()
+      canvas.model.addSymbol(buildIIText({ chars: typesetChars("photo") }))
+      const { search } = setup([], canvas)
+      expect(search.available).toBe(true)
+    })
+  })
   describe("highlight", () => {
     const rects = (canvas: TCanvasMock) => canvas.renderer.layer.querySelectorAll('[data-overlay="search"]')
 

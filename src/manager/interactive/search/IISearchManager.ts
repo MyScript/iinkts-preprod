@@ -49,6 +49,11 @@ export class IISearchManager extends IIAbstractManager {
     return [...this.highlightedMatches]
   }
 
+  /** Whether there is recognized content to search in: false until something is recognized or converted */
+  get available(): boolean {
+    return this.buildUnits().length > 0
+  }
+
   /**
    * Every occurrence of `query`, top to bottom then left to right.
    *

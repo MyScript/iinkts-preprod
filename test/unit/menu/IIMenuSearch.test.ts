@@ -11,9 +11,10 @@ const match = (text: string, y: number): TSearchMatch => ({
   bounds: { x: 0, y, width: 10, height: 10 },
 })
 
-function setup(matches: TSearchMatch[] = [match("a", 0), match("a", 20), match("a", 40)]) {
+function setup(matches: TSearchMatch[] = [match("a", 0), match("a", 20), match("a", 40)], available = true) {
   let highlighted: TSearchMatch[] = []
   const search = {
+    available,
     find: jest.fn(() => matches),
     highlight: jest.fn((m: TSearchMatch[]) => {
       highlighted = m
@@ -143,6 +144,20 @@ describe("IIMenuSearch", () => {
     expect(input().value).toBe("abc")
     expect(input().selectionStart).toBe(0)
     expect(input().selectionEnd).toBe(3)
+  })
+
+  test("should show the bar unavailable while nothing is recognized", () => {
+    const { layer, input } = setup([], false)
+    expect(layer.querySelector("#ms-menu-search")!.classList).toContain("unavailable")
+    expect(input().placeholder).toBe("Nothing recognized yet")
+  })
+
+  test("should become available once the content is synchronized", () => {
+    const { layer, input, search, canvas } = setup([], false)
+    search.available = true
+    canvas.event.emitSynchronized()
+    expect(layer.querySelector("#ms-menu-search")!.classList).not.toContain("unavailable")
+    expect(input().placeholder).toBe("Search…")
   })
 
   test("destroy should remove the bar", () => {

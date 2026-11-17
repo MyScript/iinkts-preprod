@@ -197,6 +197,11 @@
   border-radius: 4px;
 }
 
+.ms-ink .ms-menu-search.unavailable input {
+  border-color: var(--ms-ink-warning);
+  font-style: italic;
+}
+
 .ms-ink .ms-menu-search-count {
   min-width: 3em;
   font-size: 12px;

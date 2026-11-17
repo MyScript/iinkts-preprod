@@ -37,6 +37,11 @@
       border-radius: 6px;
     }
 
+    #search-input.unavailable {
+      border-color: #ffc107;
+      font-style: italic;
+    }
+
     .search-bar-row {
       display: flex;
       align-items: center;
@@ -295,7 +300,10 @@
     }
 
     function onSynchronized() {
-      searchStatus.textContent = 'Recognized. Search away.'
+      const available = canvas.search.available
+      searchStatus.textContent = available ? 'Recognized. Search away.' : 'Nothing recognized yet: write something first.'
+      searchInput.classList.toggle('unavailable', !available)
+      searchInput.placeholder = available ? 'Search the handwriting…' : 'Nothing recognized yet'
       searchInput.disabled = false
       runSearch()
     }

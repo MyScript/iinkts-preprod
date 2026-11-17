@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test"
 import { passModalKey } from "../helper"
+import locator from "../locators"
 
 test.describe("Interactive ink canvas search", { tag: "@slow" }, () => {
   // The page imports ~1000 strokes of notes and waits for their recognition
@@ -43,5 +44,12 @@ test.describe("Interactive ink canvas search", { tag: "@slow" }, () => {
     // Cloud recognition of the notes varies a little run to run: assert presence, not an exact count
     await expect(page.locator("#search-results .search-result").first()).toBeVisible({ timeout: 20 * 1000 })
     await expect(page.locator("#search-results .search-result-tag").first()).toContainText("text")
+  })
+
+  test("should tell when nothing is recognized", async ({ page }) => {
+    await expect(page.locator("#search-input")).not.toHaveClass(/unavailable/)
+    await page.locator(locator.menu.action.clearBtn).click()
+    await expect(page.locator("#search-input")).toHaveClass(/unavailable/, { timeout: 20 * 1000 })
+    await expect(page.locator("#search-input")).toHaveAttribute("placeholder", "Nothing recognized yet")
   })
 })

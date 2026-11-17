@@ -54,6 +54,18 @@ export class IIMenuSearch {
     )
     this.wrapper.style.display = "none"
     layer.appendChild(this.wrapper)
+    this.updateAvailability()
+    this.canvas.event.addSynchronizedListener(() => this.updateAvailability())
+  }
+
+  /** Tell in the bar when nothing is recognized yet, so a search cannot find anything */
+  protected updateAvailability(): void {
+    if (!this.wrapper || !this.input) {
+      return
+    }
+    const available = this.canvas.search.available
+    this.wrapper.classList.toggle("unavailable", !available)
+    this.input.placeholder = available ? "Search…" : "Nothing recognized yet"
   }
 
   protected createInput(): HTMLInputElement {
