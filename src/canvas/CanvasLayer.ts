@@ -82,6 +82,8 @@ export class CanvasLayer {
   root: HTMLElement
   ui: TCanvasLayerUI
   rendering: HTMLElement
+  /** Covers the whole canvas, menus included, with a spinner while it cannot be used; see {@link showVeil} */
+  veil: HTMLDivElement
 
   onCloseModal?: (inError?: boolean) => void
   /** Translates the badge tooltip and the message titles */
@@ -90,6 +92,7 @@ export class CanvasLayer {
   #modal?: Modal
   #documentPointerdownHandler?: (e: PointerEvent) => void
   #lastState?: { state: TCanvasConnectionState; detail: TCanvasStateDetail }
+  #veilTimer?: ReturnType<typeof setTimeout>
   #unsubscribeI18n: () => void
 
   constructor(root: HTMLElement, rootClassCss: string = "ms-ink", i18n: Translator = new Translator()) {
@@ -102,6 +105,8 @@ export class CanvasLayer {
     this.root.classList.add(rootClassCss)
     this.rendering = this.createLayerRender()
     this.ui = this.createLayerUI()
+    this.veil = DOMFactory.div({ className: "ms-ink-veil" })
+    this.veil.appendChild(DOMFactory.div({ className: "ms-ink-veil-spinner" }))
   }
 
   render(): void {
@@ -110,6 +115,22 @@ export class CanvasLayer {
 
     this.root.appendChild(this.rendering)
     this.root.appendChild(this.ui.root)
+    this.root.appendChild(this.veil)
+  }
+
+  /**
+   * Covers the canvas after `delay` ms, so that what ends sooner shows nothing rather than a flash.
+   * Only shows the canvas is busy: blocking the input is up to the caller.
+   */
+  showVeil(delay = 300): void {
+    clearTimeout(this.#veilTimer)
+    this.#veilTimer = setTimeout(() => this.veil.classList.add("open"), delay)
+  }
+
+  /** Lifts the veil, or cancels it while its delay runs */
+  hideVeil(): void {
+    clearTimeout(this.#veilTimer)
+    this.veil.classList.remove("open")
   }
 
   createLoader(): HTMLDivElement {
@@ -242,6 +263,7 @@ export class CanvasLayer {
 
   destroy(): void {
     this.#unsubscribeI18n()
+    clearTimeout(this.#veilTimer)
     this.#modal = undefined
     if (this.#documentPointerdownHandler) {
       document.removeEventListener("pointerdown", this.#documentPointerdownHandler)

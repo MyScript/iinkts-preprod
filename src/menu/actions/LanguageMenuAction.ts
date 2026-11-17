@@ -31,12 +31,25 @@ export class LanguageMenuAction extends SubMenuItem {
       className: "select-language",
       onChange: (value) => {
         this.logger.info(`${this.config.id}.change`)
-        this.canvas.updateRecognitionConfiguration({ lang: value })
+        this.changeLanguage(value)
       },
     })
     this.subMenuWrapper?.appendChild(this.select)
     this.loadLanguages(this.select)
     return wrapper
+  }
+
+  /**
+   * Opens a session in `lang`; the canvas veils itself meanwhile and rebuilds the menus in that language once done.
+   * When the server refused it, the select comes back to the current language, the error already reported.
+   */
+  protected async changeLanguage(lang: string): Promise<void> {
+    try {
+      await this.canvas.updateRecognitionConfiguration({ lang })
+    } catch (error) {
+      this.logger.warn(`${this.config.id}.change`, error)
+      this.update()
+    }
   }
 
   /** Fills `select` with the languages the server offers, the current one selected */

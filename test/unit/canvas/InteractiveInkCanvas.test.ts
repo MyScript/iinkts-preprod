@@ -1286,6 +1286,30 @@ describe("InteractiveInkCanvas.ts", () => {
       expect(canvas.i18n.t("menu.action.clear")).toEqual("Effacer")
     })
 
+    test("should veil the canvas while a new session opens, not while the configuration of the session changes", async () => {
+      const canvas = await buildCanvas()
+      canvas.layers.showVeil = jest.fn()
+      canvas.layers.hideVeil = jest.fn()
+
+      await canvas.updateRecognitionConfiguration({ math: { solver: { "angle-unit": "deg" } } })
+      expect(canvas.layers.showVeil).not.toHaveBeenCalled()
+
+      await canvas.updateRecognitionConfiguration({ lang: "fr_FR" })
+      expect(canvas.layers.showVeil).toHaveBeenCalledTimes(1)
+      expect(canvas.layers.hideVeil).toHaveBeenCalledTimes(1)
+    })
+
+    test("should lift the veil when the new session fails", async () => {
+      const canvas = await buildCanvas()
+      canvas.layers.hideVeil = jest.fn()
+      canvas.client.newSession = jest.fn(() => Promise.reject(new Error("refused")))
+      canvas.event.addErrorListener(jest.fn())
+
+      await expect(canvas.updateRecognitionConfiguration({ lang: "fr_FR" })).rejects.toThrow("refused")
+
+      expect(canvas.layers.hideVeil).toHaveBeenCalledTimes(1)
+    })
+
     test("should keep the UI language when the new session fails", async () => {
       const canvas = await buildCanvas()
       const before = canvas.i18n.language

@@ -55,6 +55,27 @@ describe("LanguageMenuAction.ts", () => {
     expect(canvas.updateRecognitionConfiguration).toHaveBeenCalledWith({ lang: "fr_FR" })
   })
 
+  test("should come back to the current language when the change fails", async () => {
+    fetchMock.mockResponseOnce(JSON.stringify({ result: { en_US: "English", fr_FR: "French" } }))
+    const canvas = createCanvasMock()
+    canvas.configuration.recognition.lang = "en_US"
+    canvas.updateRecognitionConfiguration = jest.fn(() => Promise.reject(new Error("refused")))
+    const unhandled = jest.fn()
+    process.on("unhandledRejection", unhandled)
+    const item = new LanguageMenuAction(asCanvas(canvas))
+    const wrapper = item.getElement()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    const select = wrapper.querySelector("select") as HTMLSelectElement
+
+    select.value = "fr_FR"
+    select.dispatchEvent(new Event("change", { bubbles: true }))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    process.off("unhandledRejection", unhandled)
+    expect(unhandled).not.toHaveBeenCalled()
+    expect(select.value).toEqual("en_US")
+  })
+
   test("should toggle the select panel open on trigger pointerdown", () => {
     fetchMock.mockResponseOnce(JSON.stringify({ result: {} }))
     const canvas = createCanvasMock()

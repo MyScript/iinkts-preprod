@@ -179,6 +179,33 @@ describe("IIMenuManager.ts", () => {
       expect(layer.querySelector(".ms-menu-title")?.textContent).toEqual("Langue")
     })
 
+    test("should fade the menus in while they are rebuilt in the new language", () => {
+      jest.useFakeTimers()
+      const canvas = createCanvasMock()
+      const manager = new IIMenuManager(asCanvas(canvas))
+      const layer = document.createElement("div")
+      manager.render(layer)
+      expect(layer.classList.contains("ms-menu-relabel")).toBe(false)
+
+      canvas.i18n.setLanguage("fr_FR")
+
+      expect(layer.classList.contains("ms-menu-relabel")).toBe(true)
+      jest.runAllTimers()
+      expect(layer.classList.contains("ms-menu-relabel")).toBe(false)
+      jest.useRealTimers()
+    })
+
+    test("should not fade the menus in when only their configuration changes", () => {
+      const canvas = createCanvasMock()
+      const manager = new IIMenuManager(asCanvas(canvas))
+      const layer = document.createElement("div")
+      manager.render(layer)
+
+      manager.setConfig({ tool: { erase: false } })
+
+      expect(layer.classList.contains("ms-menu-relabel")).toBe(false)
+    })
+
     test("should show the labels the integrator added", () => {
       const canvas = createCanvasMock()
       const manager = new IIMenuManager(asCanvas(canvas))

@@ -34,7 +34,7 @@ Ctrl+F on handwriting: find a word or an expression in the recognized text and m
 Every label of the UI (menus, search bar, connection badge, info/error messages, PDF export dialog, math dialogs) is shown in the recognition language. English and French are built in; any other language falls back to English until the integrator supplies it.
 - new: `canvas.i18n` (`Translator`): `t(key, params?)`, `language`, `setLanguage(lang)`, `add(lang, labels)`, `onChange(listener)`. A label is looked up in `fr_FR`, then `fr`, then `en`, the integrator's labels over the built-in ones at each level; an unknown key is shown as is
 - new: `configuration.translations` (`TTranslationsConfiguration`), labels by language code (`fr` or `fr_FR`), to override built-in labels or add labels of one's own: `{ fr: { "menu.action.clear": "Tout effacer" } }`
-- the UI follows `recognition.lang` at load and after `updateRecognitionConfiguration({ lang })` once the server accepted it; menus, search bar and badge are rebuilt in the new language
+- the UI follows `recognition.lang` at load and after `updateRecognitionConfiguration({ lang })` once the server accepted it; menus, search bar and badge are rebuilt in the new language. Meanwhile a veil with a spinner covers the canvas, menus included (`.ms-ink-veil`, color `--ms-ink-veil-bg`, shown only past 300 ms), then the menus fade in (class `ms-menu-relabel` on the menu layer, none under `prefers-reduced-motion: reduce`); a refused language puts the select back on the current one
 - new: `TranslationsEn`, `TranslationsFr`, types `TTranslationKey`, `TTranslations`, `TTranslationParams`, `TMathDiagnosticSeverity`; option `i18n` on `TModalConfig` and `TChartConfig`
 - example: `interactive_canvas_menu_override.html` labels its added items in English, French and German, and overrides a built-in label
 
@@ -43,7 +43,7 @@ Every label of the UI (menus, search bar, connection badge, info/error messages,
 ### UI translations
 - **behaviour** `MathDiagnosticMessages` now maps a code to its severity only; read the title and message with `getMathDiagnosticMessage(code, i18n?)`, which takes a `Translator` (English when absent)
 - **behaviour** the labels of `SOURCE_TYPE_LABELS`, `DEFAULT_FONT_SIZE_LIST`, `DEFAULT_FONT_WEIGHT_LIST` ("Auto", "Normal", "Bold") and `CanvasThemes.THEMES` are translation keys, shown through `canvas.i18n.t`; a label of your own that is not a key is shown as is
-- **type** `CanvasLayer` and `IIMathVariableInputList` constructors take an optional `Translator` last
+- **type** `CanvasLayer` and `IIMathVariableInputList` constructors take an optional `Translator` last; new `CanvasLayer.veil`, `showVeil(delay?)`, `hideVeil()`
 
 ### Narrower action bar
 - **behaviour** the Language menu moves from the action bar into the action dropdown, as a labelled sub-menu like Theme or Guide; `LanguageMenuAction` now extends `SubMenuItem`. Its select id becomes `ms-menu-action-language-input` (`ms-menu-action-language` is now the sub-menu wrapper)

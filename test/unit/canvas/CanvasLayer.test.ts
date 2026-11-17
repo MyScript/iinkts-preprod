@@ -1,6 +1,42 @@
 import { CanvasLayer, Translator } from "@/iink"
 
 describe("CanvasLayer.ts", () => {
+  describe("veil", () => {
+    let layer: CanvasLayer
+
+    beforeEach(() => {
+      jest.useFakeTimers()
+      layer = new CanvasLayer(document.createElement("div"))
+      layer.render()
+    })
+
+    afterEach(() => {
+      jest.useRealTimers()
+    })
+
+    test("should cover the canvas once the delay elapsed", () => {
+      layer.showVeil(300)
+      expect(layer.veil.classList.contains("open")).toBe(false)
+      jest.advanceTimersByTime(300)
+      expect(layer.veil.classList.contains("open")).toBe(true)
+      expect(layer.root.contains(layer.veil)).toBe(true)
+    })
+
+    test("should never show when hidden before the delay", () => {
+      layer.showVeil(300)
+      layer.hideVeil()
+      jest.advanceTimersByTime(300)
+      expect(layer.veil.classList.contains("open")).toBe(false)
+    })
+
+    test("should hide once shown", () => {
+      layer.showVeil(0)
+      jest.advanceTimersByTime(0)
+      layer.hideVeil()
+      expect(layer.veil.classList.contains("open")).toBe(false)
+    })
+  })
+
   describe("canvas state badge", () => {
     let layer: CanvasLayer
 
