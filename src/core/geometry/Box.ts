@@ -147,6 +147,26 @@ export const BoxOps = {
     )
   },
 
+  /**
+   * Group items sharing a vertical extent into reading lines, top-to-bottom then left-to-right:
+   * an item starts a new line when its top is below the bottom of the current one.
+   */
+  groupIntoLines<T>(items: T[], boxOf: (item: T) => TBox): T[][] {
+    const sortedByTop = [...items].sort((a, b) => boxOf(a).y - boxOf(b).y)
+    const lines: { bottom: number; items: T[] }[] = []
+    sortedByTop.forEach((item) => {
+      const box = boxOf(item)
+      const currentLine = lines[lines.length - 1]
+      if (currentLine && box.y < currentLine.bottom) {
+        currentLine.items.push(item)
+        currentLine.bottom = Math.max(currentLine.bottom, box.y + box.height)
+      } else {
+        lines.push({ bottom: box.y + box.height, items: [item] })
+      }
+    })
+    return lines.map((line) => line.items.sort((a, b) => boxOf(a).x - boxOf(b).x))
+  },
+
   overlaps(box1: TBox, box2: TBox): boolean {
     if (box1.x > box2.x + box2.width) {
       return false
