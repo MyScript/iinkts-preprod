@@ -189,7 +189,32 @@
     let activeIndex = -1
 
     const canvasOptions = {
-      configuration: {},
+      configuration: {
+        menu: {
+          style: { enable: false },
+          tool: { shape: false, edge: false },
+          action: {
+            language: true,
+            gesture: false,
+            guide: false,
+            snap: false,
+            math: false,
+            overlay: false,
+            selection: false,
+            diagram: false,
+            export: true,
+            import: true,
+          },
+          context: {
+            decorator: false,
+            reorder: false,
+            export: false,
+            math: false,
+            group: false,
+            lock: false
+          },
+        },
+      },
     }
 
     function renderContext(match) {
