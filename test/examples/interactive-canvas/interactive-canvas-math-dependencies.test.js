@@ -5,7 +5,6 @@ import {
   writePointers,
   callCanvasIdle,
   waitForSynchronizedEvent,
-  getCanvasSymbols,
   boundsOf,
   buildEraseSweepPointers,
   pollJiix,
@@ -58,14 +57,6 @@ const writeSourceThenDependent = async (page) => {
   return { sourceId, dependentId }
 }
 
-const getSolverOutputIds = async (page, jiixBlockId) => {
-  const symbols = await getCanvasSymbols(page)
-  return symbols
-    .filter((s) => s.isSolverOutput && s.jiixBlockId === jiixBlockId)
-    .map((s) => s.id)
-    .sort()
-}
-
 test.describe("Math Dependencies", { tag: "@slow" }, () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`${process.env.PATH_PREFIX ? process.env.PATH_PREFIX : ""}/examples/interactive-canvas/interactive_canvas_math_dependencies.html`)
@@ -96,17 +87,17 @@ test.describe("Math Dependencies", { tag: "@slow" }, () => {
     await expect(dependencyList).toContainText(`x = ${SOURCE_LABEL}`)
   })
 
-  // Follows the "Try it" > steps 3-4: toggle "Auto-compute" on, then writing the dependent
-  // expression (ending with "=") computes its result automatically.
-  test('Try it — 3-4. Enable Auto-compute → dependent expression computes automatically when written', async ({ page }) => {
+  // Follows the "Try it" > steps 3-4: "Auto-compute" is on by default, so writing the dependent
+  // expression (ending with "=") computes its result automatically, as a ghost preview.
+  test('Try it — 3-4. Auto-compute on by default → dependent expression computes automatically when written', async ({ page }) => {
     await openMathActionMenu(page)
-    await page.locator("#ms-menu-action-math-auto-compute-input").check()
+    await expect(page.locator("#ms-menu-action-math-auto-compute-input")).toBeChecked()
     await page.locator("#ms-menu-action").click()
 
     const { dependentId } = await writeSourceThenDependent(page)
 
     await expect
-      .poll(async () => (await getSolverOutputIds(page, dependentId)).length > 0, { timeout: 12000 })
+      .poll(async () => page.evaluate((id) => rootEl.iink.math.hasGhostStrokes(id), dependentId), { timeout: 12000 })
       .toBe(true)
   })
 
@@ -114,11 +105,6 @@ test.describe("Math Dependencies", { tag: "@slow" }, () => {
   // expression recalculate — by erasing and rewriting the source's own ink (a BLOCK variable's
   // value is defined by the user's handwriting, not overridable through Edit Variables or the
   test('Try it — 5-6. Erase and rewrite "x" on the source block → dependent expression recalculates', async ({ page }) => {
-    await openMathActionMenu(page)
-    await page.locator("#ms-menu-action-math-result-mode-input").selectOption("ghost")
-    await page.locator("#ms-menu-action-math-auto-compute-input").check()
-    await page.locator("#ms-menu-action").click()
-
     await writeStrokes(page, overrideSourceStrokes)
     await callCanvasIdle(page)
     await pollJiix(page, 1)
@@ -159,9 +145,6 @@ test.describe("Math Dependencies", { tag: "@slow" }, () => {
         return label?.includes("5")
       }, { timeout: 8000 })
       .toBe(true)
-
-    await page.evaluate(() => rootEl.iink.math.tryAutoCompute())
-    await callCanvasIdle(page)
 
     await expect
       .poll(async () => {
