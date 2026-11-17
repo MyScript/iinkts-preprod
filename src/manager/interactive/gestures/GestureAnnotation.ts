@@ -31,7 +31,10 @@ export type TGestureAnnotation =
     }
   | { kind: "select" }
 
-/** What one decorator covers when a gesture decorates its targets one by one */
+/**
+ * What one decorator covers when a gesture decorates its targets one by one
+ * @hidden
+ */
 type TDecoratorUnit =
   | { kind: "text"; id: string }
   | {
