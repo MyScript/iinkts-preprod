@@ -50,9 +50,15 @@ export const PAUSE_MS = 2500
 /**
  * Every exercise is written: the recognizer reads math only. With shapes on, a `0` can come back
  * as a circle and a `1` as a line.
+ * Only scratch-out stays as gesture: a surround, strike-through or underline would turn a
+ * student's `0`, fraction bar or `-` into an edit instead of ink.
  */
 export const MATH_RECOGNITION = {
-  "raw-content": { recognition: { types: ["math"] }, classification: { types: ["math"] } },
+  "raw-content": {
+    recognition: { types: ["math"] },
+    classification: { types: ["math"] },
+    gestures: ["scratch-out"],
+  },
 }
 
 export class Tutor {
