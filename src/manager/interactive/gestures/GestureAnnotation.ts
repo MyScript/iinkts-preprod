@@ -3,7 +3,7 @@ import type { TBox, TDraft } from "@/core"
 import { OBBOps, type TOBB } from "@/core"
 import type { TIIHistoryChanges } from "@/history"
 import type { DecoratorKind, TDecorator, TStroke, TText } from "@/symbol"
-import { isDecorator, isMath, isRecognizedText, isStroke, isText, type TSymbol } from "@/symbol"
+import { isDecorator, isMath, isRecognizedMath, isRecognizedText, isStroke, isText, type TSymbol } from "@/symbol"
 import { DecoratorUtil, MathUtil, SymbolGeometry, TextUtil } from "@/symbol-utils"
 
 /**
@@ -15,6 +15,11 @@ export type TGestureAnnotation =
   | {
       kind: "decorator"
       decoratorKind: DecoratorKind
+      /**
+       * One decorator spanning every target instead of one per word or text, as a surround
+       * gesture decorates what it encloses as a whole. A lone word or text is decorated as usual.
+       */
+      group?: boolean
     }
   | { kind: "erase" }
   | {
@@ -25,6 +30,17 @@ export type TGestureAnnotation =
       fontWeights: ("normal" | "bold")[]
     }
   | { kind: "select" }
+
+/** What one decorator covers when a gesture decorates its targets one by one */
+type TDecoratorUnit =
+  | { kind: "text"; id: string }
+  | {
+      kind: "strokes"
+      strokeIds: string[]
+      wordBounds: TBox | null
+      baseline: number | null
+      xHeight: number | null
+    }
 
 /**
  * Centralized executor for gesture annotations.
@@ -37,7 +53,7 @@ export class IIGestureAnnotationProcessor {
   async apply(ids: string[], annotation: TGestureAnnotation): Promise<TIIHistoryChanges | undefined> {
     switch (annotation.kind) {
       case "decorator":
-        return this.#applyDecorator(ids, annotation.decoratorKind)
+        return this.#applyDecorator(ids, annotation.decoratorKind, annotation.group ?? false)
       case "erase":
         await this.canvas.removeSymbols(ids)
         return undefined
@@ -50,60 +66,17 @@ export class IIGestureAnnotationProcessor {
     }
   }
 
-  async #applyDecorator(ids: string[], kind: DecoratorKind): Promise<TIIHistoryChanges | undefined> {
+  async #applyDecorator(ids: string[], kind: DecoratorKind, group: boolean): Promise<TIIHistoryChanges | undefined> {
     await this.#waitForPendingClassification(ids)
 
-    const seenWordKeys = new Set<string>()
+    const units = this.#collectDecoratorUnits(ids)
     const added: TDecorator[] = []
     const erased: TDecorator[] = []
-
-    for (const id of ids) {
-      // A text carries its decorators inside it: decorating a locked one would rewrite it. A locked
-      // stroke is left as it is by a decorator, which is a symbol of its own.
-      const current = this.canvas.model.getSymbol(id)
-      if (current?.locked && isText(current)) {
-        this.canvas.event.emitLockedRefused([current])
-        continue
-      }
-      // A draft rather than a read: the text branch below adds or removes a decorator on the
-      // symbol and commits it.
-      const sym = this.canvas.model.draftSymbol(id)
-      if (!sym) {
-        continue
-      }
-
-      if (isText(sym)) {
-        this.#toggleTextDecorator(sym, kind, added, erased)
-        continue
-      }
-
-      if (!isRecognizedText(sym as TStroke)) {
-        continue
-      }
-
-      const wordGroup = this.canvas.jiix.getWordGroupForStroke(sym.id)
-      if (wordGroup) {
-        if (seenWordKeys.has(wordGroup.wordKey)) {
-          continue
-        }
-        seenWordKeys.add(wordGroup.wordKey)
-        this.#toggleWordDecorator(
-          wordGroup.allStrokeIds,
-          wordGroup.wordBounds,
-          wordGroup.baseline,
-          wordGroup.xHeight,
-          kind,
-          added,
-          erased
-        )
-      } else {
-        // JIIX not yet available — treat stroke as its own group
-        if (seenWordKeys.has(sym.id)) {
-          continue
-        }
-        seenWordKeys.add(sym.id)
-        this.#toggleWordDecorator([sym.id], null, null, null, kind, added, erased)
-      }
+    if (group && units.length > 1) {
+      const targetIds = units.flatMap((unit) => (unit.kind === "text" ? [unit.id] : unit.strokeIds))
+      this.#toggleWordDecorator(targetIds, null, null, null, kind, added, erased)
+    } else {
+      units.forEach((unit) => this.#toggleUnitDecorator(unit, kind, added, erased))
     }
 
     if (!added.length && !erased.length) {
@@ -117,6 +90,78 @@ export class IIGestureAnnotationProcessor {
       changes.erased = erased
     }
     return changes
+  }
+
+  /**
+   * What a decorator gesture decorates among `ids`: each text on its own, each recognized text
+   * stroke through the whole word it belongs to, once per word, and the recognized math strokes
+   * of one block together. A locked text is refused, an unrecognized stroke or any other symbol
+   * left out.
+   */
+  #collectDecoratorUnits(ids: string[]): TDecoratorUnit[] {
+    const units: TDecoratorUnit[] = []
+    const seenWordKeys = new Set<string>()
+    const mathBlocks = new Map<string, string[]>()
+    for (const id of ids) {
+      const sym = this.canvas.model.getSymbol(id)
+      if (!sym) {
+        continue
+      }
+      if (isText(sym)) {
+        this.#pushTextUnit(sym, units)
+      } else if (isRecognizedMath(sym)) {
+        // JIIX not yet available — the stroke is its own block
+        const blockKey = sym.jiixBlockId ?? sym.id
+        mathBlocks.set(blockKey, [...(mathBlocks.get(blockKey) ?? []), sym.id])
+      } else if (isRecognizedText(sym)) {
+        this.#pushWordUnit(sym, seenWordKeys, units)
+      }
+    }
+    mathBlocks.forEach((strokeIds) =>
+      units.push({ kind: "strokes", strokeIds, wordBounds: null, baseline: null, xHeight: null })
+    )
+    return units
+  }
+
+  /**
+   * A text carries its decorators inside it: decorating a locked one would rewrite it. A locked
+   * stroke is left as it is by a decorator, which is a symbol of its own.
+   */
+  #pushTextUnit(sym: TText, units: TDecoratorUnit[]): void {
+    if (sym.locked) {
+      this.canvas.event.emitLockedRefused([sym])
+    } else {
+      units.push({ kind: "text", id: sym.id })
+    }
+  }
+
+  #pushWordUnit(sym: TStroke, seenWordKeys: Set<string>, units: TDecoratorUnit[]): void {
+    // JIIX not yet available — the stroke is its own word
+    const wordGroup = this.canvas.jiix.getWordGroupForStroke(sym.id)
+    const wordKey = wordGroup?.wordKey ?? sym.id
+    if (seenWordKeys.has(wordKey)) {
+      return
+    }
+    seenWordKeys.add(wordKey)
+    units.push({
+      kind: "strokes",
+      strokeIds: wordGroup?.allStrokeIds ?? [sym.id],
+      wordBounds: wordGroup?.wordBounds ?? null,
+      baseline: wordGroup?.baseline ?? null,
+      xHeight: wordGroup?.xHeight ?? null,
+    })
+  }
+
+  #toggleUnitDecorator(unit: TDecoratorUnit, kind: DecoratorKind, added: TDecorator[], erased: TDecorator[]): void {
+    if (unit.kind === "strokes") {
+      this.#toggleWordDecorator(unit.strokeIds, unit.wordBounds, unit.baseline, unit.xHeight, kind, added, erased)
+      return
+    }
+    // A draft rather than a read: a decorator is added to or removed from the text, then committed.
+    const sym = this.canvas.model.draftSymbol(unit.id)
+    if (sym && isText(sym)) {
+      this.#toggleTextDecorator(sym, kind, added, erased)
+    }
   }
 
   /**

@@ -38,29 +38,23 @@ export class SurroundGestureHandler extends GestureHandler {
           kind: "select",
         })
         break
-      case SurroundAction.Highlight: {
-        const changes = await this.processor.apply(ids, {
-          kind: "decorator",
-          decoratorKind: DecoratorKind.Highlight,
-        })
-        if (changes) {
-          this.history.push(changes)
-        }
+      case SurroundAction.Highlight:
+        await this.decorate(ids, DecoratorKind.Highlight)
         break
-      }
-      case SurroundAction.Surround: {
-        const changes = await this.processor.apply(ids, {
-          kind: "decorator",
-          decoratorKind: DecoratorKind.Surround,
-        })
-        if (changes) {
-          this.history.push(changes)
-        }
+      case SurroundAction.Surround:
+        await this.decorate(ids, DecoratorKind.Surround)
         break
-      }
       default:
         this.logger.error("applySurroundGesture", `Unknown surroundAction: ${this.manager.surroundAction}`)
         break
+    }
+  }
+
+  /** One decorator around everything the gesture encloses, not one per word */
+  protected async decorate(ids: string[], decoratorKind: DecoratorKind): Promise<void> {
+    const changes = await this.processor.apply(ids, { kind: "decorator", decoratorKind, group: true })
+    if (changes) {
+      this.history.push(changes)
     }
   }
 }

@@ -33,6 +33,7 @@ import {
   type TBox,
   uniqueById,
 } from "@/core"
+import { appendUpdated, type TIIHistoryChanges } from "@/history"
 import { LoggerCategory } from "@/logger"
 import type {
   DecoratorKind,
@@ -133,38 +134,31 @@ export class IIConversionManager extends IIAbstractManager {
       y: boundingBox.y + boundingBox.height,
     }
     const text = TextUtil.createText(charSymbols, point, boundingBox, strokes[0].style)
-    const strokeIds = new Set(strokes.map((s) => s.id))
-    // A block holding a locked stroke is dropped before it is applied (#withoutLockedStrokes): its
-    // decorators must survive this build, or they would be lost with nothing replacing them
-    const blockLocked = strokes.some((s) => this.model.getSymbol(s.id)?.locked)
-
-    // Find standalone IIDecorator symbols in model whose targets overlap with converted strokes
-    const appliedKinds = new Set<DecoratorKind>()
-    const decoratorsToRemove: TDecorator[] = []
-
-    for (const sym of this.model.symbols) {
-      if (!isDecorator(sym) || blockLocked || sym.locked) {
-        continue
-      }
-      const dec = sym as TDecorator
-      const hasOverlap = dec.targetIds.some((id) => strokeIds.has(id))
-      if (!hasOverlap) {
-        continue
-      }
-      decoratorsToRemove.push(dec)
-      if (!appliedKinds.has(dec.kind)) {
-        appliedKinds.add(dec.kind)
-        text.decorators.push(DecoratorUtil.createDecorator(dec.kind, dec.style))
-      }
-    }
-
-    // Remove standalone decorators that were absorbed into the text
-    for (const dec of decoratorsToRemove) {
-      this.model.removeSymbol(dec.id)
-      this.canvas.renderer.removeElement(dec.id)
-    }
-
+    this.#absorbDecorators(text, strokes)
     return text
+  }
+
+  /**
+   * Gives the typeset symbol replacing `strokes` the kinds of the standalone decorators on them, one
+   * per kind. The standalone decorators stay: removing the strokes erases a decorator left with no
+   * target, and shrinks one spanning other words or blocks, which then get it in turn when built.
+   */
+  #absorbDecorators(typeset: { decorators: TDecorator[] }, strokes: TStroke[]): void {
+    // A block holding a locked stroke is dropped before it is applied (#withoutLockedStrokes)
+    if (strokes.some((s) => this.model.getSymbol(s.id)?.locked)) {
+      return
+    }
+    const strokeIds = new Set(strokes.map((s) => s.id))
+    const appliedKinds = new Set<DecoratorKind>()
+    for (const sym of this.model.symbols) {
+      if (!isDecorator(sym) || sym.locked || appliedKinds.has(sym.kind)) {
+        continue
+      }
+      if (sym.targetIds.some((id) => strokeIds.has(id))) {
+        appliedKinds.add(sym.kind)
+        typeset.decorators.push(DecoratorUtil.createDecorator(sym.kind, sym.style))
+      }
+    }
   }
 
   convertText(
@@ -675,7 +669,7 @@ export class IIConversionManager extends IIAbstractManager {
     }
 
     const math = MathUtil.createMath(mathElements, point, adjustedBounds, strokes[0]?.style)
-
+    this.#absorbDecorators(math, strokes)
     return math
   }
 
@@ -723,6 +717,9 @@ export class IIConversionManager extends IIAbstractManager {
     const jiix = this.model.exports?.["application/vnd.myscript.jiix"] as TJIIXExport
 
     const strokesToConvert = this.canvas.extractStrokesFromSymbols(symbols.length ? symbols : this.model.symbols)
+
+    // Taken before any stroke is removed: removing them erases or shrinks their decorators
+    const decoratorsBefore = this.model.symbols.filter(isDecorator)
 
     // Track all changes for history (batch at the end for performance)
     const allAddedSymbols: TSymbol[] = []
@@ -863,11 +860,27 @@ export class IIConversionManager extends IIAbstractManager {
 
     // Add single history entry for the entire conversion
     if (allAddedSymbols.length) {
-      this.canvas.history.push({
-        added: allAddedSymbols,
-        erased: allErasedStrokes,
-      })
+      const changes: TIIHistoryChanges = { added: allAddedSymbols, erased: allErasedStrokes }
+      this.#appendDecoratorChanges(changes, decoratorsBefore)
+      this.canvas.history.push(changes)
     }
     return allAddedSymbols
+  }
+
+  /**
+   * Records what removing the converted strokes did to the decorators on them, so that undoing the
+   * conversion brings them back: an erased one is restored, a shrunk one regains its targets.
+   */
+  #appendDecoratorChanges(changes: TIIHistoryChanges, decoratorsBefore: TDecorator[]): void {
+    const pairs: { before: TSymbol; after: TSymbol }[] = []
+    for (const before of decoratorsBefore) {
+      const after = this.model.getSymbol(before.id)
+      if (!after) {
+        ;(changes.erased ??= []).push(before)
+      } else if (after !== before) {
+        pairs.push({ before, after })
+      }
+    }
+    appendUpdated(changes, pairs)
   }
 }

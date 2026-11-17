@@ -547,6 +547,19 @@ describe("InteractiveInkCanvas.ts", () => {
       expect(after.targetBounds).toEqual(SymbolGeometry.boundsOf(kept))
     })
 
+    /** What erases a converted block's decorators: conversion copies them, the strokes' removal drops them */
+    test("removeSymbols: erasing every target erases the decorator", async () => {
+      const canvas = await buildCanvasWithMocks()
+      const stroke = buildIIStroke({ box: { x: 0, y: 0, width: 10, height: 10 } })
+      canvas.model.addSymbol(stroke)
+      const decorator = DecoratorUtil.createDecorator(DecoratorKind.Highlight, {}, [stroke.id])
+      canvas.model.addSymbol(decorator)
+
+      await canvas.removeSymbols([stroke.id], false)
+
+      expect(canvas.model.getSymbol(decorator.id)).toBeUndefined()
+    })
+
     test("removeSymbols: erasing a connected shape clears the edge's anchor and is undo-safe", async () => {
       const canvas = await buildCanvasWithMocks()
       const shape = ShapeUtil.createPolygon([
