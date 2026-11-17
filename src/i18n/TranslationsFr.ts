@@ -48,6 +48,40 @@ export const TranslationsFr = {
   "canvas.operation.clearing": "Effacement",
   "canvas.operation.removingStrokes": "Suppression des traits",
 
+  // Client errors, shown in the error message
+  "client.error.NO_ACTIVITY":
+    "Session fermée pour inactivité. Sans reconnexion de votre part, elle sera définitivement perdue au bout d'une heure.",
+  "client.error.WRONG_CREDENTIALS":
+    "Les identifiants de l'application sont invalides. Vérifiez ou régénérez votre clé d'application et votre clé HMAC.",
+  "client.error.TOO_OLD": "La session est trop ancienne : durée maximale atteinte.",
+  "client.error.NO_SESSION_FOUND":
+    "Aucune session trouvée. Sans activité pendant 1 heure, les sessions sont supprimées du serveur. Pour ne pas perdre votre travail, exportez-le en JSON puis importez-le : une nouvelle session sera créée.",
+  "client.error.UNKNOWN": "Une erreur inconnue est survenue.",
+  "client.error.ABNORMAL_CLOSURE": "Le serveur de reconnaissance MyScript est injoignable.",
+  "client.error.CANT_ESTABLISH":
+    "Impossible d'établir une connexion avec le serveur de reconnaissance MyScript. Vérifiez l'hôte et votre connexion.",
+  "client.error.GOING_AWAY":
+    "Le serveur de reconnaissance MyScript se déconnecte, soit à cause d'une panne du serveur, soit parce que le navigateur quitte la page qui a ouvert la connexion.",
+  "client.error.PROTOCOL_ERROR":
+    "Le serveur de reconnaissance MyScript a fermé la connexion à cause d'une erreur de protocole.",
+  "client.error.UNSUPPORTED_DATA":
+    "Le serveur de reconnaissance MyScript a fermé la connexion car il a reçu des données d'un type qu'il ne peut pas accepter (par exemple des données binaires sur un canal texte).",
+  "client.error.INVALID_FRAME_PAYLOAD":
+    "Le serveur de reconnaissance MyScript a fermé la connexion car un message contenait des données incohérentes (par exemple du texte non UTF-8).",
+  "client.error.POLICY_VIOLATION":
+    "Le serveur de reconnaissance MyScript a fermé la connexion car il a reçu un message contraire à sa politique.",
+  "client.error.MESSAGE_TOO_BIG":
+    "Le serveur de reconnaissance MyScript a fermé la connexion car il a reçu un message trop volumineux.",
+  "client.error.INTERNAL_ERROR":
+    "Le serveur de reconnaissance MyScript a fermé la connexion à cause d'une condition inattendue qui l'a empêché de traiter la requête.",
+  "client.error.SERVICE_RESTART": "Le serveur de reconnaissance MyScript a fermé la connexion car il redémarre.",
+  "client.error.TRY_AGAIN":
+    "Le serveur de reconnaissance MyScript a fermé la connexion à cause d'une situation temporaire, par exemple une surcharge.",
+  "client.error.BAD_GATEWAY":
+    "Le serveur de reconnaissance MyScript, agissant comme passerelle, a reçu une réponse invalide du serveur en amont.",
+  "client.error.TLS_HANDSHAKE":
+    "La connexion au serveur de reconnaissance MyScript a été fermée suite à l'échec de la négociation TLS.",
+
   // Modal and chart
   "modal.fullscreen": "Plein écran",
   "modal.exitFullscreen": "Quitter le plein écran",
@@ -273,6 +307,9 @@ export const TranslationsFr = {
   "math.evaluator.table": "Tableau",
   "math.evaluator.empty": "Cliquez sur « Évaluer » pour afficher les résultats",
   "math.evaluator.input": "Entrée : {name}",
+  "math.diagnostic.compute": "Calcul numérique",
+  "math.diagnostic.evaluate": "Évaluation de fonction",
+  "math.variables.target.global": "Globale",
   "math.diagnostic.ALLOWED.title": "Tâche autorisée",
   "math.diagnostic.ALLOWED.message": "La tâche mathématique peut être réalisée.",
   "math.diagnostic.ALLOWED_BUT_PREVIOUSLY_DISCARDED.title": "Écarté précédemment",

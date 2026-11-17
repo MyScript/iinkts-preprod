@@ -46,6 +46,39 @@ export const TranslationsEn = {
   "canvas.operation.clearing": "Clearing",
   "canvas.operation.removingStrokes": "Removing strokes",
 
+  // Client errors, shown in the error message
+  "client.error.NO_ACTIVITY":
+    "Session closed due to no activity. Without a connection on your part, it will be permanently lost after an hour.",
+  "client.error.WRONG_CREDENTIALS":
+    "Application credentials are invalid. Please check or regenerate your application key and hmackey.",
+  "client.error.TOO_OLD": "Session is too old. Max Session Duration Reached.",
+  "client.error.NO_SESSION_FOUND":
+    "No sessions found. Without activation for 1 hour, sessions are deleted from the server. To avoid losing your work, use the json export, then import it this will create a new session.",
+  "client.error.UNKNOWN": "An unknown error has occurred.",
+  "client.error.ABNORMAL_CLOSURE": "MyScript recognition server is not reachable.",
+  "client.error.CANT_ESTABLISH":
+    "Unable to establish a connection to MyScript recognition server. Check the host and your connectivity.",
+  "client.error.GOING_AWAY":
+    "MyScript recognition server is going away, either because of a server failure or because the browser is navigating away from the page that opened the connection.",
+  "client.error.PROTOCOL_ERROR": "MyScript recognition server terminated the connection due to a protocol error.",
+  "client.error.UNSUPPORTED_DATA":
+    "MyScript recognition server terminated the connection because the endpoint received data of a type it cannot accept. (For example, a text-only endpoint received binary data.)",
+  "client.error.INVALID_FRAME_PAYLOAD":
+    "MyScript recognition server terminated the connection because a message was received that contained inconsistent data (e.g., non-UTF-8 data within a text message).",
+  "client.error.POLICY_VIOLATION":
+    "MyScript recognition server terminated the connection because it received a message that violates its policy.",
+  "client.error.MESSAGE_TOO_BIG":
+    "MyScript recognition server terminated the connection because a data frame was received that is too large.",
+  "client.error.INTERNAL_ERROR":
+    "MyScript recognition server terminated the connection because it encountered an unexpected condition that prevented it from fulfilling the request.",
+  "client.error.SERVICE_RESTART": "MyScript recognition server terminated the connection because it is restarting.",
+  "client.error.TRY_AGAIN":
+    "MyScript recognition server terminated the connection due to a temporary condition, e.g. it is overloaded and is casting off some of its clients.",
+  "client.error.BAD_GATEWAY":
+    "MyScript recognition server was acting as a gateway or proxy and received an invalid response from the upstream server.",
+  "client.error.TLS_HANDSHAKE":
+    "MyScript recognition server connection was closed due to a failure to perform a TLS handshake",
+
   // Modal and chart
   "modal.fullscreen": "Toggle fullscreen",
   "modal.exitFullscreen": "Exit fullscreen",
@@ -271,6 +304,9 @@ export const TranslationsEn = {
   "math.evaluator.table": "Table",
   "math.evaluator.empty": "Click 'Evaluate' to display results",
   "math.evaluator.input": "Input: {name}",
+  "math.diagnostic.compute": "Numerical Computation",
+  "math.diagnostic.evaluate": "Function Evaluation",
+  "math.variables.target.global": "Global",
   "math.diagnostic.ALLOWED.title": "Task Allowed",
   "math.diagnostic.ALLOWED.message": "The mathematical task can be performed successfully.",
   "math.diagnostic.ALLOWED_BUT_PREVIOUSLY_DISCARDED.title": "Previously Discarded",

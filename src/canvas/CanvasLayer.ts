@@ -4,6 +4,7 @@ import syncIcon from "@/assets/svg/sync.svg"
 import warningTriangleIcon from "@/assets/svg/warning-triangle.svg"
 import wifiIcon from "@/assets/svg/wifi.svg"
 import wifiOffIcon from "@/assets/svg/wifi-off.svg"
+import { ClientError } from "@/client"
 import { DOMFactory } from "@/dom"
 import type { TTranslationKey } from "@/i18n"
 import { Translator } from "@/i18n"
@@ -50,6 +51,11 @@ const CONNECTION_STATE_INFO: Record<TCanvasConnectionState, { icon: string; tool
   offline: { icon: wifiOffIcon, tooltip: "canvas.state.offline" },
   error: { icon: warningTriangleIcon, tooltip: "canvas.state.error" },
 }
+
+/** The messages the client gives its errors, to show them translated */
+const CLIENT_ERROR_KEYS = new Map<string, string>(
+  Object.entries(ClientError).map(([name, message]) => [message, `client.error.${name}`])
+)
 
 const OPERATION_LABEL_KEYS = new Map<string, TTranslationKey>(
   Object.entries({
@@ -176,12 +182,18 @@ export class CanvasLayer {
       type: "error",
       fields: [],
       customContent: DOMFactory.p({
-        text: typeof err === "string" ? err : err.message,
+        text: this.translateError(typeof err === "string" ? err : err.message),
       }),
       container: this.root,
       onClose: () => this.onCloseModal?.(true),
     })
     this.#modal.open()
+  }
+
+  /** A message of the client in the current language; any other message, from the server or the integrator, as is */
+  protected translateError(message: string): string {
+    const key = CLIENT_ERROR_KEYS.get(message)
+    return key ? this.i18n.t(key) : message
   }
 
   createState(): TCanvasLayerUIState {

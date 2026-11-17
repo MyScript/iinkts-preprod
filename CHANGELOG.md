@@ -31,7 +31,7 @@ Ctrl+F on handwriting: find a word or an expression in the recognized text and m
 - example: `interactive_canvas_search.html`
 
 ### UI translations (INTERACTIVE_INK, INK_V2)
-Every label of the UI (menus, search bar, connection badge, info/error messages, PDF export dialog, math dialogs) is shown in the recognition language. English and French are built in; any other language falls back to English until the integrator supplies it.
+Every label of the UI (menus, search bar, connection badge, info/error messages and the `ClientError` messages they show, PDF export dialog, math dialogs) is shown in the recognition language. English and French are built in; any other language falls back to English until the integrator supplies it.
 - new: `canvas.i18n` (`Translator`): `t(key, params?)`, `language`, `setLanguage(lang)`, `add(lang, labels)`, `onChange(listener)`. A label is looked up in `fr_FR`, then `fr`, then `en`, the integrator's labels over the built-in ones at each level; an unknown key is shown as is
 - new: `configuration.translations` (`TTranslationsConfiguration`), labels by language code (`fr` or `fr_FR`), to override built-in labels or add labels of one's own: `{ fr: { "menu.action.clear": "Tout effacer" } }`
 - the UI follows `recognition.lang` at load and after `updateRecognitionConfiguration({ lang })` once the server accepted it; menus, search bar and badge are rebuilt in the new language. Meanwhile a veil with a spinner covers the canvas, menus included (`.ms-ink-veil`, color `--ms-ink-veil-bg`, shown only past 300 ms), then the menus fade in (class `ms-menu-relabel` on the menu layer, none under `prefers-reduced-motion: reduce`); a refused language puts the select back on the current one

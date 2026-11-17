@@ -143,7 +143,7 @@ export class IIMathDiagnosticChecker {
     // Numerical computation diagnostic
     section.appendChild(
       this.createDiagnosticSubSection(
-        "🔢 Numerical Computation",
+        `🔢 ${this.canvas.i18n.t("math.diagnostic.compute")}`,
         diagnostic.computeDiagnostic,
         computeInfo,
         severityColors
@@ -153,7 +153,7 @@ export class IIMathDiagnosticChecker {
     // Evaluation diagnostic
     section.appendChild(
       this.createDiagnosticSubSection(
-        "📊 Function Evaluation",
+        `📊 ${this.canvas.i18n.t("math.diagnostic.evaluate")}`,
         diagnostic.evaluationDiagnostic,
         evalInfo,
         severityColors

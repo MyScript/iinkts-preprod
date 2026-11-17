@@ -1,6 +1,29 @@
-import { CanvasLayer, Translator } from "@/iink"
+import { CanvasLayer, ClientError, Translator } from "@/iink"
 
 describe("CanvasLayer.ts", () => {
+  describe("error message", () => {
+    const showError = (lang: string, error: Error | string) => {
+      const root = document.createElement("div")
+      new CanvasLayer(root, "ms-ink", new Translator(undefined, lang)).showMessageError(error)
+      return root.querySelector(".ms-modal")?.textContent ?? ""
+    }
+
+    test("should translate a message the client knows", () => {
+      expect(showError("fr_FR", new Error(ClientError.WRONG_CREDENTIALS))).toContain("identifiants")
+    })
+
+    test("should show any other message as is", () => {
+      expect(showError("fr_FR", "Something the server said")).toContain("Something the server said")
+    })
+
+    test("should give in English the very message of each client error", () => {
+      const english = new Translator()
+      Object.entries(ClientError).forEach(([name, message]) => {
+        expect(english.t(`client.error.${name}`)).toEqual(message)
+      })
+    })
+  })
+
   describe("veil", () => {
     let layer: CanvasLayer
 
