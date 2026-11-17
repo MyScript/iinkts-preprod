@@ -46,6 +46,21 @@ test.describe("Interactive ink canvas search", { tag: "@slow" }, () => {
     await expect(page.locator("#search-results .search-result-tag").first()).toContainText("text")
   })
 
+  test("the search button should open and close the search bar, for devices without Ctrl+F", async ({ page }) => {
+    const button = page.locator("#ms-menu-action-search")
+    const bar = page.locator("#ms-menu-search")
+    await expect(bar).toBeHidden()
+    await button.click()
+    await expect(bar).toBeVisible()
+    await expect(button).toHaveClass(/active/)
+    await page.locator("#ms-menu-search-input").fill("Bennet")
+    await expect(page.locator('#rootEl [data-overlay="search"]').first()).toBeAttached()
+    await button.click()
+    await expect(bar).toBeHidden()
+    await expect(button).not.toHaveClass(/active/)
+    await expect(page.locator('#rootEl [data-overlay="search"]')).toHaveCount(0)
+  })
+
   test("should tell when nothing is recognized", async ({ page }) => {
     await expect(page.locator("#search-input")).not.toHaveClass(/unavailable/)
     await page.locator(locator.menu.action.clearBtn).click()

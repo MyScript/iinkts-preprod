@@ -326,7 +326,7 @@ describe("IIMenuManager registry", () => {
 describe("IIMenuManager in the layout", () => {
   function setup(items: TMenuItemRegistration[] = []) {
     const layers = new CanvasLayer(document.createElement("div"))
-    const layout = new LayoutManager<TInteractiveInkCanvas>(layers, ["action", "style", "tool", "state", "minimap"])
+    const layout = new LayoutManager<TInteractiveInkCanvas>(layers, ["action", "style", "tool", "state", "minimap", "search"])
     const canvas = createCanvasMock({ layers, layout })
     canvas.configuration.menu.enable = true
     // The action menu fetches the language list on render: not what these tests are about
@@ -358,6 +358,30 @@ describe("IIMenuManager in the layout", () => {
     expect(manager.tool.wrapper?.parentElement).toBe(layout.host("tool"))
     expect(layout.host("tool")?.parentElement?.classList.contains("ms-layout-middle-left")).toBe(true)
     expect(manager.tool.wrapper?.classList.contains("ms-menu-column")).toBe(true)
+  })
+
+  test("should render the search bar in its host, folded while closed", () => {
+    const { layout, manager } = setup()
+    const host = layout.host("search")
+    expect(manager.search.wrapper?.parentElement).toBe(host)
+    expect(host?.classList.contains("ms-layout-host-hidden")).toBe(true)
+    manager.search.open()
+    expect(host?.classList.contains("ms-layout-host-hidden")).toBe(false)
+    manager.search.close()
+    expect(host?.classList.contains("ms-layout-host-hidden")).toBe(true)
+  })
+
+  test("should rebuild the search bar the layout moves", () => {
+    const { layout, manager } = setup()
+    layout.set({ "top-right": ["style", "search"] })
+    expect(manager.search.wrapper?.parentElement).toBe(layout.host("search"))
+    expect(layout.host("search")?.parentElement?.classList.contains("ms-layout-top-right")).toBe(true)
+  })
+
+  test("should render nowhere a search bar the layout places nowhere", () => {
+    const { layout, layers } = setup()
+    layout.set({ "top-left": ["action"] })
+    expect(layers.ui.root.querySelector(".ms-menu-search")).toBeNull()
   })
 
   test("should render nowhere a menu the layout places nowhere", () => {

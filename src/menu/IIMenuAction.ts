@@ -27,6 +27,7 @@ import {
   MinimapMenuAction,
   OverlayMenuAction,
   PenMenuAction,
+  SearchMenuAction,
   SelectionMenuAction,
   SnapMenuAction,
   ThemeMenuAction,
@@ -52,6 +53,8 @@ export type TMenuActionConfig = {
   zoom?: boolean
   /** Enable/disable Convert menu */
   convert?: boolean
+  /** Enable/disable the button opening the search bar, for devices without Ctrl+F. Needs `menu.search.enable` */
+  search?: boolean
   /** Enable/disable Gesture submenu. Pass an object to configure individual gesture items. */
   gesture?: TGestureActionConfig
   /** Enable/disable Guide submenu. Pass an object to configure individual guide items. */
@@ -87,6 +90,7 @@ export const DefaultMenuActionConfig: Required<Omit<TMenuActionConfig, "themes">
   undoRedo: true,
   zoom: true,
   convert: true,
+  search: true,
   gesture: true,
   guide: true,
   pen: true,
@@ -203,6 +207,9 @@ export class IIMenuAction extends IIAbstractMenu<
     }
     if (config.convert) {
       this.addItem("convert", new ConvertMenuAction(this.canvas, this.id), bar)
+    }
+    if (config.search && this.canvas.configuration.menu.search.enable) {
+      this.addItem("search", new SearchMenuAction(this.canvas, this.id), bar)
     }
     if (config.zoom) {
       this.addItem("zoom", new ZoomMenuAction(this.canvas, this.id), bar)

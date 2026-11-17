@@ -52,8 +52,13 @@ export class IIMenuSearch {
       this.createButton("next", "›", "Next match (Enter)", () => this.step(1)),
       this.createButton("close", "✕", "Close (Escape)", () => this.close())
     )
-    this.wrapper.style.display = "none"
-    layer.appendChild(this.wrapper)
+    // The layout places the bar; once it is rendered, a bar it places nowhere is not shown
+    const host = this.canvas.layout.host("search")
+    if (!host && this.canvas.layout.isRendered) {
+      return
+    }
+    ;(host ?? layer).appendChild(this.wrapper)
+    this.setShown(false)
     this.updateAvailability()
     this.canvas.event.addSynchronizedListener(() => this.updateAvailability())
   }
@@ -100,7 +105,7 @@ export class IIMenuSearch {
     if (!this.wrapper || !this.input) {
       return
     }
-    this.wrapper.style.display = ""
+    this.setShown(true)
     this.input.focus()
     this.input.select()
     if (this.input.value) {
@@ -108,12 +113,26 @@ export class IIMenuSearch {
     }
   }
 
+  /** Show or hide the bar; its layout host folds while hidden, so the occupants under it close the gap */
+  protected setShown(shown: boolean): void {
+    if (!this.wrapper) {
+      return
+    }
+    this.wrapper.style.display = shown ? "" : "none"
+    const host = this.wrapper.parentElement
+    if (host?.classList.contains("ms-layout-host")) {
+      host.classList.toggle("ms-layout-host-hidden", !shown)
+    }
+    // The action menu's search button shows whether the bar is open
+    this.canvas.menu.action.update()
+  }
+
   /** Hide the search bar and remove the highlight */
   close(): void {
     if (!this.wrapper) {
       return
     }
-    this.wrapper.style.display = "none"
+    this.setShown(false)
     this.activeIndex = -1
     this.canvas.search.clear()
   }

@@ -84,7 +84,7 @@ export type TLayoutConfiguration = Partial<Record<TLayoutSlot, string[]>>
  * @summary Where each occupant sits when the configuration does not say
  */
 export const DefaultLayoutConfiguration: Readonly<TLayoutConfiguration> = {
-  "top-left": ["action"],
+  "top-left": ["action", "search"],
   "top-right": ["style"],
   "bottom-center": ["tool"],
   "bottom-left": ["state"],

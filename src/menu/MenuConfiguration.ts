@@ -60,6 +60,7 @@ export const DefaultMenuConfiguration: TMenuConfiguration = {
     undoRedo: true,
     zoom: true,
     convert: true,
+    search: true,
     gesture: true,
     guide: true,
     snap: true,

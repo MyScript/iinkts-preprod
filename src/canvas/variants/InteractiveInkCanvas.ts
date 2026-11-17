@@ -77,7 +77,7 @@ const TOOL_CURSOR_CLASSES: Partial<Record<CanvasTool, string>> = {
 }
 
 /** The occupants the layout of an interactive ink canvas can place */
-const INTERACTIVE_INK_LAYOUT_OCCUPANTS = ["action", "style", "tool", "state", "minimap"] as const
+const INTERACTIVE_INK_LAYOUT_OCCUPANTS = ["action", "style", "tool", "state", "minimap", "search"] as const
 
 /**
  * @group Canvas

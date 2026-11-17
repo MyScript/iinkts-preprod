@@ -85,7 +85,7 @@ export class IIMenuManager {
   tool!: IIMenuTool
   context!: IIMenuContext
   style!: IIMenuStyle
-  /** The search bar: outside the layout, over the canvas */
+  /** The search bar, in its slot of the layout */
   search: IIMenuSearch
 
   /** The classes the menus are built from: the overrides, else the built-in ones */
@@ -118,6 +118,8 @@ export class IIMenuManager {
   protected onOccupantMoved(occupant: string): void {
     if (occupant === "minimap") {
       this.rebuildMenu("action")
+    } else if (occupant === "search") {
+      this.rebuildSearch()
     } else if (isMenuName(occupant)) {
       this.rebuildMenu(occupant)
     }
@@ -174,6 +176,14 @@ export class IIMenuManager {
     }
   }
 
+  /** Destroys and renders the search bar again, in the host the layout now gives it */
+  protected rebuildSearch(): void {
+    this.search.destroy()
+    if (this.layer && this.canvas.configuration.menu.enable) {
+      this.search.render(this.layer)
+    }
+  }
+
   protected isContextVisible(): boolean {
     return !!this.context.wrapper && this.context.wrapper.style.display !== "none"
   }
@@ -214,10 +224,7 @@ export class IIMenuManager {
     MENU_NAMES.forEach((name) => this.createMenu(name))
     MENU_NAMES.forEach((name) => this.renderMenu(name))
     this.restoreContext(contextState)
-    this.search.destroy()
-    if (this.canvas.configuration.menu.enable) {
-      this.search.render(this.layer)
-    }
+    this.rebuildSearch()
   }
 
   /**

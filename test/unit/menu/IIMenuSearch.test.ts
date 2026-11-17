@@ -160,6 +160,16 @@ describe("IIMenuSearch", () => {
     expect(input().placeholder).toBe("Search…")
   })
 
+  test("opening and closing should refresh the action menu, so its search button shows the state", () => {
+    const { menu, canvas } = setup()
+    const update = jest.fn()
+    Object.assign(canvas.menu, { action: { update } })
+    menu.open()
+    expect(update).toHaveBeenCalledTimes(1)
+    menu.close()
+    expect(update).toHaveBeenCalledTimes(2)
+  })
+
   test("destroy should remove the bar", () => {
     const { menu, layer } = setup()
     menu.destroy()
