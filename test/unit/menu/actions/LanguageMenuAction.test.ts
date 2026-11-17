@@ -12,7 +12,7 @@ describe("LanguageMenuAction.ts", () => {
     fetchMock.resetMocks()
   })
 
-  test("should build a trigger and populate the language select asynchronously", async () => {
+  test("should build a labelled trigger and populate the language select asynchronously", async () => {
     fetchMock.mockResponseOnce(JSON.stringify({ result: { en_US: "English", fr_FR: "French" } }))
     const canvas = createCanvasMock()
     const item = new LanguageMenuAction(asCanvas(canvas))
@@ -20,8 +20,8 @@ describe("LanguageMenuAction.ts", () => {
     const wrapper = item.getElement()
     await new Promise((resolve) => setTimeout(resolve, 0))
 
-    expect(wrapper.querySelector("#ms-menu-action-language-trigger")).toBeTruthy()
-    const select = wrapper.querySelector("select") as HTMLSelectElement
+    expect(wrapper.querySelector("#ms-menu-action-language-trigger")?.textContent).toContain("Language")
+    const select = wrapper.querySelector("#ms-menu-action-language-input") as HTMLSelectElement
     expect(select.options).toHaveLength(2)
   })
 

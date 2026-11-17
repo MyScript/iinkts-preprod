@@ -33,7 +33,7 @@ export default {
       clearBtn: "#ms-menu-action-clear",
       language: {
         trigger: "#ms-menu-action-language-trigger",
-        inputSelect: "#ms-menu-action-language"
+        inputSelect: "#ms-menu-action-language-input"
       },
       export: {
         triggerBtn: "#ms-menu-action-export-trigger",
