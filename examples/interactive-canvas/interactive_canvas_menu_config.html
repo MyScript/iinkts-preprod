@@ -77,7 +77,7 @@
         <p class="ex-panel-intro">Every menu item in the canvas can be individually shown or hidden at runtime via <code>canvas.menu.setConfig()</code> — no reload required. Toggle any switch on the right panel and the change takes effect instantly.</p>
         <div class="ex-panel-divider"></div>
         <div class="ex-panel-item">
-          <div class="ex-panel-item-desc">The configuration covers four menus: <strong>Action</strong> (toolbar buttons: clear, undo/redo, convert, zoom…), <strong>Tool</strong> (write, erase, select, shape, edge…), <strong>Style</strong> (color, fill, thickness, font…), and <strong>Context</strong> (right-click: convert, duplicate, reorder, decorators…).</div>
+          <div class="ex-panel-item-desc">The configuration covers five menus: <strong>Action</strong> (toolbar buttons: clear, undo/redo, convert, search, zoom…), <strong>Tool</strong> (write, erase, select, shape, edge…), <strong>Style</strong> (color, fill, thickness, font…), <strong>Search bar</strong> (opened by the search button or Ctrl+F) and <strong>Context</strong> (right-click: convert, duplicate, reorder, decorators…).</div>
         </div>
         <div class="ex-panel-item">
           <div class="ex-panel-item-desc">Sub-menus such as Export formats, Gesture actions, Snap options, Math options, and Decorator types can each be toggled independently.</div>
@@ -118,6 +118,10 @@
             <div class="config-row">
               <label>Convert</label>
               <label class="toggle"><input type="checkbox" id="toggle-action-convert" checked /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="config-row">
+              <label>Search</label>
+              <label class="toggle"><input type="checkbox" id="toggle-action-search" checked /><span class="toggle-slider"></span></label>
             </div>
             <div class="config-row">
               <label>Language</label>
@@ -277,6 +281,20 @@
           </div>
         </div>
 
+        <!-- Search bar section -->
+        <div class="config-section">
+          <div class="config-section-header">
+            <span>Search bar</span>
+            <label class="toggle" onclick="event.stopPropagation()">
+              <input type="checkbox" id="toggle-search-enable" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="config-section-body">
+            <div class="config-row"><label>Ctrl+F shortcut</label><label class="toggle"><input type="checkbox" id="toggle-search-shortcut" checked /><span class="toggle-slider"></span></label></div>
+          </div>
+        </div>
+
         <!-- Context menu section -->
         <div class="config-section">
           <div class="config-section-header">
@@ -389,6 +407,7 @@
             clear: checked('toggle-action-clear'),
             undoRedo: checked('toggle-action-undoRedo'),
             convert: checked('toggle-action-convert'),
+            search: checked('toggle-action-search'),
             language: checked('toggle-action-language'),
             zoom: checked('toggle-action-zoom'),
             minimap: checked('toggle-action-minimap'),
@@ -481,6 +500,10 @@
             fontSize:    checked('toggle-style-fontSize'),
             fontWeight:  checked('toggle-style-fontWeight'),
             opacity:     checked('toggle-style-opacity'),
+          },
+          search: {
+            enable:   checked('toggle-search-enable'),
+            shortcut: checked('toggle-search-shortcut'),
           },
           context: {
             enable:     checked('toggle-context-enable'),
