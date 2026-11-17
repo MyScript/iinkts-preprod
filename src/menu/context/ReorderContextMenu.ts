@@ -24,7 +24,7 @@ export class ReorderContextMenu extends SubMenuItem {
     const config: TMenuSubMenu = {
       id: `${idPrefix}-reorder`,
       type: "submenu",
-      label: "Reorder",
+      label: canvas.i18n.t("menu.context.reorder"),
       position: "right",
       items: [],
     }
@@ -33,7 +33,7 @@ export class ReorderContextMenu extends SubMenuItem {
       config.items.push({
         id: `${idPrefix}-reorder-first`,
         type: "button",
-        label: "Bring to front",
+        label: canvas.i18n.t("menu.context.reorder.bringToFront"),
         action: () => {
           canvas.changeOrderSymbols(canvas.model.symbolsSelected, "last")
           canvas.selector.redrawSelectedGroup()
@@ -45,7 +45,7 @@ export class ReorderContextMenu extends SubMenuItem {
       config.items.push({
         id: `${idPrefix}-reorder-forward`,
         type: "button",
-        label: "Bring forward",
+        label: canvas.i18n.t("menu.context.reorder.bringForward"),
         action: () => {
           canvas.changeOrderSymbols(canvas.model.symbolsSelected, "forward")
           canvas.selector.redrawSelectedGroup()
@@ -57,7 +57,7 @@ export class ReorderContextMenu extends SubMenuItem {
       config.items.push({
         id: `${idPrefix}-reorder-backward`,
         type: "button",
-        label: "Send backward",
+        label: canvas.i18n.t("menu.context.reorder.sendBackward"),
         action: () => {
           canvas.changeOrderSymbols(canvas.model.symbolsSelected, "backward")
           canvas.selector.redrawSelectedGroup()
@@ -69,7 +69,7 @@ export class ReorderContextMenu extends SubMenuItem {
       config.items.push({
         id: `${idPrefix}-reorder-last`,
         type: "button",
-        label: "Send to back",
+        label: canvas.i18n.t("menu.context.reorder.sendToBack"),
         action: () => {
           canvas.changeOrderSymbols(canvas.model.symbolsSelected.slice().reverse(), "first")
           canvas.selector.redrawSelectedGroup()

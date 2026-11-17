@@ -584,7 +584,7 @@ export class IIMathVariableSubManager extends IIAbstractManager {
       return {
         name: variable.name,
         value: variable.value?.toString() ?? "undefined",
-        typeLabel: SOURCE_TYPE_LABELS[sourceType] ?? sourceType,
+        typeLabel: this.canvas.i18n.t(SOURCE_TYPE_LABELS[sourceType] ?? sourceType),
         typeColor: SOURCE_TYPE_COLORS[sourceType] ?? SOURCE_TYPE_COLORS.UNDEFINED,
         swatchColor: this.#colorManager.getColorForVariable(variable.name),
       }

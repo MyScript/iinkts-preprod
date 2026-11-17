@@ -84,9 +84,11 @@ type TSolverSelect<T extends string> = TMenuItemBase & {
   write: (value: T | undefined) => TSolverChange
 }
 
-function solverSelect<T extends string>(select: TSolverSelect<T>): TMenuSelect {
+function solverSelect<T extends string>(canvas: TInteractiveInkCanvas, select: TSolverSelect<T>): TMenuSelect {
   const { choices, serverDefault, read, write, ...base } = select
-  const options = serverDefault ? [{ value: "", label: "Server default" }, ...choices] : choices
+  const options = serverDefault
+    ? [{ value: "", label: canvas.i18n.t("menu.action.math.serverDefault") }, ...choices]
+    : choices
   return {
     ...base,
     type: "select",
@@ -103,7 +105,7 @@ function fractionalDigitsRange(canvas: TInteractiveInkCanvas, id: string, deboun
   return {
     type: "range",
     id,
-    label: "Decimals",
+    label: canvas.i18n.t("menu.action.math.decimals"),
     min: 0,
     max: 10,
     step: 1,
@@ -119,33 +121,33 @@ function buildSolverItems(
   debouncer: Debouncer
 ): Record<keyof TMathSolverItemsConfig, TSubMenuItems> {
   return {
-    angleUnit: solverSelect({
+    angleUnit: solverSelect(canvas, {
       id: `${id}-angle-unit`,
-      label: "Angle unit",
+      label: canvas.i18n.t("menu.action.math.angleUnit"),
       choices: [
-        { value: "deg", label: "Degrees" },
-        { value: "rad", label: "Radians" },
+        { value: "deg", label: canvas.i18n.t("menu.action.math.degrees") },
+        { value: "rad", label: canvas.i18n.t("menu.action.math.radians") },
       ],
       read: (solver) => solver["angle-unit"],
       write: (value) => ({ "angle-unit": value }),
     }),
     fractionalDigits: fractionalDigitsRange(canvas, `${id}-fractional-digits`, debouncer),
-    decimalSeparator: solverSelect({
+    decimalSeparator: solverSelect(canvas, {
       id: `${id}-decimal-separator`,
-      label: "Decimal separator",
+      label: canvas.i18n.t("menu.action.math.decimalSeparator"),
       choices: [
-        { value: ".", label: "Dot (.)" },
-        { value: ",", label: "Comma (,)" },
+        { value: ".", label: canvas.i18n.t("menu.action.math.dot") },
+        { value: ",", label: canvas.i18n.t("menu.action.math.comma") },
       ],
       read: (solver) => solver["decimal-separator"],
       write: (value) => ({ "decimal-separator": value }),
     }),
-    roundingMode: solverSelect({
+    roundingMode: solverSelect(canvas, {
       id: `${id}-rounding-mode`,
-      label: "Rounding",
+      label: canvas.i18n.t("menu.action.math.rounding"),
       choices: [
-        { value: "half up", label: "Half up" },
-        { value: "truncate", label: "Truncate" },
+        { value: "half up", label: canvas.i18n.t("menu.action.math.halfUp") },
+        { value: "truncate", label: canvas.i18n.t("menu.action.math.truncate") },
       ],
       read: (solver) => solver["rounding-mode"],
       write: (value) => ({ "rounding-mode": value }),
@@ -164,7 +166,14 @@ function buildSolverSubMenu(
   const items = SOLVER_ITEM_KEYS.filter((key) => itemsConfig === true || itemsConfig?.[key] !== false).map(
     (key) => allItems[key]
   )
-  return { type: "submenu", id, label: "Solver", menuTitle: "Solver", position: "right-top", items }
+  return {
+    type: "submenu",
+    id,
+    label: canvas.i18n.t("menu.action.math.solver"),
+    menuTitle: canvas.i18n.t("menu.action.math.solver"),
+    position: "right-top",
+    items,
+  }
 }
 
 /**
@@ -181,8 +190,8 @@ export class MathMenuAction extends SubMenuItem {
     const config: TMenuSubMenu = {
       type: "submenu",
       id: `${idPrefix}-math`,
-      label: "Math",
-      menuTitle: "Math",
+      label: canvas.i18n.t("menu.action.math"),
+      menuTitle: canvas.i18n.t("menu.action.math"),
       position: "right-top",
       items: [],
     }
@@ -195,7 +204,7 @@ export class MathMenuAction extends SubMenuItem {
       config.items.push({
         type: "checkbox",
         id: `${idPrefix}-math-auto-compute`,
-        label: "Auto-compute",
+        label: canvas.i18n.t("menu.action.math.autoCompute"),
         getValue: (canvas: TInteractiveInkCanvas) => canvas.math.getComputationConfig().autoCompute,
         setValue: async (canvas: TInteractiveInkCanvas, value: boolean) => {
           canvas.math.updateComputationConfig({
@@ -212,7 +221,7 @@ export class MathMenuAction extends SubMenuItem {
       config.items.push({
         type: "button",
         id: `${idPrefix}-math-force-compute-all`,
-        label: "Force Compute all",
+        label: canvas.i18n.t("menu.action.math.forceComputeAll"),
         action: async (canvas: TInteractiveInkCanvas) => {
           await canvas.math.forceCompute()
         },
@@ -223,11 +232,11 @@ export class MathMenuAction extends SubMenuItem {
       config.items.push({
         type: "select",
         id: `${idPrefix}-math-result-mode`,
-        label: "Result mode",
+        label: canvas.i18n.t("menu.action.math.resultMode"),
         options: [
-          { label: "Draw result", value: "draw" },
+          { label: canvas.i18n.t("menu.action.math.drawResult"), value: "draw" },
           {
-            label: "Show result",
+            label: canvas.i18n.t("menu.action.math.showResult"),
             value: "ghost",
           },
         ],
@@ -250,14 +259,14 @@ export class MathMenuAction extends SubMenuItem {
       config.items.push({
         type: "select",
         id: `${idPrefix}-math-result-color`,
-        label: "Result color",
+        label: canvas.i18n.t("menu.action.math.resultColor"),
         options: [
-          { label: "Green", value: "#4caf50" },
-          { label: "Blue", value: "#1976d2" },
-          { label: "Red", value: "#e53935" },
-          { label: "Orange", value: "#ff9800" },
-          { label: "Purple", value: "#9c27b0" },
-          { label: "Black", value: "#000000" },
+          { label: canvas.i18n.t("menu.action.math.green"), value: "#4caf50" },
+          { label: canvas.i18n.t("menu.action.math.blue"), value: "#1976d2" },
+          { label: canvas.i18n.t("menu.action.math.red"), value: "#e53935" },
+          { label: canvas.i18n.t("menu.action.math.orange"), value: "#ff9800" },
+          { label: canvas.i18n.t("menu.action.math.purple"), value: "#9c27b0" },
+          { label: canvas.i18n.t("menu.action.math.black"), value: "#000000" },
         ],
         getValue: (canvas: TInteractiveInkCanvas) => canvas.math.getComputationConfig().resultColor,
         setValue: async (canvas: TInteractiveInkCanvas, value: string) => {
@@ -275,7 +284,7 @@ export class MathMenuAction extends SubMenuItem {
         type: "checkbox",
         id: `${idPrefix}-math-show-dependency-on-hover`,
         visible: isAutoVariableEnabled,
-        label: "Show Dependencies on Hover",
+        label: canvas.i18n.t("menu.action.math.showDependencies"),
         getValue: (canvas: TInteractiveInkCanvas) => canvas.math.getVariablesConfig().showDependencyOnHover,
         setValue: (canvas: TInteractiveInkCanvas, value: boolean) => {
           canvas.math.updateVariablesConfig({
@@ -293,7 +302,7 @@ export class MathMenuAction extends SubMenuItem {
         type: "checkbox",
         id: `${idPrefix}-math-highlight-on-select`,
         visible: isAutoVariableEnabled,
-        label: "Highlight on Select",
+        label: canvas.i18n.t("menu.action.math.highlightOnSelect"),
         getValue: (canvas: TInteractiveInkCanvas) => canvas.math.getVariablesConfig().highlightOnSelect,
         setValue: (canvas: TInteractiveInkCanvas, value: boolean) => {
           canvas.math.updateVariablesConfig({
@@ -307,7 +316,7 @@ export class MathMenuAction extends SubMenuItem {
       config.items.push({
         type: "button",
         id: `${idPrefix}-math-variables`,
-        label: "Edit Variables",
+        label: canvas.i18n.t("menu.action.math.editVariables"),
         action: async (canvas: TInteractiveInkCanvas) => {
           const variableCanvas = new IIMathVariableCanvas(canvas)
           await variableCanvas.show()
@@ -319,7 +328,7 @@ export class MathMenuAction extends SubMenuItem {
       config.items.push({
         type: "button",
         id: `${idPrefix}-math-capabilities-overview`,
-        label: "Show Math Capabilities Overview",
+        label: canvas.i18n.t("menu.action.math.capabilities"),
         action: async (canvas: TInteractiveInkCanvas) => {
           const capabilitiesTable = new IIMathCapabilitiesTable(canvas)
           await capabilitiesTable.show()

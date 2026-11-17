@@ -2,6 +2,7 @@ import type { TExport, TRecognitionWebSocketConfiguration, WebSocketClient } fro
 import type { TBox, TDraft, TPartialDeep } from "@/core"
 import type { DOMFactory } from "@/dom"
 import type { IIHistoryManager } from "@/history"
+import type { Translator } from "@/i18n"
 import type {
   CanvasTool,
   EraseManager,
@@ -71,6 +72,8 @@ export type TInteractiveInkCanvas = {
   readonly configuration: InteractiveInkCanvasConfiguration
   readonly event: CanvasEvent
   readonly layers: CanvasLayer
+  /** Translates the labels of the UI into the recognition language */
+  readonly i18n: Translator
   readonly renderer: SVGRenderer
   readonly client: WebSocketClient
   readonly dom: typeof DOMFactory

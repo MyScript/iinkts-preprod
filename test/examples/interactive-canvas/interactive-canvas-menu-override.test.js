@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test"
 import { passModalKey, writeStrokes } from "../helper"
+import locator from "../locators"
 import h from "../__dataset__/h"
 
 test.describe("Interactive ink canvas menu items and overrides", { tag: "@touch" }, () => {
@@ -70,6 +71,20 @@ test.describe("Interactive ink canvas menu items and overrides", { tag: "@touch"
       window.canvas.menu.context.show()
     })
     await expect(page.locator(".ms-menu-context-bar #count-selected")).toBeVisible()
+  })
+
+  test("should show the menus in the language picked in the menu", async ({ page }) => {
+    await expect(page.locator("#download-png")).toHaveAttribute("title", "Download as PNG")
+
+    await page.locator(locator.menu.action.triggerBtn).click()
+    await page.locator(locator.menu.action.language.trigger).click()
+    await page.locator(locator.menu.action.language.inputSelect).selectOption({ value: "fr_FR" })
+
+    // An item the example labels, a built-in label it overrides, and a built-in one
+    await expect(page.locator("#download-png")).toHaveAttribute("title", "Télécharger en PNG")
+    const styleTitles = page.locator(".collapsible-header")
+    await expect(styleTitles.filter({ hasText: "Couleurs de la marque" })).toHaveCount(1)
+    await expect(styleTitles.filter({ hasText: "Opacité" })).toHaveCount(1)
   })
 
   test("should restrict the overridden style menu to the brand colors", async ({ page }) => {

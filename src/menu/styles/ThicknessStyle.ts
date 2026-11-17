@@ -27,7 +27,7 @@ export class ThicknessStyle extends BaseMenuItem<HTMLDivElement> {
     const config = {
       type: "thickness" as const,
       id: `${idPrefix}-thickness`,
-      label: "Thickness",
+      label: canvas.i18n.t("menu.style.thickness"),
       visible: (canvas: TInteractiveInkCanvas) => [CanvasTool.Write, CanvasTool.Select].includes(canvas.tool),
     }
     super(config, canvas)
@@ -40,7 +40,7 @@ export class ThicknessStyle extends BaseMenuItem<HTMLDivElement> {
       id: this.config.id,
       buttonType: "square",
       options: this.thicknessList.map((t) => ({
-        label: t.label,
+        label: this.canvas.i18n.t(t.label),
         value: t.value.toString(),
       })),
       getValue: (canvas) => {
@@ -64,7 +64,11 @@ export class ThicknessStyle extends BaseMenuItem<HTMLDivElement> {
 
     this.thicknessItem = new ButtonListMenuItem(thicknessConfig, this.canvas)
     const thicknessElement = this.thicknessItem.getElement()
-    const wrapper = new CollapsibleWrapper(thicknessElement, "Thickness", this.config.id)
+    const wrapper = new CollapsibleWrapper(
+      thicknessElement,
+      this.canvas.i18n.t("menu.style.section.thickness"),
+      this.config.id
+    )
     return wrapper.getElement()
   }
 

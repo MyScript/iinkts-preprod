@@ -25,8 +25,8 @@ export class OverlayMenuAction extends SubMenuItem {
     const config: TMenuSubMenu = {
       type: "submenu",
       id: `${idPrefix}-overlay`,
-      label: "Overlay",
-      menuTitle: "Overlay",
+      label: canvas.i18n.t("menu.action.overlay"),
+      menuTitle: canvas.i18n.t("menu.action.overlay"),
       position: "right-top",
       items: [],
     }
@@ -35,7 +35,7 @@ export class OverlayMenuAction extends SubMenuItem {
       config.items.push({
         type: "checkbox",
         id: `${idPrefix}-overlay-show-block-overlays`,
-        label: "Show block overlays",
+        label: canvas.i18n.t("menu.action.overlay.showBlockOverlays"),
         getValue: (canvas: TInteractiveInkCanvas) => canvas.overlays.getConfig().showBlockOverlays,
         setValue: (canvas: TInteractiveInkCanvas, value: boolean) => {
           canvas.overlays.updateConfig({
@@ -49,7 +49,7 @@ export class OverlayMenuAction extends SubMenuItem {
       config.items.push({
         type: "range",
         id: `${idPrefix}-overlay-badge-size`,
-        label: "Badge size",
+        label: canvas.i18n.t("menu.action.overlay.badgeSize"),
         min: 10,
         max: 40,
         step: 2,
@@ -67,7 +67,7 @@ export class OverlayMenuAction extends SubMenuItem {
       config.items.push({
         type: "range",
         id: `${idPrefix}-overlay-border-width`,
-        label: "Border width",
+        label: canvas.i18n.t("menu.action.overlay.borderWidth"),
         min: 1,
         max: 8,
         step: 1,
@@ -85,12 +85,12 @@ export class OverlayMenuAction extends SubMenuItem {
       config.items.push({
         type: "range",
         id: `${idPrefix}-overlay-label-max-chars`,
-        label: "Label max chars",
+        label: canvas.i18n.t("menu.action.overlay.labelMaxChars"),
         min: 5,
         max: 40,
         step: 1,
         initValue: canvas.overlays.getConfig().labelMaxChars,
-        unit: "chars",
+        unit: canvas.i18n.t("menu.action.overlay.chars"),
         onChange: (value: number, canvas: TInteractiveInkCanvas) => {
           canvas.overlays.updateConfig({
             labelMaxChars: value,
@@ -103,7 +103,7 @@ export class OverlayMenuAction extends SubMenuItem {
       config.items.push({
         type: "range",
         id: `${idPrefix}-overlay-label-font-size`,
-        label: "Label font size",
+        label: canvas.i18n.t("menu.action.overlay.labelFontSize"),
         min: 8,
         max: 20,
         step: 1,

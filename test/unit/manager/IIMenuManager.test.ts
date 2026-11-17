@@ -165,6 +165,44 @@ describe("IIMenuManager.ts", () => {
     })
   })
 
+  describe("language", () => {
+    test("should rebuild the menus in the new language", () => {
+      const canvas = createCanvasMock()
+      const manager = new IIMenuManager(asCanvas(canvas))
+      const layer = document.createElement("div")
+      manager.render(layer)
+      expect(layer.querySelector(".ms-menu-title")?.textContent).toEqual("Language")
+
+      canvas.i18n.setLanguage("fr_FR")
+
+      expect(layer.querySelectorAll("#ms-menu-action-clear")).toHaveLength(1)
+      expect(layer.querySelector(".ms-menu-title")?.textContent).toEqual("Langue")
+    })
+
+    test("should show the labels the integrator added", () => {
+      const canvas = createCanvasMock()
+      const manager = new IIMenuManager(asCanvas(canvas))
+      const layer = document.createElement("div")
+      manager.render(layer)
+
+      canvas.i18n.add("en", { "menu.action.language": "Tongue" })
+
+      expect(layer.querySelector(".ms-menu-title")?.textContent).toEqual("Tongue")
+    })
+
+    test("should stop following the language once destroyed", () => {
+      const canvas = createCanvasMock()
+      const manager = new IIMenuManager(asCanvas(canvas))
+      manager.render(document.createElement("div"))
+      manager.destroy()
+      const rebuild = jest.spyOn(manager.action, "destroy")
+
+      canvas.i18n.setLanguage("fr_FR")
+
+      expect(rebuild).not.toHaveBeenCalled()
+    })
+  })
+
   describe("destroy", () => {
     const canvas = createCanvasMock()
     const manager = new IIMenuManager(asCanvas(canvas))

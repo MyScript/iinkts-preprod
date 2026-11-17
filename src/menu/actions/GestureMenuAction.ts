@@ -67,8 +67,11 @@ export class GestureMenuAction extends SubMenuItem {
     ): TMenuSubMenu["items"][number] => ({
       type: "select",
       id: `${idPrefix}-gesture-${options.key}`,
-      label: "Action on detection",
-      options: Object.entries(action.values).map(([label, value]) => ({ label, value })),
+      label: canvas.i18n.t("menu.action.gesture.onDetection"),
+      options: Object.values(action.values).map((value) => ({
+        label: canvas.i18n.t(`menu.action.gesture.action.${value}`),
+        value,
+      })),
       getValue: action.get,
       setValue: (canvas, value) => {
         action.set(canvas, value)
@@ -87,7 +90,7 @@ export class GestureMenuAction extends SubMenuItem {
         {
           type: "checkbox",
           id: `${idPrefix}-gesture-${options.key}-enable`,
-          label: "Enable",
+          label: canvas.i18n.t("common.enable"),
           getValue: (canvas) => isGestureEnabled(canvas, options.gestureType),
           setValue: (canvas, value) => setGestureEnabled(canvas, options.gestureType, value),
         },
@@ -99,12 +102,12 @@ export class GestureMenuAction extends SubMenuItem {
       {
         key: "scratchOut",
         gestureType: "scratch-out",
-        label: "Scratch-out",
+        label: canvas.i18n.t("menu.action.gesture.scratchOut"),
       },
       {
         key: "surround",
         gestureType: "surround",
-        label: "Surround",
+        label: canvas.i18n.t("menu.action.gesture.surround"),
         action: {
           values: SurroundAction,
           get: (canvas) => canvas.gesture.surroundAction,
@@ -114,7 +117,7 @@ export class GestureMenuAction extends SubMenuItem {
       {
         key: "strikethrough",
         gestureType: "strike-through",
-        label: "Strikethrough",
+        label: canvas.i18n.t("menu.action.gesture.strikethrough"),
         action: {
           values: StrikeThroughAction,
           get: (canvas) => canvas.gesture.strikeThroughAction,
@@ -124,7 +127,7 @@ export class GestureMenuAction extends SubMenuItem {
       {
         key: "underline",
         gestureType: "underline",
-        label: "Underline",
+        label: canvas.i18n.t("menu.action.gesture.underline"),
         action: {
           values: UnderlineAction,
           get: (canvas) => canvas.gesture.underlineAction,
@@ -134,7 +137,7 @@ export class GestureMenuAction extends SubMenuItem {
       {
         key: "insert",
         gestureType: "insert",
-        label: "Insert",
+        label: canvas.i18n.t("menu.action.gesture.insert"),
         action: {
           values: InsertAction,
           get: (canvas) => canvas.gesture.insertAction,
@@ -144,7 +147,7 @@ export class GestureMenuAction extends SubMenuItem {
       {
         key: "join",
         gestureType: "join",
-        label: "Join",
+        label: canvas.i18n.t("menu.action.gesture.join"),
         action: {
           values: JoinAction,
           get: (canvas) => canvas.gesture.joinAction,
@@ -156,8 +159,8 @@ export class GestureMenuAction extends SubMenuItem {
     const config: TMenuSubMenu = {
       type: "submenu",
       id: `${idPrefix}-gesture`,
-      label: "Gesture",
-      menuTitle: "Gesture",
+      label: canvas.i18n.t("menu.action.gesture"),
+      menuTitle: canvas.i18n.t("menu.action.gesture"),
       position: "right-top",
       items: [],
     }
@@ -166,7 +169,7 @@ export class GestureMenuAction extends SubMenuItem {
       config.items.push({
         type: "checkbox",
         id: `${idPrefix}-gesture-detect`,
-        label: "Detect gesture",
+        label: canvas.i18n.t("menu.action.gesture.detect"),
         getValue: (canvas) => canvas.writer.detectGesture,
         setValue: (canvas, value) => {
           canvas.writer.detectGesture = value

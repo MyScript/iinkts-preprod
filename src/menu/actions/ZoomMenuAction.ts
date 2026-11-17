@@ -17,7 +17,7 @@ export class ZoomMenuAction extends BaseMenuItem<HTMLDivElement> {
     const config = {
       type: "zoom" as const,
       id: `${idPrefix}-zoom`,
-      label: "Zoom",
+      label: canvas.i18n.t("menu.action.zoom"),
     }
     super(config, canvas)
   }

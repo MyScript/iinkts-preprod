@@ -15,8 +15,8 @@ export class LanguageMenuAction extends SubMenuItem {
     const config: TMenuSubMenu = {
       type: "submenu",
       id: `${idPrefix}-language`,
-      label: "Language",
-      menuTitle: "Language",
+      label: canvas.i18n.t("menu.action.language"),
+      menuTitle: canvas.i18n.t("menu.action.language"),
       position: "right-top",
       items: [],
     }

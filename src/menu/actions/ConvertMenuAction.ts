@@ -13,7 +13,7 @@ export class ConvertMenuAction extends ButtonMenuItem {
     const config: TMenuButton = {
       type: "button",
       id: `${idPrefix}-convert`,
-      label: "Convert",
+      label: canvas.i18n.t("menu.action.convert"),
       icon: translateIcon,
       action: (canvas) => canvas.convert(),
       disabled: (canvas) => !canvas.extractStrokesFromSymbols(canvas.model.symbols).length,

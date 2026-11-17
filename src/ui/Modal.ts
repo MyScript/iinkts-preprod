@@ -1,5 +1,6 @@
 import type { TButtonElConfig } from "@/dom"
 import { DOMFactory } from "@/dom"
+import { Translator } from "@/i18n"
 
 /** @group UI */
 export type TModalType = "info" | "success" | "warning" | "error" | "primary"
@@ -82,6 +83,8 @@ export type TModalConfig = {
   mobileBreakpoint?: number
   /** Called when the modal closes (close button, backdrop click, or timeout). */
   onClose?: () => void
+  /** Translates the labels of the title bar buttons; English when absent */
+  i18n?: Translator
 }
 
 /**
@@ -98,6 +101,7 @@ export class Modal {
   private fullscreenButton?: HTMLButtonElement
   private titleBar?: HTMLDivElement
   private contentWrapper?: HTMLDivElement
+  private i18n: Translator
 
   private get container(): HTMLElement {
     return this.config.container ?? document.body
@@ -108,6 +112,7 @@ export class Modal {
   }
 
   constructor(private config: TModalConfig) {
+    this.i18n = config.i18n ?? new Translator()
     this.backdrop = this.createBackdrop()
     this.modal = this.createModal()
     this.setupDragging()
@@ -170,8 +175,8 @@ export class Modal {
     const container = DOMFactory.div({
       className: "ms-modal-title-buttons",
     })
-    this.fullscreenButton = this.createIconButton("⛶", "Toggle fullscreen", () => this.toggleFullscreen())
-    const closeButton = this.createIconButton("✕", "Close", () => this.close())
+    this.fullscreenButton = this.createIconButton("⛶", this.i18n.t("modal.fullscreen"), () => this.toggleFullscreen())
+    const closeButton = this.createIconButton("✕", this.i18n.t("common.close"), () => this.close())
     container.appendChild(this.fullscreenButton)
     container.appendChild(closeButton)
     return container
@@ -363,7 +368,7 @@ export class Modal {
     }
 
     if (this.fullscreenButton) {
-      this.fullscreenButton.title = this.isFullscreen ? "Exit fullscreen" : "Toggle fullscreen"
+      this.fullscreenButton.title = this.i18n.t(this.isFullscreen ? "modal.exitFullscreen" : "modal.fullscreen")
     }
   }
 

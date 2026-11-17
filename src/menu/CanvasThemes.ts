@@ -17,14 +17,14 @@ export type TCanvasTheme = {
 const CANVAS_THEMES: TCanvasTheme[] = [
   {
     id: "default",
-    label: "Default",
+    label: "menu.action.theme.default",
     swatch: "#ffffff",
     color: "#000000",
     vars: undefined,
   },
   {
     id: "dark",
-    label: "Dark",
+    label: "menu.action.theme.dark",
     swatch: "#1a1a1a",
     color: "#e2e2e2",
     vars: {
@@ -52,7 +52,7 @@ const CANVAS_THEMES: TCanvasTheme[] = [
   },
   {
     id: "sepia",
-    label: "Sepia",
+    label: "menu.action.theme.sepia",
     swatch: "#f4ede0",
     color: "#3d2b1f",
     vars: {
@@ -80,7 +80,7 @@ const CANVAS_THEMES: TCanvasTheme[] = [
   },
   {
     id: "ocean",
-    label: "Ocean",
+    label: "menu.action.theme.ocean",
     swatch: "#0a1628",
     color: "#a8d8ea",
     vars: {
@@ -108,7 +108,7 @@ const CANVAS_THEMES: TCanvasTheme[] = [
   },
   {
     id: "forest",
-    label: "Forest",
+    label: "menu.action.theme.forest",
     swatch: "#f5f9f4",
     color: "#1a3320",
     vars: {

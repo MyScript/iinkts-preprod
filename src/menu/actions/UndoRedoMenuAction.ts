@@ -16,7 +16,7 @@ export class UndoRedoMenuAction extends BaseMenuItem<HTMLDivElement> {
     const config = {
       type: "undoredo" as const,
       id: `${idPrefix}-undoredo`,
-      label: "Undo/Redo",
+      label: canvas.i18n.t("menu.action.undoRedo"),
     }
     super(config, canvas)
   }

@@ -1,5 +1,6 @@
 import { areValidCoordinates, TWO_PI } from "@/core"
 import { DOMFactory, RafCoalescer } from "@/dom"
+import { Translator } from "@/i18n"
 /**
  * @group UI
  */
@@ -14,6 +15,8 @@ export type TChartConfig = {
   showGrid?: boolean
   showPoints?: boolean
   seriesColors?: string[] // Custom colors for each series
+  /** Translates the labels of the controls; English when absent */
+  i18n?: Translator
 }
 
 /**
@@ -91,6 +94,7 @@ export class Chart {
       showGrid: config.showGrid ?? true,
       showPoints: config.showPoints ?? true,
       seriesColors: config.seriesColors,
+      i18n: config.i18n ?? new Translator(),
     } as Required<TChartConfig>
 
     // Create container
@@ -131,21 +135,22 @@ export class Chart {
       })
     }
 
-    const zoomInBtn = createChartButton("Zoom +", () => this.zoom(1.2))
-    const zoomOutBtn = createChartButton("Zoom −", () => this.zoom(0.8))
-    const resetBtn = createChartButton("Reset", () => this.resetZoom())
-    const togglePointsBtn = createChartButton(this.config.showPoints ? "Hide Points" : "Show Points", () => {
+    const zoomInBtn = createChartButton(this.config.i18n.t("chart.zoomIn"), () => this.zoom(1.2))
+    const zoomOutBtn = createChartButton(this.config.i18n.t("chart.zoomOut"), () => this.zoom(0.8))
+    const resetBtn = createChartButton(this.config.i18n.t("chart.reset"), () => this.resetZoom())
+    const pointsLabel = () => this.config.i18n.t(this.config.showPoints ? "chart.hidePoints" : "chart.showPoints")
+    const togglePointsBtn = createChartButton(pointsLabel(), () => {
       this.config.showPoints = !this.config.showPoints
-      togglePointsBtn.textContent = this.config.showPoints ? "Hide Points" : "Show Points"
+      togglePointsBtn.textContent = pointsLabel()
       this.draw()
     })
 
     const label = DOMFactory.span({
-      text: "Zoom: ",
+      text: this.config.i18n.t("chart.zoom"),
       className: "ms-chart-zoom-label",
     })
     const info = DOMFactory.span({
-      text: "Use ctrl+mouse wheel to zoom, drag to pan",
+      text: this.config.i18n.t("chart.help"),
       className: "ms-chart-info",
     })
 

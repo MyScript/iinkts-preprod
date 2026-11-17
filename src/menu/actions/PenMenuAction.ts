@@ -46,8 +46,8 @@ export class PenMenuAction extends SubMenuItem {
     const config: TMenuSubMenu = {
       type: "submenu",
       id: `${idPrefix}-pen`,
-      label: "Pen",
-      menuTitle: "Pen",
+      label: canvas.i18n.t("menu.action.pen"),
+      menuTitle: canvas.i18n.t("menu.action.pen"),
       position: "right-top",
       items: [],
     }
@@ -56,7 +56,7 @@ export class PenMenuAction extends SubMenuItem {
       config.items.push({
         type: "select",
         id: `${idPrefix}-pen-angle`,
-        label: "Nib angle",
+        label: canvas.i18n.t("menu.action.pen.nibAngle"),
         // Only a broad edge reads it: for every other nib the angle of the tip is not what decides
         // how wide the line comes out.
         disabled: (c: TInteractiveInkCanvas) => PEN_NIBS[currentNib(c)].edgeAngle === undefined,
@@ -75,8 +75,11 @@ export class PenMenuAction extends SubMenuItem {
       config.items.push({
         type: "select",
         id: `${idPrefix}-pen-smoothing`,
-        label: "Smoothing",
-        options: SMOOTHINGS.map((n) => ({ label: n === 0 ? "none" : String(n), value: String(n) })),
+        label: canvas.i18n.t("menu.action.pen.smoothing"),
+        options: SMOOTHINGS.map((n) => ({
+          label: n === 0 ? canvas.i18n.t("menu.action.pen.none") : String(n),
+          value: String(n),
+        })),
         getValue: (c: TInteractiveInkCanvas) =>
           String(readSetting(c, "penSmoothing", PEN_NIBS[currentNib(c)].smoothing ?? 0)),
         setValue: (c: TInteractiveInkCanvas, value: string) => {
@@ -89,13 +92,16 @@ export class PenMenuAction extends SubMenuItem {
       config.items.push({
         type: "select",
         id: `${idPrefix}-pen-speed`,
-        label: "Speed response",
+        label: canvas.i18n.t("menu.action.pen.speedResponse"),
         // A broad edge answers to direction and a ballpoint to nothing, so neither reads this.
         disabled: (c: TInteractiveInkCanvas) => {
           const nib = PEN_NIBS[currentNib(c)]
           return nib.edgeAngle !== undefined || nib.speed === 0
         },
-        options: SPEEDS.map((n) => ({ label: n === 0 ? "none" : n.toFixed(1), value: String(n) })),
+        options: SPEEDS.map((n) => ({
+          label: n === 0 ? canvas.i18n.t("menu.action.pen.none") : n.toFixed(1),
+          value: String(n),
+        })),
         getValue: (c: TInteractiveInkCanvas) => String(readSetting(c, "penSpeed", PEN_NIBS[currentNib(c)].speed)),
         setValue: (c: TInteractiveInkCanvas, value: string) => {
           c.penStyle = { penSpeed: Number(value) }

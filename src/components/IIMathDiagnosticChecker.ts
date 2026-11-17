@@ -67,10 +67,13 @@ export class IIMathDiagnosticChecker {
 
     // Create modal
     this.modal = new Modal({
-      title: `Math Diagnostic${diagnostics.length > 1 ? "s" : ""} (${diagnostics.length} symbol${diagnostics.length > 1 ? "s" : ""})`,
+      title: this.canvas.i18n.t(diagnostics.length > 1 ? "math.diagnostic.titlePlural" : "math.diagnostic.title", {
+        count: diagnostics.length,
+      }),
       fields: [],
       customContent: container,
       container: this.canvas.layers.ui.root,
+      i18n: this.canvas.i18n,
     })
 
     this.modal.open()
@@ -102,7 +105,7 @@ export class IIMathDiagnosticChecker {
     })
 
     // Expression header
-    const label = this.canvas.jiix.getBlockLabel(diagnostic.jiixBlockId) || "N/A"
+    const label = this.canvas.jiix.getBlockLabel(diagnostic.jiixBlockId) || this.canvas.i18n.t("common.notAvailable")
     const expressionDiv = DOMFactory.div({
       className: "ms-diagnostic-expression",
       html: `<strong>Expression:</strong> ${label}`,
@@ -134,8 +137,8 @@ export class IIMathDiagnosticChecker {
     }
 
     // Get diagnostic info
-    const computeInfo = getMathDiagnosticMessage(diagnostic.computeDiagnostic)
-    const evalInfo = getMathDiagnosticMessage(diagnostic.evaluationDiagnostic)
+    const computeInfo = getMathDiagnosticMessage(diagnostic.computeDiagnostic, this.canvas.i18n)
+    const evalInfo = getMathDiagnosticMessage(diagnostic.evaluationDiagnostic, this.canvas.i18n)
 
     // Numerical computation diagnostic
     section.appendChild(

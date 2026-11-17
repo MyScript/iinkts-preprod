@@ -14,7 +14,7 @@ export class WriteTool extends ButtonMenuItem {
     const config: TMenuButton = {
       type: "button",
       id: `${idPrefix}-write-pencil`,
-      label: "Write",
+      label: canvas.i18n.t("menu.tool.write"),
       icon: pencilIcon,
       action: (canvas: TInteractiveInkCanvas) => {
         canvas.tool = CanvasTool.Write

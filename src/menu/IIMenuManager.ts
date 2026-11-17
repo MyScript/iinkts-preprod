@@ -97,6 +97,7 @@ export class IIMenuManager {
     style: new Map(),
     context: new Map(),
   }
+  #unsubscribeI18n: () => void
 
   constructor(canvas: TInteractiveInkCanvas, custom?: TMenuOverride, items: readonly TMenuItemRegistration[] = []) {
     this.#logger.info("constructor")
@@ -112,6 +113,8 @@ export class IIMenuManager {
     MENU_NAMES.forEach((name) => this.createMenu(name))
     this.search = new IIMenuSearch(canvas)
     this.canvas.layout.onOccupantMoved((occupant) => this.onOccupantMoved(occupant))
+    // Labels are read when an item is built: rebuild everything in the new language
+    this.#unsubscribeI18n = canvas.i18n.onChange(() => this.rebuildAll())
   }
 
   /** A menu the layout moved rebuilds for its new slot; the minimap lives in the action menu, which rebuilds for it */
@@ -216,6 +219,11 @@ export class IIMenuManager {
    */
   setConfig(config: TMenuConfigUpdate): void {
     mergeDeep(this.canvas.configuration.menu, config)
+    this.rebuildAll()
+  }
+
+  /** Destroys and rebuilds every menu and the search bar, once rendered; the context menu keeps its state */
+  protected rebuildAll(): void {
     if (!this.layer) {
       return
     }
@@ -281,6 +289,7 @@ export class IIMenuManager {
   }
 
   destroy(): void {
+    this.#unsubscribeI18n()
     MENU_NAMES.forEach((name) => this.getMenu(name).destroy())
     this.search.destroy()
   }

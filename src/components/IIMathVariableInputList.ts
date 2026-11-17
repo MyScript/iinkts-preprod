@@ -1,4 +1,5 @@
 import { DOMFactory } from "@/dom"
+import { Translator } from "@/i18n"
 
 /**
  * @group Components
@@ -30,11 +31,11 @@ export const SOURCE_TYPE_COLORS: Record<string, string> = {
  * @remarks Human-readable label per variable source type (UNDEFINED, API, API_GLOBAL, BLOCK, PREDEFINED). Displayed next to the source badge in the variable list UI.
  */
 export const SOURCE_TYPE_LABELS: Record<string, string> = {
-  UNDEFINED: "Undefined",
+  UNDEFINED: "math.variables.source.undefined",
   API: "API",
-  API_GLOBAL: "Global",
-  BLOCK: "Block",
-  PREDEFINED: "Predefined",
+  API_GLOBAL: "math.variables.source.global",
+  BLOCK: "math.variables.source.block",
+  PREDEFINED: "math.variables.source.predefined",
 }
 
 /**
@@ -46,7 +47,10 @@ export class IIMathVariableInputList {
   readonly element: HTMLDivElement
   private inputs: Map<string, HTMLInputElement> = new Map()
 
-  constructor(items: TVariableInputItem[]) {
+  private i18n: Translator
+
+  constructor(items: TVariableInputItem[], i18n: Translator = new Translator()) {
+    this.i18n = i18n
     this.element = DOMFactory.div({
       className: "ms-flex-col ms-gap-md",
     })
@@ -78,7 +82,7 @@ export class IIMathVariableInputList {
       id: item.id ?? item.name,
       value: item.initialValue,
       step: "any",
-      placeholder: "Enter value",
+      placeholder: this.i18n.t("math.variables.enterValue"),
       disabled: item.disabled ?? false,
     })
     row.appendChild(input)
@@ -89,7 +93,7 @@ export class IIMathVariableInputList {
     })
     if (item.sourceType) {
       const typeLabel = DOMFactory.span({
-        text: SOURCE_TYPE_LABELS[item.sourceType] ?? item.sourceType,
+        text: this.i18n.t(SOURCE_TYPE_LABELS[item.sourceType] ?? item.sourceType),
         className: "ms-type-label",
         style: `color: ${SOURCE_TYPE_COLORS[item.sourceType] ?? "var(--ms-ink-text-muted)"};`,
       })
@@ -122,7 +126,7 @@ export class IIMathVariableInputList {
     if (item.onDelete) {
       const deleteBtn = DOMFactory.button({
         label: "✕",
-        title: "Delete variable",
+        title: this.i18n.t("math.variables.delete"),
         type: "button",
         variant: "danger",
       })

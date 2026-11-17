@@ -1,4 +1,4 @@
-import { CanvasLayer } from "@/iink"
+import { CanvasLayer, Translator } from "@/iink"
 
 describe("CanvasLayer.ts", () => {
   describe("canvas state badge", () => {
@@ -65,6 +65,33 @@ describe("CanvasLayer.ts", () => {
 
       root.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }))
       expect(tooltip.classList.contains("open")).toBe(false)
+    })
+
+    test("should translate the tooltip and the operation labels", () => {
+      const french = new CanvasLayer(document.createElement("div"), "ms-ink", new Translator(undefined, "fr_FR"))
+      french.updateCanvasState("online-idle", { queuedCount: 0, activeOperations: [] })
+      expect(french.ui.state.tooltip.textContent).toEqual("Connecté")
+      french.updateCanvasState("online-working", { queuedCount: 0, activeOperations: ["Converting", "custom"] })
+      expect(french.ui.state.tooltip.textContent).toEqual("Conversion, custom")
+    })
+
+    test("should translate the tooltip again when the language changes", () => {
+      const i18n = new Translator()
+      const translated = new CanvasLayer(document.createElement("div"), "ms-ink", i18n)
+      translated.updateCanvasState("syncing", { queuedCount: 2, activeOperations: [] })
+      i18n.setLanguage("fr_FR")
+      expect(translated.ui.state.tooltip.textContent).toEqual(
+        "Reconnexion — traits en attente d'envoi — 2 modification(s) en attente d'envoi"
+      )
+    })
+
+    test("should stop following the language once destroyed", () => {
+      const i18n = new Translator()
+      const translated = new CanvasLayer(document.createElement("div"), "ms-ink", i18n)
+      translated.updateCanvasState("online-idle", { queuedCount: 0, activeOperations: [] })
+      translated.destroy()
+      i18n.setLanguage("fr_FR")
+      expect(translated.ui.state.tooltip.textContent).toEqual("Connected")
     })
 
     test("should remove the document click listener on destroy", () => {

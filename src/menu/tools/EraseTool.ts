@@ -26,7 +26,7 @@ export class EraseTool extends BaseMenuItem<HTMLDivElement> {
     const config: TEraseToolConfig = {
       type: "erase",
       id: `${idPrefix}-erase`,
-      label: "Erase",
+      label: canvas.i18n.t("menu.tool.erase"),
     }
     super(config, canvas)
   }

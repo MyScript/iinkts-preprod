@@ -41,7 +41,7 @@ export class FileInputMenuItem extends BaseMenuItem<HTMLDivElement> {
     wrapper.appendChild(this.inputElement)
 
     this.buttonElement = this.dom.button({
-      label: this.config.buttonLabel || this.config.label || "Upload",
+      label: this.config.buttonLabel || this.config.label || this.canvas.i18n.t("common.upload"),
       variant: "primary",
       className: "full-width",
     })

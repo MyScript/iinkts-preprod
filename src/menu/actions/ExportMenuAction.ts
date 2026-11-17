@@ -35,8 +35,8 @@ export class ExportMenuAction extends SubMenuItem {
     const config: TMenuSubMenu = {
       type: "submenu",
       id: `${idPrefix}-export`,
-      label: "Export",
-      menuTitle: "Export",
+      label: canvas.i18n.t("menu.action.export"),
+      menuTitle: canvas.i18n.t("menu.action.export"),
       position: "right-top",
       items: [],
     }
@@ -69,7 +69,7 @@ export class ExportMenuAction extends SubMenuItem {
       config.items.push({
         type: "button",
         id: `${idPrefix}-export-text`,
-        label: "Text",
+        label: canvas.i18n.t("menu.action.export.text"),
         action: (e) => e.download("text"),
       })
     }

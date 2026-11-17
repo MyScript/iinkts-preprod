@@ -48,9 +48,9 @@ export class IIMenuSearch {
     this.wrapper.append(
       this.input,
       this.count,
-      this.createButton("previous", "‹", "Previous match (Shift+Enter)", () => this.step(-1)),
-      this.createButton("next", "›", "Next match (Enter)", () => this.step(1)),
-      this.createButton("close", "✕", "Close (Escape)", () => this.close())
+      this.createButton("previous", "‹", this.canvas.i18n.t("menu.search.previous"), () => this.step(-1)),
+      this.createButton("next", "›", this.canvas.i18n.t("menu.search.next"), () => this.step(1)),
+      this.createButton("close", "✕", this.canvas.i18n.t("menu.search.close"), () => this.close())
     )
     // The layout places the bar; once it is rendered, a bar it places nowhere is not shown
     const host = this.canvas.layout.host("search")
@@ -70,11 +70,14 @@ export class IIMenuSearch {
     }
     const available = this.canvas.search.available
     this.wrapper.classList.toggle("unavailable", !available)
-    this.input.placeholder = available ? "Search…" : "Nothing recognized yet"
+    this.input.placeholder = this.canvas.i18n.t(available ? "menu.search.placeholder" : "menu.search.unavailable")
   }
 
   protected createInput(): HTMLInputElement {
-    const input = DOMFactory.textInput({ id: `${this.id}-input`, placeholder: "Search…" })
+    const input = DOMFactory.textInput({
+      id: `${this.id}-input`,
+      placeholder: this.canvas.i18n.t("menu.search.placeholder"),
+    })
     input.type = "search"
     input.autocomplete = "off"
     input.addEventListener("input", () => this.search())

@@ -43,7 +43,7 @@ export class MathContextMenu extends SubMenuItem {
     const config: TMenuSubMenu = {
       id: id,
       type: "submenu",
-      label: "Math",
+      label: canvas.i18n.t("menu.context.math"),
       position: "right",
       items: [],
     }
@@ -52,7 +52,7 @@ export class MathContextMenu extends SubMenuItem {
       config.items.push({
         id: idCheckDiagnostic,
         type: "button",
-        label: "Check diagnostic",
+        label: canvas.i18n.t("menu.context.math.checkDiagnostic"),
         action: async () => {
           this.logger.info("Check diagnostic clicked")
           try {
@@ -77,7 +77,7 @@ export class MathContextMenu extends SubMenuItem {
       config.items.push({
         id: idEditVariables,
         type: "button",
-        label: "Edit variables",
+        label: canvas.i18n.t("menu.context.math.editVariables"),
         action: async () => {
           const jiixBlockIds = canvas.jiix
             .getBlocksForSymbols(canvas.model.symbolsSelected)
@@ -97,7 +97,7 @@ export class MathContextMenu extends SubMenuItem {
       config.items.push({
         id: idNumericalComputation,
         type: "button",
-        label: "Compute numerical result",
+        label: canvas.i18n.t("menu.context.math.computeResult"),
         action: async () => {
           this.logger.info("Compute numerical result clicked")
           try {
@@ -121,7 +121,7 @@ export class MathContextMenu extends SubMenuItem {
       config.items.push({
         id: idEvaluate,
         type: "button",
-        label: "Evaluate function",
+        label: canvas.i18n.t("menu.context.math.evaluateFunction"),
         action: async () => {
           this.logger.info("Evaluate function clicked")
           try {
@@ -146,7 +146,7 @@ export class MathContextMenu extends SubMenuItem {
       config.items.push({
         id: idForceCompute,
         type: "button",
-        label: "Force compute",
+        label: canvas.i18n.t("menu.context.math.forceCompute"),
         action: async () => {
           this.logger.info("Force compute clicked")
           const jiixBlockIds = canvas.jiix

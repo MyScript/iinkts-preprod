@@ -56,7 +56,7 @@ export const DEFAULT_FONT_SIZE_LIST: {
   label: string
   value: "auto" | number
 }[] = [
-  { label: "Auto", value: "auto" },
+  { label: "menu.style.auto", value: "auto" },
   { label: "S", value: 0.5 },
   { label: "M", value: 0.75 },
   { label: "L", value: 1 },
@@ -70,7 +70,7 @@ export const DEFAULT_FONT_WEIGHT_LIST: {
   label: string
   value: "auto" | "normal" | "bold"
 }[] = [
-  { label: "Auto", value: "auto" },
-  { label: "Normal", value: "normal" },
-  { label: "Bold", value: "bold" },
+  { label: "menu.style.auto", value: "auto" },
+  { label: "menu.style.fontWeight.normal", value: "normal" },
+  { label: "menu.style.fontWeight.bold", value: "bold" },
 ]

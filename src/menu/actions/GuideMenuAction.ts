@@ -30,8 +30,8 @@ export class GuideMenuAction extends SubMenuItem {
     const config: TMenuSubMenu = {
       type: "submenu",
       id: `${idPrefix}-guide`,
-      label: "Guide",
-      menuTitle: "Guide",
+      label: canvas.i18n.t("menu.action.guide"),
+      menuTitle: canvas.i18n.t("menu.action.guide"),
       position: "right-top",
       items: [],
     }
@@ -40,7 +40,7 @@ export class GuideMenuAction extends SubMenuItem {
       config.items.push({
         type: "checkbox",
         id: `${idPrefix}-guide-enable`,
-        label: "Show guide",
+        label: canvas.i18n.t("menu.action.guide.show"),
         getValue: (canvas) => canvas.configuration.rendering.guides.enable,
         setValue: (canvas, value) => {
           canvas.configuration.rendering.guides.enable = value
@@ -53,11 +53,11 @@ export class GuideMenuAction extends SubMenuItem {
       config.items.push({
         type: "select",
         id: `${idPrefix}-guide-type`,
-        label: "Guide style",
+        label: canvas.i18n.t("menu.action.guide.style"),
         options: [
-          { label: "Line", value: "line" },
-          { label: "Grid", value: "grid" },
-          { label: "Point", value: "point" },
+          { label: canvas.i18n.t("menu.action.guide.line"), value: "line" },
+          { label: canvas.i18n.t("menu.action.guide.grid"), value: "grid" },
+          { label: canvas.i18n.t("menu.action.guide.point"), value: "point" },
         ],
         getValue: (canvas) => canvas.configuration.rendering.guides.type,
         setValue: (canvas, value) => {
@@ -71,7 +71,7 @@ export class GuideMenuAction extends SubMenuItem {
       config.items.push({
         type: "buttonlist",
         id: `${idPrefix}-guide-size`,
-        label: "Guide size",
+        label: canvas.i18n.t("menu.action.guide.size"),
         buttonType: "square",
         options: guideGaps,
         getValue: (canvas) => canvas.configuration.rendering.guides.gap.toString(),
