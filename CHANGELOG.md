@@ -51,6 +51,10 @@ Every label of the UI (menus, search bar, connection badge, info/error messages 
 - **behaviour** undoing a conversion restores the standalone decorators of the converted strokes (they were lost: the conversion's history entry left them out)
 - **type** new optional `group` on the `decorator` variant of `TGestureAnnotation`; `SurroundGestureHandler.decorate(ids, decoratorKind)` (protected)
 
+### Decorator context menu on strokes, texts and maths
+- **behaviour** the context menu Decorator sets, removes and colors a decorator on every selected stroke, text and math in one undo step (it changed texts only, and was hidden for a lone math stroke): inside each text and math, and as one standalone decorator across the selected strokes lacking it; removing it from strokes shrinks a decorator also on strokes left out of the selection. A locked text or math is refused. A click on the mixed (indeterminate) state now sets it on every symbol; it removed it when the box had been left checked
+- **type** `DecoratorContextMenu.symbolsDecorable` returns `TDecorable[]` (`TStroke | TText | TMath`, new); new `decoratorsOf(symbol, kind)`, `setDecorator(kind, enable)`, `setDecoratorColor(kind, color)`; `hasSingleMathSymbol` removed
+
 ### UI translations
 - **behaviour** `MathDiagnosticMessages` now maps a code to its severity only; read the title and message with `getMathDiagnosticMessage(code, i18n?)`, which takes a `Translator` (English when absent)
 - **behaviour** the labels of `SOURCE_TYPE_LABELS`, `DEFAULT_FONT_SIZE_LIST`, `DEFAULT_FONT_WEIGHT_LIST` ("Auto", "Normal", "Bold") and `CanvasThemes.THEMES` are translation keys, shown through `canvas.i18n.t`; a label of your own that is not a key is shown as is
