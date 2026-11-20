@@ -64,6 +64,15 @@ Every label of the UI (menus, search bar, connection badge, info/error messages 
 - **behaviour** the Language menu moves from the action bar into the action dropdown, as a labelled sub-menu like Theme or Guide; `LanguageMenuAction` now extends `SubMenuItem`. Its select id becomes `ms-menu-action-language-input` (`ms-menu-action-language` is now the sub-menu wrapper)
 - **behaviour** action bar order: Convert, Undo/Redo, then Clear (Clear used to come first)
 
+# [v5.1.0](https://github.com/MyScript/iinkTS/tree/v5.1.0)
+
+Full record: [changelog/5.1.0.md](changelog/5.1.0.md)
+
+## ✨ What's new
+
+**Recognition**
+- **Session package**: `WebSocketClient.exportPackage()` and `importPackage(bytes, partId)` save the server session as a `.iink` package and start a new session from it, stroke ids kept (server 4.6.0+, `supportsSessionPackage`) · [details](changelog/5.1.0.md#session-package-export-and-import)
+
 # [v5.0.0](https://github.com/MyScript/iinkTS/tree/v5.0.0)
 
 Full record: [changelog/5.0.0.md](changelog/5.0.0.md)

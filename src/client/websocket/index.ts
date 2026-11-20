@@ -1,3 +1,4 @@
+export * from "./SessionPackage"
 export * from "./WebSocketClient"
 export * from "./WebSocketClientConfiguration"
 export * from "./WebSocketClientMessage"

@@ -1,5 +1,6 @@
 import type { TInteractiveInkCanvas } from "@/canvas"
 import type { TBox } from "@/core"
+import { base64ToBytes } from "@/core"
 import type { Logger } from "@/logger"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { IIModel } from "@/model"
@@ -242,12 +243,7 @@ export abstract class ExportManager {
     if (!header.includes(";base64")) {
       return new Blob([decodeURIComponent(payload ?? "")], { type: mimeType })
     }
-    const binary = atob(payload ?? "")
-    const bytes = new Uint8Array(binary.length)
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i)
-    }
-    return new Blob([bytes], { type: mimeType })
+    return new Blob([base64ToBytes(payload ?? "")], { type: mimeType })
   }
 
   async #buildDownloadUrl(format: TExportFormat, options?: TExportOptions): Promise<string> {

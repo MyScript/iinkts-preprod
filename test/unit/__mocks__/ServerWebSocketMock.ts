@@ -1,6 +1,6 @@
 import Server from "jest-websocket-mock"
 import { DeserializedMessage } from "jest-websocket-mock/lib/websocket"
-import { TWebSocketClientMessage } from "@/iink"
+import { TWebSocketClientMessage, bytesToBase64 } from "@/iink"
 
 export const HMACChallengeMessage = {
   type: "hmacChallenge",
@@ -90,7 +90,8 @@ export const errorNotGrantedMessage = {
 }
 
 export class ServerWebSocketMock extends Server {
-  init({ withHMAC, withIdle }: { withHMAC?: boolean; withIdle?: boolean } = { withHMAC: true, withIdle: true }) {
+  init({ withHMAC, withIdle, importError }: { withHMAC?: boolean; withIdle?: boolean; importError?: object } = { withHMAC: true, withIdle: true }) {
+    let importChunkIdx = 0
     this.on("connection", (socket) => {
       socket.on("message", (message: string | Blob | ArrayBuffer | ArrayBufferView) => {
         const parsedMessage: TWebSocketClientMessage = JSON.parse(message as string)
@@ -112,6 +113,15 @@ export class ServerWebSocketMock extends Server {
           case "newContentPart":
           case "openContentPart":
             socket.send(JSON.stringify(partChangeMessage))
+            break
+          case "importPackage":
+            importChunkIdx = 0
+            break
+          case "importPackageChunk":
+            socket.send(JSON.stringify({ type: "importPackageChunkAck", importId: parsedMessage.importId, chunkIdx: importChunkIdx++ }))
+            if (parsedMessage.lastChunk) {
+              socket.send(JSON.stringify(importError ?? { ...sessionDescriptionMessage, iinkSessionId: "imported-session" }))
+            }
             break
           case "waitForIdle":
             if (withIdle) {
@@ -167,6 +177,16 @@ export class ServerWebSocketMock extends Server {
 
   sendAckMessage() {
     this.send(JSON.stringify(ackMessage))
+  }
+
+  /** Answers an exportPackage: packageInfo, then the bytes base64 encoded in chunks of `chunkSize` */
+  sendPackage(bytes: Uint8Array, { chunkSize = 3, exportId = "export-1", size = bytes.length } = {}) {
+    const chunkCount = Math.max(1, Math.ceil(bytes.length / chunkSize))
+    this.send(JSON.stringify({ type: "packageInfo", exportId, size, chunkCount }))
+    for (let chunkIdx = 0; chunkIdx < chunkCount; chunkIdx++) {
+      const data = bytesToBase64(bytes.subarray(chunkIdx * chunkSize, (chunkIdx + 1) * chunkSize))
+      this.send(JSON.stringify({ type: "packageChunk", exportId, chunkIdx, data, lastChunk: chunkIdx === chunkCount - 1 }))
+    }
   }
 
   getMessages(type: string): DeserializedMessage<object>[] {

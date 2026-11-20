@@ -1,3 +1,4 @@
+export * from "./base64"
 export * from "./DeferredPromise"
 export * from "./object"
 export * from "./types"

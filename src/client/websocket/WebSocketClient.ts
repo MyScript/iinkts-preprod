@@ -2,6 +2,9 @@ import PingWorker from "web-worker:../../worker/ping.worker.ts"
 
 import type { TMatrixTransform } from "@/core"
 import {
+  base64ToBytes,
+  bytesToBase64,
+  createUUID,
   DeferredPromise,
   isVersionSuperiorOrEqual,
   mergeDeep,
@@ -21,6 +24,7 @@ import { ensureServerVersion } from "../shared/infos"
 import { redactServerSecrets, serverUrl } from "../shared/ServerConfiguration"
 import type { TRecognitionStroke, TWireStroke } from "../shared/StrokeSerializer"
 import { supportsRelativeTimestamps, toWireStroke } from "../shared/StrokeSerializer"
+import { supportsSessionPackage } from "./SessionPackage"
 import type { TWebSocketClientConfiguration } from "./WebSocketClientConfiguration"
 import { WebSocketClientConfiguration } from "./WebSocketClientConfiguration"
 import type {
@@ -40,6 +44,8 @@ import type {
   TWebSocketClientMessageHMACChallenge,
   TWebSocketClientMessageMathSolverResult,
   TWebSocketClientMessageNewPart,
+  TWebSocketClientMessagePackageChunk,
+  TWebSocketClientMessagePackageInfo,
   TWebSocketClientMessagePartChange,
   TWebSocketClientMessageReceived,
   TWebSocketClientMessageReceivedMap,
@@ -51,6 +57,15 @@ const RECEIVED_MESSAGE_TYPES: ReadonlySet<unknown> = new Set(Object.values(TWebS
 // Checks the discriminant only: the payload is trusted to match its type, as the server's contract
 const isWebSocketClientMessageReceived = (value: unknown): value is TWebSocketClientMessageReceived =>
   typeof value === "object" && value !== null && "type" in value && RECEIVED_MESSAGE_TYPES.has(value.type)
+
+// Room left in a message around what is split over several: its type and other fields
+const MESSAGE_FIELDS_BYTES = 256
+
+const concatBytes = (chunks: Uint8Array[], length: number): Uint8Array<ArrayBuffer> => {
+  const bytes = new Uint8Array(length)
+  chunks.reduce((offset, chunk) => (bytes.set(chunk, offset), offset + chunk.length), 0)
+  return bytes
+}
 
 // What one item adds to a message's JSON, for `chunkBySize`.
 const wireStrokeSize = (stroke: TWireStroke): number => JSON.stringify(stroke).length
@@ -106,6 +121,10 @@ const MATH_SOLVER_NEUTRAL_RESULTS: { [A in TMathSolverAction]: () => TMathSolver
  * { type: "hmac" }                                   ==================>
  *                                                    <==================       { type: "authenticated" }
  * { type: "initSession" | "restoreSession" }         ==================>
+ *   or, to start from a session package (importPackage):
+ * { type: "importPackage", importId, size }          ==================>
+ * { type: "importPackageChunk", data, lastChunk }    ==================>   (one per chunk)
+ *                                                    <==================       { type: "importPackageChunkAck" }
  *                                                    <==================       { type: "sessionDescription" }
  * { type: "newContentPart" | "openContentPart" }     ==================>
  *                                                    <==================       { type: "newPart" | "partChanged" }
@@ -135,6 +154,9 @@ const MATH_SOLVER_NEUTRAL_RESULTS: { [A in TMathSolverAction]: () => TMathSolver
  * Requests
  * { type: "export", partId, mimeTypes }              ==================>
  *                                                    <==================       { type: "exported" }
+ * { type: "exportPackage" }                          ==================>
+ *                                                    <==================       { type: "packageInfo", size, chunkCount }
+ *                                                    <==================       { type: "packageChunk", data, lastChunk } (one per chunk)
  * { type: "waitForIdle" }                            ==================>
  *                                                    <==================       { type: "idle" }
  * { type: "mathSolver", action, blockId }            ==================>
@@ -203,6 +225,13 @@ export class WebSocketClient {
   // Exports run one after another: the server's answer names its mime types, not the request it
   // answers, so two exports in flight could only be told apart by their order.
   protected exportQueue: Promise<unknown> = Promise.resolve()
+  // Package exports run one after another too: a chunk names its export, but the request it answers
+  // is only known by order
+  protected packageQueue: Promise<unknown> = Promise.resolve()
+  /** Package the next handshake starts the session from, instead of a new or restored session */
+  protected packageImport?: Uint8Array
+  /** Session package being received, chunk after chunk */
+  protected packageReception?: { exportId: string; size: number; chunks: Uint8Array<ArrayBuffer>[] }
   /** Routes each message the server sends; overriding a `manage*` method changes what its entry does. */
   protected messageHandlers: TWebSocketClientMessageHandlers = {
     [TWebSocketClientMessageType.Pong]: () => (this.pingCount = 0),
@@ -221,6 +250,10 @@ export class WebSocketClient {
     [TWebSocketClientMessageType.Idle]: () => this.manageWaitForIdle(),
     [TWebSocketClientMessageType.ConfigurationChanged]: () => this.manageConfigurationChanged(),
     [TWebSocketClientMessageType.Ack]: () => this.manageAck(),
+    [TWebSocketClientMessageType.PackageInfo]: (m) => this.managePackageInfo(m),
+    [TWebSocketClientMessageType.PackageChunk]: (m) => this.managePackageChunk(m),
+    // Each chunk of an import is acknowledged; nothing waits on it, the session description ends the import
+    [TWebSocketClientMessageType.ImportPackageChunkAck]: () => undefined,
   }
 
   configuration: WebSocketClientConfiguration
@@ -301,14 +334,24 @@ export class WebSocketClient {
     return deferred
   }
 
-  /** Settles the oldest request waiting on `key`, or all of them, with the server's answer. */
-  protected answer(key: string, answer: unknown, all = false): void {
+  /** Removes the oldest request waiting on `key`, or all of them, to settle them. */
+  protected takeRequests(key: string, all: boolean): TPendingRequest[] {
     const requests = this.pendingRequests.get(key) ?? []
-    const answered = all ? requests.splice(0) : requests.splice(0, 1)
+    const taken = all ? requests.splice(0) : requests.splice(0, 1)
     if (!requests.length) {
       this.pendingRequests.delete(key)
     }
-    answered.forEach((request) => request.resolve(answer))
+    return taken
+  }
+
+  /** Settles the oldest request waiting on `key`, or all of them, with the server's answer. */
+  protected answer(key: string, answer: unknown, all = false): void {
+    this.takeRequests(key, all).forEach((request) => request.resolve(answer))
+  }
+
+  /** Rejects the oldest request waiting on `key`: the server answered it with something unusable. */
+  protected fail(key: string, error: Error): void {
+    this.takeRequests(key, false).forEach((request) => request.reject(error))
   }
 
   /**
@@ -324,6 +367,7 @@ export class WebSocketClient {
   protected resetAllDeferred(): void {
     this.initialized = new DeferredPromise<void>()
     this.pendingRequests.clear()
+    this.packageReception = undefined
   }
 
   protected isDisconnected(): boolean {
@@ -520,6 +564,10 @@ export class WebSocketClient {
       delete this.configuration.recognition.export.jiix.text.lines
       delete this.configuration.recognition["raw-content"].classification
     }
+    if (this.packageImport) {
+      this.sendPackageImport(this.packageImport)
+      return
+    }
     this.sendOnSocket({
       type: this.sessionId ? "restoreSession" : "initSession",
       iinkSessionId: this.sessionId,
@@ -527,6 +575,30 @@ export class WebSocketClient {
       scaleY: PX_TO_MM_RATIO,
       configuration: this.configuration.recognition,
     })
+  }
+
+  /** Raw bytes per importPackageChunk: base64 turns 3 bytes into 4 characters */
+  protected get packageChunkSize(): number {
+    return Math.floor((this.maxMessageBytes - MESSAGE_FIELDS_BYTES) / 4) * 3
+  }
+
+  /** Starts the session from a package: importPackage, then its bytes; the server answers with a session description */
+  protected sendPackageImport(sessionPackage: Uint8Array): void {
+    const importId = createUUID()
+    this.sendOnSocket({
+      type: "importPackage",
+      importId,
+      size: sessionPackage.length,
+      scaleX: PX_TO_MM_RATIO,
+      scaleY: PX_TO_MM_RATIO,
+      configuration: this.configuration.recognition,
+    })
+    const chunkSize = this.packageChunkSize
+    const chunkCount = Math.max(1, Math.ceil(sessionPackage.length / chunkSize))
+    for (let i = 0; i < chunkCount; i++) {
+      const data = bytesToBase64(sessionPackage.subarray(i * chunkSize, (i + 1) * chunkSize))
+      this.sendOnSocket({ type: "importPackageChunk", importId, data, lastChunk: i === chunkCount - 1 })
+    }
   }
 
   protected manageSessionDescriptionMessage(sessionDescriptionMessage: TInteractiveInkSessionDescriptionMessage): void {
@@ -585,6 +657,29 @@ export class WebSocketClient {
       this.rejectDeferredPending(message)
       this.event.emitError(new Error(message))
     }
+  }
+
+  protected managePackageInfo(infoMessage: TWebSocketClientMessagePackageInfo): void {
+    this.packageReception = { exportId: infoMessage.exportId, size: infoMessage.size, chunks: [] }
+  }
+
+  protected managePackageChunk(chunkMessage: TWebSocketClientMessagePackageChunk): void {
+    const reception = this.packageReception
+    if (reception?.exportId !== chunkMessage.exportId) {
+      this.logger.warn("managePackageChunk", `Chunk of an unannounced package: ${chunkMessage.exportId}`)
+      return
+    }
+    reception.chunks.push(base64ToBytes(chunkMessage.data))
+    if (!chunkMessage.lastChunk) {
+      return
+    }
+    this.packageReception = undefined
+    const received = reception.chunks.reduce((total, chunk) => total + chunk.length, 0)
+    if (received !== reception.size) {
+      this.fail("package", new Error(`Session package: received ${received} bytes, expected ${reception.size}`))
+      return
+    }
+    this.answer("package", concatBytes(reception.chunks, received))
   }
 
   protected manageAck(): void {
@@ -787,8 +882,7 @@ export class WebSocketClient {
    * `maxCount` items. Order is kept; an item larger than the budget goes alone.
    */
   protected chunkBySize<T>(items: T[], sizeOf: (item: T) => number, maxCount = Infinity): T[][] {
-    // Room left for the message around the items: its type and other fields.
-    const budget = this.maxMessageBytes - 256
+    const budget = this.maxMessageBytes - MESSAGE_FIELDS_BYTES
     const chunks: T[][] = []
     let current: T[] = []
     let currentBytes = 0
@@ -995,6 +1089,54 @@ export class WebSocketClient {
 
   async redo(actions: TIIHistoryBackendChanges): Promise<void> {
     await this.sendHistoryStep("redo", actions)
+  }
+
+  /**
+   * The whole session as a `.iink` package, to start a new session from later with {@link importPackage}.
+   * The server waits for the recognition to be idle before taking it.
+   * @returns `undefined` when the session is closed deliberately before the package arrives
+   * @throws when the server is older than 4.6.0
+   */
+  async exportPackage(): Promise<Uint8Array<ArrayBuffer> | undefined> {
+    const version = this.configuration.server.version
+    if (!supportsSessionPackage(version)) {
+      throw new Error(`Server ${version} can not export the session package`)
+    }
+    const run = this.packageQueue.then(() => this.requestPackage())
+    this.packageQueue = run.catch(() => undefined)
+    return run
+  }
+
+  /**
+   * Replaces the session with one started from a package of {@link exportPackage}, on a new connection.
+   * Stroke ids are kept. Once it resolves, a reconnection restores the imported session.
+   * @param partId - Part the package was exported from, opened once imported
+   * @throws when the server is older than 4.6.0 or refuses the package; the next connection then starts a new session
+   */
+  async importPackage(sessionPackage: Uint8Array, partId: string): Promise<void> {
+    const version = await ensureServerVersion(this.configuration)
+    if (!supportsSessionPackage(version)) {
+      throw new Error(`Server ${version} can not import the session package`)
+    }
+    if (this.socket) {
+      await this.close(1000, "import-package")
+    }
+    this.sessionId = undefined
+    this.currentPartId = partId
+    this.packageImport = sessionPackage
+    try {
+      await this.init()
+    } catch (error) {
+      this.currentPartId = undefined
+      throw error
+    } finally {
+      this.packageImport = undefined
+    }
+  }
+
+  protected async requestPackage(): Promise<Uint8Array<ArrayBuffer> | undefined> {
+    await this.send({ type: "exportPackage" })
+    return this.waitForAnswer<Uint8Array<ArrayBuffer> | undefined>("package", undefined).promise
   }
 
   async export(requestedMimeTypes?: string[]): Promise<TExport> {

@@ -1,7 +1,7 @@
 import { InteractiveInkCanvasOverrideConfiguration } from "../../__dataset__/configuration.dataset"
 import { ServerWebSocketMock, contextlessGestureMessage, gestureDetectedMessage, hTextJIIX, partChangeMessage } from "../../__mocks__/ServerWebSocketMock"
 import { buildIIStroke, delay } from "../../helpers"
-import { WebSocketClient, ClientError, TMatrixTransform, MatrixTransform, TIIHistoryBackendChanges, TWebSocketClientConfiguration, TWebSocketClientMessage, TStroke, toWireStroke, LoggerManager, LoggerCategory, TWebSocketClientMessageType } from "@/iink"
+import { WebSocketClient, ClientError, TMatrixTransform, MatrixTransform, TIIHistoryBackendChanges, TWebSocketClientConfiguration, TWebSocketClientMessage, TStroke, toWireStroke, LoggerManager, LoggerCategory, TWebSocketClientMessageType, base64ToBytes } from "@/iink"
 
 import { toResolve } from "jest-extended"
 expect.extend({ toResolve })
@@ -1722,6 +1722,198 @@ describe("WebSocketClient.ts", () => {
       await expect(promise).rejects.toEqual(ClientError.WRONG_CREDENTIALS)
       await expect(spyEmitError).toHaveBeenCalledTimes(1)
       await expect(spyEmitError).toHaveBeenCalledWith(new Error(ClientError.WRONG_CREDENTIALS))
+    })
+  })
+
+  describe("exportPackage", () => {
+    const conf = structuredClone(configuration)
+    conf.server.host = "export-package-test"
+    conf.server.version = "4.6.0"
+    let mockServer: ServerWebSocketMock
+    let wsClient: WebSocketClient
+    const readBytes = (bytes: Uint8Array | undefined) => Array.from(bytes!)
+
+    beforeEach(async () => {
+      wsClient = new WebSocketClient(conf)
+      mockServer = new ServerWebSocketMock(wsClient.url)
+      mockServer.init()
+      await wsClient.init()
+    })
+    afterEach(async () => {
+      await wsClient.destroy()
+      mockServer.close()
+    })
+
+    test("should ask the server for the package", async () => {
+      wsClient.exportPackage()
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+
+      expect(mockServer.getMessages("exportPackage").map((m) => JSON.parse(m as string))).toEqual([{ type: "exportPackage" }])
+    })
+
+    test("should resolve with the bytes of every chunk, in order", async () => {
+      const exported = wsClient.exportPackage()
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      mockServer.sendPackage(new Uint8Array([0, 1, 2, 253, 254, 255, 7]), { chunkSize: 3 })
+
+      expect(readBytes(await exported)).toEqual([0, 1, 2, 253, 254, 255, 7])
+    })
+
+    test("should reject when the chunks do not add up to the announced size", async () => {
+      const exported = wsClient.exportPackage()
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      mockServer.sendPackage(new Uint8Array([0, 1, 2]), { size: 4 })
+
+      await expect(exported).rejects.toThrow("received 3 bytes, expected 4")
+    })
+
+    test("should ignore a chunk of another package", async () => {
+      const exported = wsClient.exportPackage()
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      mockServer.send(JSON.stringify({ type: "packageInfo", exportId: "current", size: 1, chunkCount: 1 }))
+      mockServer.send(JSON.stringify({ type: "packageChunk", exportId: "stale", chunkIdx: 0, data: "AAAA", lastChunk: true }))
+      mockServer.send(JSON.stringify({ type: "packageChunk", exportId: "current", chunkIdx: 0, data: "BQ==", lastChunk: true }))
+
+      expect(readBytes(await exported)).toEqual([5])
+    })
+
+    test("should ask for the next package only once the previous one is received", async () => {
+      const first = wsClient.exportPackage()
+      const second = wsClient.exportPackage()
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      expect(mockServer.getMessages("exportPackage")).toHaveLength(1)
+      mockServer.sendPackage(new Uint8Array([1]), { exportId: "first" })
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      expect(mockServer.getMessages("exportPackage")).toHaveLength(2)
+      mockServer.sendPackage(new Uint8Array([2]), { exportId: "second" })
+
+      expect(readBytes(await first)).toEqual([1])
+      expect(readBytes(await second)).toEqual([2])
+    })
+
+    test("should resolve with no package when the session is closed deliberately meanwhile", async () => {
+      const exported = wsClient.exportPackage()
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      await wsClient.close(1000, "new-session")
+
+      await expect(exported).resolves.toBeUndefined()
+    })
+
+    test("should reject without asking a server older than 4.6.0", async () => {
+      wsClient.configuration.server.version = "4.5.4"
+
+      await expect(wsClient.exportPackage()).rejects.toThrow("Server 4.5.4 can not export the session package")
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      expect(mockServer.getMessages("exportPackage")).toHaveLength(0)
+    })
+  })
+
+  describe("importPackage", () => {
+    const conf = structuredClone(configuration)
+    conf.server.host = "import-package-test"
+    conf.server.version = "4.6.0"
+    const sessionPackage = new Uint8Array(100).map((_, i) => i)
+    const parse = (messages: unknown[]) => messages.map((m) => JSON.parse(m as string) as TWebSocketClientMessage)
+    let mockServer: ServerWebSocketMock
+    let wsClient: WebSocketClient
+
+    class SmallFrameClient extends WebSocketClient {
+      protected readonly maxMessageBytes = 256 + 40
+    }
+
+    beforeEach(async () => {
+      wsClient = new WebSocketClient(conf)
+      mockServer = new ServerWebSocketMock(wsClient.url)
+      mockServer.init()
+    })
+    afterEach(async () => {
+      await wsClient.destroy()
+      mockServer.close()
+    })
+
+    test("should start the session from the package instead of a new one", async () => {
+      await wsClient.importPackage(sessionPackage, "part-7")
+
+      expect(parse(mockServer.getMessages("importPackage"))).toEqual([
+        expect.objectContaining({
+          type: "importPackage",
+          importId: expect.any(String),
+          size: 100,
+          scaleX: expect.any(Number),
+          scaleY: expect.any(Number),
+          configuration: wsClient.configuration.recognition,
+        }),
+      ])
+      expect(mockServer.getMessages("initSession")).toHaveLength(0)
+    })
+
+    test("should open the part the package was exported from", async () => {
+      await wsClient.importPackage(sessionPackage, "part-7")
+
+      expect(parse(mockServer.getMessages("openContentPart"))).toEqual([{ type: "openContentPart", id: "part-7" }])
+    })
+
+    test("should send the package in chunks that fit in a frame, only the last one flagged", async () => {
+      await wsClient.destroy()
+      mockServer.close()
+      wsClient = new SmallFrameClient(conf)
+      mockServer = new ServerWebSocketMock(wsClient.url)
+      mockServer.init()
+
+      await wsClient.importPackage(sessionPackage, "part-7")
+
+      const chunks = mockServer.getMessages("importPackageChunk")
+      const importId = parse(mockServer.getMessages("importPackage"))[0].importId
+      expect(chunks.length).toBeGreaterThan(1)
+      chunks.forEach((chunk) => expect((chunk as string).length).toBeLessThanOrEqual(256 + 40))
+      expect(parse(chunks).map((chunk) => [chunk.importId, chunk.lastChunk])).toEqual(
+        chunks.map((_, i) => [importId, i === chunks.length - 1])
+      )
+      expect(parse(chunks).flatMap((chunk) => Array.from(base64ToBytes(chunk.data as string)))).toEqual(Array.from(sessionPackage))
+    })
+
+    test("should restore the imported session, not import it again, when reconnecting", async () => {
+      await wsClient.importPackage(sessionPackage, "part-7")
+      await wsClient.close(1000, "test")
+
+      await wsClient.init()
+
+      expect(mockServer.getMessages("importPackage")).toHaveLength(1)
+      expect(parse(mockServer.getMessages("restoreSession"))).toEqual([
+        expect.objectContaining({ type: "restoreSession", iinkSessionId: "imported-session" }),
+      ])
+    })
+
+    test("should reject when the server refuses the package, and start a new session on the next connection", async () => {
+      mockServer.close()
+      mockServer = new ServerWebSocketMock(wsClient.url)
+      mockServer.init({ withHMAC: true, withIdle: true, importError: { type: "error", code: "import.error", message: "Invalid package" } })
+      wsClient.event.emitError = jest.fn()
+
+      await expect(wsClient.importPackage(sessionPackage, "part-7")).rejects.toEqual("Invalid package")
+      await wsClient.close(1000, "test")
+      await wsClient.init()
+
+      expect(mockServer.getMessages("importPackage")).toHaveLength(1)
+      expect(mockServer.getMessages("initSession")).toHaveLength(1)
+      expect(mockServer.getMessages("newContentPart")).toHaveLength(1)
+    })
+
+    test("should reject without connecting to a server older than 4.6.0", async () => {
+      wsClient.configuration.server.version = "4.5.4"
+
+      await expect(wsClient.importPackage(sessionPackage, "part-7")).rejects.toThrow("Server 4.5.4 can not import the session package")
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      expect(mockServer.getMessages("authenticate")).toHaveLength(0)
     })
   })
 

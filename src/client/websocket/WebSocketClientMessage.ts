@@ -46,6 +46,9 @@ export enum TWebSocketClientMessageType {
   MathSolverResult = "mathSolverResult",
   Error = "error",
   Ack = "ack",
+  PackageInfo = "packageInfo",
+  PackageChunk = "packageChunk",
+  ImportPackageChunkAck = "importPackageChunkAck",
 }
 
 /**
@@ -319,6 +322,38 @@ export type TWebSocketClientMessageAck = TWebSocketClientMessage<TWebSocketClien
 
 /**
  * @group Client
+ * @summary Announces the session package the server is about to send, chunk after chunk
+ */
+export type TWebSocketClientMessagePackageInfo = TWebSocketClientMessage<TWebSocketClientMessageType.PackageInfo> & {
+  exportId: string
+  /** Size in bytes of the whole package */
+  size: number
+  chunkCount: number
+}
+
+/**
+ * @group Client
+ * @summary One chunk of the session package, base64 encoded
+ */
+export type TWebSocketClientMessagePackageChunk = TWebSocketClientMessage<TWebSocketClientMessageType.PackageChunk> & {
+  exportId: string
+  chunkIdx: number
+  data: string
+  lastChunk: boolean
+}
+
+/**
+ * @group Client
+ * @summary The server stored one chunk of the package being imported
+ */
+export type TWebSocketClientMessageImportPackageChunkAck =
+  TWebSocketClientMessage<TWebSocketClientMessageType.ImportPackageChunkAck> & {
+    importId: string
+    chunkIdx: number
+  }
+
+/**
+ * @group Client
  * @summary Message the server sends, by {@link TWebSocketClientMessageType}
  * @remarks Every member of the enum needs an entry: {@link TWebSocketClientMessageReceived} indexes this map with the whole enum, so a missing one stops compiling.
  */
@@ -337,6 +372,9 @@ export type TWebSocketClientMessageReceivedMap = {
   [TWebSocketClientMessageType.MathSolverResult]: TWebSocketClientMessageMathSolverResult
   [TWebSocketClientMessageType.Error]: TWebSocketClientMessageError
   [TWebSocketClientMessageType.Ack]: TWebSocketClientMessageAck
+  [TWebSocketClientMessageType.PackageInfo]: TWebSocketClientMessagePackageInfo
+  [TWebSocketClientMessageType.PackageChunk]: TWebSocketClientMessagePackageChunk
+  [TWebSocketClientMessageType.ImportPackageChunkAck]: TWebSocketClientMessageImportPackageChunkAck
   [TWebSocketClientMessageType.ConfigurationChanged]: TWebSocketClientConfigurationChanged
 }
 
