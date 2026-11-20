@@ -90,6 +90,18 @@ export function parseSession(text: string): TSessionEnvelope {
 }
 
 /**
+ * @group Manager
+ * @summary Symbols written as JSON, rebuilt with the dates they were saved with
+ */
+export function parseSymbols(text: string): TSymbol[] {
+  const value: unknown = JSON.parse(text)
+  if (!Array.isArray(value)) {
+    throw new Error("Not a list of symbols")
+  }
+  return rebuildSymbols(value)
+}
+
+/**
  * Symbols built again from their data. Building one dates it now: the dates it was saved with are
  * put back, as they tell what changed since and when each stroke was written.
  */

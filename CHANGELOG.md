@@ -75,6 +75,8 @@ Full record: [changelog/5.1.0.md](changelog/5.1.0.md)
 
 - **Resume after the server session expired**: the session is kept in memory a while after the changes stop (`configuration.persistence.snapshotDelay`, 5 s, `0` off); once the server has lost it, the canvas starts a new one from it and sends only what changed since, instead of an error and an empty session (server 4.6.0+) · [details](changelog/5.1.0.md#resume-automatically-once-the-server-session-expired)
 
+- **Resume after reloading the page**: the session is saved in the browser (IndexedDB) as it is written; the next page load lists it in `canvas.session.saved` and the `saved-sessions-available` event, and `canvas.session.restoreSaved(id)` brings it back — or `discard(id)`. One canvas at a time writes a document, across tabs (`session-storage-unavailable` tells the others). On by default, `configuration.persistence.storage` · [details](changelog/5.1.0.md#resume-after-reloading-the-page-browser-storage)
+
 **Recognition**
 - **Session package**: `WebSocketClient.exportPackage()` and `importPackage(bytes, partId)` save the server session as a `.iink` package and start a new session from it, stroke ids kept (server 4.6.0+, `supportsSessionPackage`) · [details](changelog/5.1.0.md#session-package-export-and-import)
 

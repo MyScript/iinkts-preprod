@@ -1,3 +1,4 @@
+import { IDBFactory } from "fake-indexeddb"
 import { buildIIStroke } from "../../helpers"
 import {
   DefaultInteractiveInkCanvasConfiguration,
@@ -5,6 +6,8 @@ import {
   readBlobAsText,
   registerBuiltinSymbolUtils,
   serializeSession,
+  SessionStorage,
+  TSavedSessionInfo,
   TInteractiveInkCanvasOptions,
   TSessionEnvelope,
   TSessionRecovery,
@@ -415,6 +418,235 @@ describe("IISessionManager.ts", () => {
       await canvas.session.restore(envelopeOf([buildIIStroke()], false))
 
       expect(recovery.package()).toBeUndefined()
+    })
+  })
+
+  describe("browser storage", () => {
+    const KEY = "/notes#ink"
+    const DAY = 24 * 60 * 60 * 1000
+    let factory: IDBFactory
+    let stored: SessionStorage
+
+    const buildStoringCanvas = (persistence: Record<string, unknown> = {}, rootId?: string): InteractiveInkCanvas => {
+      const canvas = buildCanvas()
+      canvas.configuration.persistence = { ...canvas.configuration.persistence, key: KEY, ...persistence }
+      if (rootId) {
+        canvas.layers.root.id = rootId
+      }
+      return canvas
+    }
+    const change = (canvas: InteractiveInkCanvas) => canvas.event.emitChanged(canvas.history.context)
+    const savedAt = async (id: string, symbols: TStroke[], options: { now?: number; key?: string; snapshot?: TSessionEnvelope } = {}) => {
+      await stored.writeSymbols({ id, key: options.key ?? KEY, symbols: JSON.stringify(symbols), symbolCount: symbols.length, now: options.now ?? Date.now() })
+      if (options.snapshot) {
+        await stored.writeSnapshot({ id, key: options.key ?? KEY, snapshot: serializeSession(options.snapshot), now: options.now ?? Date.now() })
+      }
+    }
+
+    beforeEach(() => {
+      factory = new IDBFactory()
+      Object.defineProperty(globalThis, "indexedDB", { configurable: true, value: factory })
+      stored = new SessionStorage(factory)
+      jest.useFakeTimers({ now: 100 * DAY })
+    })
+    afterEach(() => {
+      jest.useRealTimers()
+      stored.close()
+    })
+
+    describe("start", () => {
+      test("should tell the sessions an earlier page saved for this document", async () => {
+        await savedAt("earlier", [buildIIStroke()])
+        await savedAt("elsewhere", [buildIIStroke()], { key: "/other#ink" })
+        const canvas = buildStoringCanvas()
+        const available = jest.fn()
+        canvas.event.addSavedSessionsAvailableListener(available)
+
+        await canvas.session.start()
+
+        const expected: TSavedSessionInfo[] = [expect.objectContaining({ id: "earlier", key: KEY, symbolCount: 1 })]
+        expect(canvas.session.saved).toEqual(expected)
+        expect(available).toHaveBeenCalledWith(expected)
+      })
+
+      test("should key the document with the page path and the canvas element id", async () => {
+        await savedAt("earlier", [buildIIStroke()], { key: `${location.pathname}#editor` })
+        const canvas = buildStoringCanvas({ key: undefined }, "editor")
+
+        await canvas.session.start()
+
+        expect(canvas.session.saved.map((s) => s.id)).toEqual(["earlier"])
+      })
+
+      test("should purge the sessions not written for more than 30 days", async () => {
+        await savedAt("old", [buildIIStroke()], { now: 100 * DAY - 31 * DAY })
+        const canvas = buildStoringCanvas()
+
+        await canvas.session.start()
+
+        expect(await stored.list(KEY)).toEqual([])
+      })
+
+      test("should store nothing, and tell why, when another canvas holds the document", async () => {
+        const first = buildStoringCanvas()
+        await first.session.start()
+        const second = buildStoringCanvas()
+        const unavailable = jest.fn()
+        second.event.addSessionStorageUnavailableListener(unavailable)
+
+        await second.session.start()
+        second.model.addSymbol(buildIIStroke())
+        change(second)
+        await jest.advanceTimersByTimeAsync(1000)
+
+        expect(unavailable).toHaveBeenCalledWith("locked")
+        expect(await stored.list(KEY)).toEqual([])
+      })
+
+      test("should tell the browser has no storage", async () => {
+        Object.defineProperty(globalThis, "indexedDB", { configurable: true, value: undefined })
+        const canvas = buildStoringCanvas()
+        const unavailable = jest.fn()
+        canvas.event.addSessionStorageUnavailableListener(unavailable)
+
+        await canvas.session.start()
+
+        expect(unavailable).toHaveBeenCalledWith("unsupported")
+      })
+
+      test("should store nothing when persistence.storage is off", async () => {
+        await savedAt("earlier", [buildIIStroke()])
+        const canvas = buildStoringCanvas({ storage: false })
+
+        await canvas.session.start()
+        canvas.model.addSymbol(buildIIStroke())
+        change(canvas)
+        await jest.advanceTimersByTimeAsync(1000)
+
+        expect(canvas.session.saved).toEqual([])
+        expect((await stored.list(KEY)).map((s) => s.id)).toEqual(["earlier"])
+      })
+    })
+
+    describe("writing", () => {
+      test("should write nothing before the first change", async () => {
+        const canvas = buildStoringCanvas()
+
+        await canvas.session.start()
+        await jest.advanceTimersByTimeAsync(10000)
+
+        expect(await stored.list(KEY)).toEqual([])
+      })
+
+      test("should write the symbols 500 ms after a change, next to the earlier sessions", async () => {
+        await savedAt("earlier", [buildIIStroke()])
+        const canvas = buildStoringCanvas()
+        await canvas.session.start()
+        canvas.model.addSymbol(buildIIStroke())
+        canvas.model.addSymbol(buildIIStroke())
+
+        change(canvas)
+        await jest.advanceTimersByTimeAsync(499)
+        expect(await stored.list(KEY)).toHaveLength(1)
+        await jest.advanceTimersByTimeAsync(1)
+
+        const entries = await stored.list(KEY)
+        expect(entries.map((s) => s.symbolCount)).toEqual([2, 1])
+      })
+
+      test("should write the snapshot it takes, with the server package", async () => {
+        const canvas = buildStoringCanvas()
+        await canvas.session.start()
+        canvas.model.addSymbol(buildIIStroke())
+
+        change(canvas)
+        await jest.advanceTimersByTimeAsync(5000)
+
+        const [entry] = await stored.list(KEY)
+        expect(JSON.parse((await stored.read(entry.id))!.snapshot!).package).toEqual({ partId: "part-7", data: "AQID" })
+      })
+
+      test("should write at once when the page is hidden", async () => {
+        const canvas = buildStoringCanvas()
+        await canvas.session.start()
+        canvas.model.addSymbol(buildIIStroke())
+
+        change(canvas)
+        Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" })
+        document.dispatchEvent(new Event("visibilitychange"))
+        await jest.advanceTimersByTimeAsync(0)
+        Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" })
+
+        const [entry] = await stored.list(KEY)
+        expect(JSON.parse((await stored.read(entry.id))!.symbols)).toHaveLength(1)
+      })
+
+      test("should delete its session once the canvas is empty", async () => {
+        const canvas = buildStoringCanvas()
+        await canvas.session.start()
+        const stroke = buildIIStroke()
+        canvas.model.addSymbol(stroke)
+        change(canvas)
+        await jest.advanceTimersByTimeAsync(500)
+
+        canvas.model.removeSymbol(stroke.id)
+        change(canvas)
+        await jest.advanceTimersByTimeAsync(500)
+
+        expect(await stored.list(KEY)).toEqual([])
+      })
+    })
+
+    describe("restoreSaved / discard", () => {
+      test("should restore a saved session: the package imported, then what changed since sent", async () => {
+        const [inSnapshot, writtenAfter] = [buildIIStroke(), buildIIStroke()]
+        const snapshot: TSessionEnvelope = { ...envelopeOf([inSnapshot]) }
+        await savedAt("earlier", [inSnapshot, writtenAfter], { snapshot })
+        const canvas = buildStoringCanvas()
+        await canvas.session.start()
+
+        await expect(canvas.session.restoreSaved("earlier")).resolves.toEqual("imported")
+
+        expect(canvas.model.symbols.map((s) => s.id)).toEqual([inSnapshot.id, writtenAfter.id])
+        expect(canvas.client.importPackage).toHaveBeenCalledWith(new Uint8Array([1, 2, 3]), "part-7")
+        expect(jest.mocked(canvas.client.addStrokes).mock.calls.flatMap(([s]) => s.map((x) => x.id))).toEqual([writtenAfter.id])
+      })
+
+      test("should take the restored session over: written on as this canvas's own", async () => {
+        await savedAt("earlier", [buildIIStroke()])
+        const canvas = buildStoringCanvas()
+        await canvas.session.start()
+
+        await canvas.session.restoreSaved("earlier")
+        await jest.advanceTimersByTimeAsync(500)
+
+        const entries = await stored.list(KEY)
+        expect(entries.map((s) => s.id)).not.toContain("earlier")
+        expect(entries).toHaveLength(1)
+        expect(canvas.session.saved).toEqual([])
+      })
+
+      test("should reject an unknown saved session", async () => {
+        const canvas = buildStoringCanvas()
+        await canvas.session.start()
+
+        await expect(canvas.session.restoreSaved("missing")).rejects.toThrow("No saved session missing")
+      })
+
+      test("should discard one saved session, or all of them", async () => {
+        await savedAt("one", [buildIIStroke()])
+        await savedAt("two", [buildIIStroke()])
+        await savedAt("three", [buildIIStroke()])
+        const canvas = buildStoringCanvas()
+        await canvas.session.start()
+
+        await canvas.session.discard("one")
+        expect(canvas.session.saved.map((s) => s.id).sort()).toEqual(["three", "two"])
+        await canvas.session.discard()
+
+        expect(canvas.session.saved).toEqual([])
+        expect(await stored.list(KEY)).toEqual([])
+      })
     })
   })
 })

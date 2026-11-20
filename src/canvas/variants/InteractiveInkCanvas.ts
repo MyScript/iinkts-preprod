@@ -487,6 +487,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         this.client.configuration.server.version = this.info!.version
       }
       await this.client.init()
+      await this.session.start()
     } catch (error) {
       this.logger.error("initialize", error)
       this.layers.showMessageError(error as Error)

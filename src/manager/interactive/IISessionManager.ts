@@ -7,8 +7,10 @@ import type { TStroke, TSymbol } from "@/symbol"
 import { cloneSymbol, isStrokeSolverOutput } from "@/symbol"
 
 import { IIAbstractManager } from "./IIAbstractManager"
+import { SessionBrowserStore } from "./SessionBrowserStore"
 import type { TSessionEnvelope } from "./SessionEnvelope"
 import { createSessionEnvelope, parseSession } from "./SessionEnvelope"
+import type { TSavedSessionInfo } from "./SessionStorage"
 
 /**
  * @group Manager
@@ -20,6 +22,17 @@ export type TPersistenceConfiguration = {
    * The session is also saved when the page is hidden. Needs server 4.6.0 or later.
    */
   snapshotDelay: number
+  /**
+   * Saves the session in the browser (IndexedDB) to resume it after the page is reloaded: see
+   * `canvas.session.saved` and the `saved-sessions-available` event
+   */
+  storage: boolean
+  /** Document the session belongs to; by default the page path and the canvas element id */
+  key?: string
+  /** Milliseconds a session saved in the browser and not written since is kept */
+  maxAge: number
+  /** Characters kept in the browser for all documents; the oldest sessions go first */
+  maxSize: number
 }
 
 /**
@@ -28,6 +41,9 @@ export type TPersistenceConfiguration = {
  */
 export const DefaultPersistenceConfiguration: TPersistenceConfiguration = {
   snapshotDelay: 5000,
+  storage: true,
+  maxAge: 30 * 24 * 60 * 60 * 1000,
+  maxSize: 50 * 1024 * 1024,
 }
 
 /**
@@ -73,6 +89,7 @@ export class IISessionManager extends IIAbstractManager {
   protected snapshotTimer?: ReturnType<typeof setTimeout>
   /** While restoring, the content is not the session's yet */
   protected restoring = false
+  protected browserStore: SessionBrowserStore
 
   constructor(canvas: TInteractiveInkCanvas) {
     super(canvas, LoggerCategory.MANAGER)
@@ -81,8 +98,25 @@ export class IISessionManager extends IIAbstractManager {
       package: () => this.snapshotPackage(),
       recover: (imported) => this.recover(imported),
     })
+    this.browserStore = new SessionBrowserStore(this.canvas.event, this.logger, () => this.model.symbols)
     this.canvas.event.addChangedListener(() => this.onChanged())
     document.addEventListener("visibilitychange", this.onVisibilityChange)
+  }
+
+  /** Sessions earlier pages saved in the browser for this document, most recent first */
+  get saved(): TSavedSessionInfo[] {
+    return this.browserStore.saved
+  }
+
+  /**
+   * Starts saving the session in the browser, once the canvas is connected: called by
+   * `initialize()`. Never throws.
+   */
+  async start(): Promise<void> {
+    const { storage, key, maxAge, maxSize } = this.configuration.persistence
+    if (storage) {
+      await this.browserStore.start({ key, root: this.canvas.layers.root, maxAge, maxSize })
+    }
   }
 
   protected get supportsPackage(): boolean {
@@ -116,19 +150,49 @@ export class IISessionManager extends IIAbstractManager {
    */
   async restore(source: Blob | string | TSessionEnvelope): Promise<TSessionRestoreMode> {
     const envelope = await this.read(source)
-    this.logger.info("restore", { symbols: envelope.symbols.length, withPackage: !!envelope.package })
+    return this.restoreContent(envelope.symbols, envelope)
+  }
+
+  /**
+   * Restores a session an earlier page saved in the browser (see {@link saved}); this canvas then
+   * writes it on as its own, the saved one is removed.
+   * @throws when no session `id` is saved
+   */
+  async restoreSaved(id: string): Promise<TSessionRestoreMode> {
+    const { symbols, snapshot } = await this.browserStore.read(id)
+    const mode = await this.restoreContent(symbols, snapshot)
+    await this.browserStore.discard(id)
+    return mode
+  }
+
+  /** Deletes a session an earlier page saved in the browser, or all of them */
+  discard(id?: string): Promise<void> {
+    return this.browserStore.discard(id)
+  }
+
+  /**
+   * Shows `symbols` and opens the server session from the package of `snapshot` if any, then sends
+   * the server what changed from the snapshot symbols; without package, sends every stroke.
+   */
+  protected async restoreContent(
+    symbols: TSymbol[],
+    snapshot: TSessionEnvelope | undefined
+  ): Promise<TSessionRestoreMode> {
+    this.logger.info("restore", { symbols: symbols.length, withPackage: !!snapshot?.package })
     const wasReadOnly = this.canvas.readOnly
     this.canvas.readOnly = true
     this.canvas.layers.showLoader()
     this.restoring = true
     try {
-      this.replaceContent(envelope.symbols)
-      const mode = await this.openSession(envelope.package)
-      // Imported, the file is what the server session now holds: an automatic resume can start from
-      // it. Replayed, replay() already dropped the snapshot of the previous content
-      if (mode === "imported") {
-        this.resetSnapshot(envelope)
+      this.replaceContent(symbols)
+      const mode = await this.openSession(snapshot?.package)
+      // Imported, the package is what the server session now holds: an automatic resume can start
+      // from it. Replayed, replay() already dropped the snapshot of the previous content
+      if (mode === "imported" && snapshot) {
+        this.resetSnapshot(snapshot)
+        await this.sendChanges(snapshot.symbols, this.model.symbols)
       }
+      this.onChanged()
       return mode
     } finally {
       this.restoring = false
@@ -160,8 +224,6 @@ export class IISessionManager extends IIAbstractManager {
     if (sessionPackage && this.supportsPackage) {
       try {
         await this.client.importPackage(base64ToBytes(sessionPackage.data), sessionPackage.partId)
-        // The imported content is already recognized: no contentChanged will end a recognition
-        this.canvas.clearOperation("Recognizing")
         return "imported"
       } catch (error) {
         this.logger.warn("restore", "Session package not imported, the strokes are sent again", error)
@@ -226,6 +288,7 @@ export class IISessionManager extends IIAbstractManager {
   }
 
   protected onChanged(): void {
+    this.browserStore.scheduleWrite()
     if (this.snapshotDelay <= 0) {
       return
     }
@@ -235,7 +298,11 @@ export class IISessionManager extends IIAbstractManager {
   }
 
   protected onVisibilityChange = (): void => {
-    if (document.visibilityState === "hidden" && this.snapshotDelay > 0) {
+    if (document.visibilityState !== "hidden") {
+      return
+    }
+    void this.browserStore.flush()
+    if (this.snapshotDelay > 0) {
       void this.takeSnapshot()
     }
   }
@@ -249,6 +316,7 @@ export class IISessionManager extends IIAbstractManager {
     this.changedSinceSnapshot = false
     try {
       this.snapshot = await this.save()
+      await this.browserStore.writeSnapshot(this.snapshot)
     } catch (error) {
       this.changedSinceSnapshot = true
       this.logger.warn("takeSnapshot", "Session not saved in memory", error)
@@ -264,5 +332,6 @@ export class IISessionManager extends IIAbstractManager {
     this.clearSnapshotTimer()
     document.removeEventListener("visibilitychange", this.onVisibilityChange)
     this.client.setSessionRecovery(undefined)
+    this.browserStore.stop()
   }
 }
