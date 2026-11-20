@@ -89,8 +89,14 @@ export const errorNotGrantedMessage = {
   code: "access.not.granted",
 }
 
+export const sessionNotFoundMessage = {
+  type: "error",
+  message: "Session not found",
+  code: "restore.session.not.found",
+}
+
 export class ServerWebSocketMock extends Server {
-  init({ withHMAC, withIdle, importError }: { withHMAC?: boolean; withIdle?: boolean; importError?: object } = { withHMAC: true, withIdle: true }) {
+  init({ withHMAC, withIdle, importError, sessionLost }: { withHMAC?: boolean; withIdle?: boolean; importError?: object; sessionLost?: boolean } = { withHMAC: true, withIdle: true }) {
     let importChunkIdx = 0
     this.on("connection", (socket) => {
       socket.on("message", (message: string | Blob | ArrayBuffer | ArrayBufferView) => {
@@ -106,8 +112,11 @@ export class ServerWebSocketMock extends Server {
           case "hmac":
             socket.send(JSON.stringify(authenticatedMessage))
             break
-          case "initSession":
           case "restoreSession":
+            // An expired session: the server no longer has it
+            socket.send(JSON.stringify(sessionLost ? sessionNotFoundMessage : sessionDescriptionMessage))
+            break
+          case "initSession":
             socket.send(JSON.stringify(sessionDescriptionMessage))
             break
           case "newContentPart":

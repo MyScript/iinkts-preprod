@@ -73,6 +73,8 @@ Full record: [changelog/5.1.0.md](changelog/5.1.0.md)
 **Saving**
 - **Save and resume a session**: `canvas.session.save()` / `restore(file)`, or `download("session")` for a `.iinkts` file — the content and, from server 4.6.0, the server session, so the work resumes as it was even once the server session has expired; on an older server the strokes are sent again · [details](changelog/5.1.0.md#save-and-resume-a-session-iinkts)
 
+- **Resume after the server session expired**: the session is kept in memory a while after the changes stop (`configuration.persistence.snapshotDelay`, 5 s, `0` off); once the server has lost it, the canvas starts a new one from it and sends only what changed since, instead of an error and an empty session (server 4.6.0+) · [details](changelog/5.1.0.md#resume-automatically-once-the-server-session-expired)
+
 **Recognition**
 - **Session package**: `WebSocketClient.exportPackage()` and `importPackage(bytes, partId)` save the server session as a `.iink` package and start a new session from it, stroke ids kept (server 4.6.0+, `supportsSessionPackage`) · [details](changelog/5.1.0.md#session-package-export-and-import)
 

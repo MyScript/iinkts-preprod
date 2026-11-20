@@ -7,17 +7,22 @@ import {
   serializeSession,
   TInteractiveInkCanvasOptions,
   TSessionEnvelope,
+  TSessionRecovery,
   TStroke,
+  WebSocketClient,
 } from "@/iink"
 
 describe("IISessionManager.ts", () => {
   beforeAll(() => registerBuiltinSymbolUtils())
 
-  const buildCanvas = (serverVersion = "4.6.0"): InteractiveInkCanvas => {
+  const buildCanvas = (serverVersion = "4.6.0", snapshotDelay?: number): InteractiveInkCanvas => {
     const options: TInteractiveInkCanvasOptions = {
       configuration: JSON.parse(JSON.stringify(DefaultInteractiveInkCanvasConfiguration)),
     }
     options.configuration!.server!.version = serverVersion
+    if (snapshotDelay !== undefined) {
+      options.configuration!.persistence = { snapshotDelay }
+    }
     const canvas = new InteractiveInkCanvas(document.createElement("div"), options)
     canvas.client.exportPackage = jest.fn(() => Promise.resolve(new Uint8Array([1, 2, 3])))
     canvas.client.importPackage = jest.fn(() => Promise.resolve())
@@ -203,6 +208,213 @@ describe("IISessionManager.ts", () => {
       await canvas.download("session", { filename: "notes" })
 
       expect(link.download).toEqual("notes.iinkts")
+    })
+  })
+
+  describe("automatic resume", () => {
+    let recovery: TSessionRecovery
+    const buildRecoverableCanvas = (serverVersion?: string, snapshotDelay?: number) => {
+      const setRecovery = jest.spyOn(WebSocketClient.prototype, "setSessionRecovery")
+      const canvas = buildCanvas(serverVersion, snapshotDelay)
+      recovery = setRecovery.mock.calls.at(-1)![0]!
+      return canvas
+    }
+    const change = (canvas: InteractiveInkCanvas) => canvas.event.emitChanged(canvas.history.context)
+    const setPageHidden = (hidden: boolean) => {
+      Object.defineProperty(document, "visibilityState", { configurable: true, get: () => (hidden ? "hidden" : "visible") })
+      document.dispatchEvent(new Event("visibilitychange"))
+    }
+    const strokesSent = (canvas: InteractiveInkCanvas) => ({
+      added: jest.mocked(canvas.client.addStrokes).mock.calls.flatMap(([strokes]) => strokes.map((s) => s.id)),
+      erased: jest.mocked(canvas.client.eraseStrokes).mock.calls.flatMap(([ids]) => ids),
+      replaced: jest.mocked(canvas.client.replaceStrokes).mock.calls.map(([ids, strokes]) => [ids, strokes.map((s) => s.id)]),
+    })
+
+    beforeEach(() => jest.useFakeTimers())
+    afterEach(() => {
+      jest.useRealTimers()
+      setPageHidden(false)
+    })
+
+    describe("snapshot", () => {
+      test("should save the session in memory 5 s after the last change", async () => {
+        const canvas = buildRecoverableCanvas()
+        canvas.model.addSymbol(buildIIStroke())
+
+        change(canvas)
+        await jest.advanceTimersByTimeAsync(4999)
+        expect(canvas.client.exportPackage).not.toHaveBeenCalled()
+        await jest.advanceTimersByTimeAsync(1)
+
+        expect(canvas.client.exportPackage).toHaveBeenCalledTimes(1)
+        expect(recovery.package()).toEqual({ data: new Uint8Array([1, 2, 3]), partId: "part-7" })
+      })
+
+      test("should wait for the changes to stop", async () => {
+        const canvas = buildRecoverableCanvas()
+        canvas.model.addSymbol(buildIIStroke())
+
+        change(canvas)
+        await jest.advanceTimersByTimeAsync(3000)
+        change(canvas)
+        await jest.advanceTimersByTimeAsync(3000)
+
+        expect(canvas.client.exportPackage).not.toHaveBeenCalled()
+      })
+
+      test("should save at once when the page is hidden, only if something changed", async () => {
+        const canvas = buildRecoverableCanvas()
+        canvas.model.addSymbol(buildIIStroke())
+
+        change(canvas)
+        setPageHidden(true)
+        await jest.advanceTimersByTimeAsync(0)
+        setPageHidden(false)
+        setPageHidden(true)
+        await jest.advanceTimersByTimeAsync(10000)
+
+        expect(canvas.client.exportPackage).toHaveBeenCalledTimes(1)
+      })
+
+      test("should not save while offline", async () => {
+        const canvas = buildRecoverableCanvas()
+        canvas.model.addSymbol(buildIIStroke())
+        jest.spyOn(canvas.client, "isOffline", "get").mockReturnValue(true)
+
+        change(canvas)
+        await jest.advanceTimersByTimeAsync(5000)
+
+        expect(canvas.client.exportPackage).not.toHaveBeenCalled()
+      })
+
+      test("should not save on a server older than 4.6.0", async () => {
+        const canvas = buildRecoverableCanvas("4.5.4")
+        canvas.model.addSymbol(buildIIStroke())
+
+        change(canvas)
+        await jest.advanceTimersByTimeAsync(5000)
+
+        expect(canvas.client.exportPackage).not.toHaveBeenCalled()
+      })
+
+      test("should follow configuration.persistence.snapshotDelay, 0 never saving", async () => {
+        const quick = buildRecoverableCanvas(undefined, 1000)
+        quick.model.addSymbol(buildIIStroke())
+        change(quick)
+        await jest.advanceTimersByTimeAsync(1000)
+        const never = buildRecoverableCanvas(undefined, 0)
+        never.model.addSymbol(buildIIStroke())
+        change(never)
+        setPageHidden(true)
+        await jest.advanceTimersByTimeAsync(60000)
+
+        expect(quick.client.exportPackage).toHaveBeenCalledTimes(1)
+        expect(never.client.exportPackage).not.toHaveBeenCalled()
+      })
+
+      test("should have no package to resume from before a first snapshot", () => {
+        buildRecoverableCanvas()
+
+        expect(recovery.package()).toBeUndefined()
+      })
+    })
+
+    describe("recover", () => {
+      const snapshotOf = async (canvas: InteractiveInkCanvas, strokes: TStroke[]) => {
+        strokes.forEach((s) => canvas.model.addSymbol(s))
+        change(canvas)
+        await jest.advanceTimersByTimeAsync(5000)
+        canvas.client.replaceStrokes = jest.fn(() => Promise.resolve())
+        canvas.client.eraseStrokes = jest.fn(() => Promise.resolve())
+        jest.mocked(canvas.client.addStrokes).mockClear()
+      }
+
+      test("should send only what changed since the package it resumed from", async () => {
+        const canvas = buildRecoverableCanvas()
+        const [kept, erased, moved] = [buildIIStroke(), buildIIStroke(), buildIIStroke()]
+        await snapshotOf(canvas, [kept, erased, moved])
+        const added = buildIIStroke()
+        canvas.model.removeSymbol(erased.id)
+        canvas.model.replaceSymbol(moved.id, [{ ...moved, modificationDate: moved.modificationDate + 1 }])
+        canvas.model.addSymbol(added)
+
+        await recovery.recover(true)
+
+        expect(strokesSent(canvas)).toEqual({ added: [], erased: [], replaced: [[[erased.id, moved.id], [moved.id, added.id]]] })
+      })
+
+      test("should only add the strokes written since, when nothing else changed", async () => {
+        const canvas = buildRecoverableCanvas()
+        await snapshotOf(canvas, [buildIIStroke()])
+        const added = buildIIStroke()
+        canvas.model.addSymbol(added)
+
+        await recovery.recover(true)
+
+        expect(strokesSent(canvas)).toEqual({ added: [added.id], erased: [], replaced: [] })
+      })
+
+      test("should send every stroke but the solver outputs to a new empty session", async () => {
+        const canvas = buildRecoverableCanvas()
+        const ink = buildIIStroke()
+        await snapshotOf(canvas, [ink, { ...buildIIStroke(), isSolverOutput: true }])
+
+        await recovery.recover(false)
+
+        expect(strokesSent(canvas)).toEqual({ added: [ink.id], erased: [], replaced: [] })
+      })
+
+      test("should end the recognition when there is nothing to send", async () => {
+        const canvas = buildRecoverableCanvas()
+        await snapshotOf(canvas, [buildIIStroke()])
+        canvas.startOperation("Recognizing")
+
+        await recovery.recover(true)
+
+        expect(canvas.hasOperation("Recognizing")).toBe(false)
+      })
+    })
+
+    test("should stop saving and hand no recovery to the client once destroyed", async () => {
+      const setRecovery = jest.spyOn(WebSocketClient.prototype, "setSessionRecovery")
+      const canvas = buildCanvas()
+      canvas.model.addSymbol(buildIIStroke())
+      change(canvas)
+
+      canvas.session.destroy()
+      setPageHidden(true)
+      await jest.advanceTimersByTimeAsync(10000)
+
+      expect(canvas.client.exportPackage).not.toHaveBeenCalled()
+      expect(setRecovery).toHaveBeenLastCalledWith(undefined)
+    })
+
+    test("should resume from the file a restore imported", async () => {
+      const canvas = buildRecoverableCanvas()
+
+      await canvas.session.restore(envelopeOf([buildIIStroke()]))
+
+      expect(recovery.package()).toEqual({ data: new Uint8Array([1, 2, 3]), partId: "part-7" })
+    })
+
+    test("should save the new session a while after a restore replayed the strokes", async () => {
+      const canvas = buildRecoverableCanvas()
+
+      await canvas.session.restore(envelopeOf([buildIIStroke()], false))
+      await jest.advanceTimersByTimeAsync(5000)
+
+      expect(canvas.client.exportPackage).toHaveBeenCalledTimes(1)
+    })
+
+    test("should drop the snapshot of the previous content when a restore replays the strokes", async () => {
+      const canvas = buildRecoverableCanvas()
+      canvas.model.addSymbol(buildIIStroke())
+      change(canvas)
+      await jest.advanceTimersByTimeAsync(5000)
+
+      await canvas.session.restore(envelopeOf([buildIIStroke()], false))
+
+      expect(recovery.package()).toBeUndefined()
     })
   })
 })

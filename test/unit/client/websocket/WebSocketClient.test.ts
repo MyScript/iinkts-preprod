@@ -1924,6 +1924,139 @@ describe("WebSocketClient.ts", () => {
     })
   })
 
+  describe("session recovery", () => {
+    const conf = structuredClone(configuration)
+    conf.server.host = "session-recovery-test"
+    conf.server.version = "4.6.0"
+    conf.server.websocket.autoReconnect = true
+    conf.server.websocket.reconnectDelay = 50
+    conf.server.websocket.maxReconnectAttempts = 5
+    const strokes = [buildIIStroke()]
+    const types = () => mockServer.messages.map((m) => (JSON.parse(m as string) as TWebSocketClientMessage).type)
+    let mockServer: ServerWebSocketMock
+    let wsClient: WebSocketClient
+
+    const recoveryWith = (sessionPackage?: { data: Uint8Array; partId: string }) => ({
+      package: jest.fn(() => sessionPackage),
+      recover: jest.fn((_imported: boolean) => Promise.resolve()),
+    })
+    const savedPackage = { data: new Uint8Array([1, 2, 3]), partId: "part-7" }
+
+    /** Connects, then drops the connection to a server that has meanwhile lost the session */
+    const loseSession = async (serverOptions: { importError?: object } = {}) => {
+      mockServer = new ServerWebSocketMock(wsClient.url)
+      mockServer.init({ withHMAC: true, withIdle: true, sessionLost: true, ...serverOptions })
+      await wsClient.init()
+      const [client] = mockServer.server.clients()
+      client.close({ code: 1006, reason: "network drop", wasClean: false })
+      await delay(10)
+      return mockServer.messages.length
+    }
+
+    beforeEach(() => {
+      wsClient = new WebSocketClient(conf)
+      wsClient.event.emitError = jest.fn()
+    })
+    afterEach(async () => {
+      await wsClient.destroy()
+      mockServer.close()
+    })
+
+    test("should start the new session from the recovery package, in the part it was saved from", async () => {
+      const recovery = recoveryWith(savedPackage)
+      wsClient.setSessionRecovery(recovery)
+      await loseSession()
+
+      await wsClient.send({ type: "probe" })
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+
+      expect(mockServer.getMessages("importPackage")).toHaveLength(1)
+      expect(JSON.parse(mockServer.getMessages("openContentPart")[0] as string)).toEqual({ type: "openContentPart", id: "part-7" })
+      expect(recovery.recover).toHaveBeenCalledWith(true)
+    })
+
+    test("should not report the lost session as an error when it can recover", async () => {
+      wsClient.setSessionRecovery(recoveryWith(savedPackage))
+      await loseSession()
+
+      await wsClient.send({ type: "probe" })
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+
+      expect(wsClient.event.emitError).not.toHaveBeenCalled()
+    })
+
+    test("should drop the changes queued for the lost session", async () => {
+      wsClient.setSessionRecovery(recoveryWith(savedPackage))
+      const sentBeforeDrop = await loseSession()
+
+      await expect(wsClient.addStrokes(strokes)).toResolve()
+      await wsClient.send({ type: "probe" })
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+
+      expect(types().slice(sentBeforeDrop)).not.toContain("addStrokes")
+    })
+
+    test("should recover in a new session when the package is refused", async () => {
+      const recovery = recoveryWith(savedPackage)
+      wsClient.setSessionRecovery(recovery)
+      const sentBeforeDrop = await loseSession({ importError: { type: "error", code: "import.error", message: "Invalid package" } })
+
+      await wsClient.send({ type: "probe" })
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+
+      const sent = types().slice(sentBeforeDrop)
+      expect(sent.indexOf("initSession")).toBeGreaterThan(sent.indexOf("importPackage"))
+      expect(sent).toContain("newContentPart")
+      expect(recovery.recover).toHaveBeenCalledWith(false)
+      expect(wsClient.event.emitError).not.toHaveBeenCalled()
+    })
+
+    test("should recover in a new session when there is no package", async () => {
+      const recovery = recoveryWith(undefined)
+      wsClient.setSessionRecovery(recovery)
+      const sentBeforeDrop = await loseSession()
+
+      await wsClient.send({ type: "probe" })
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+
+      expect(types().slice(sentBeforeDrop)).not.toContain("importPackage")
+      expect(types().slice(sentBeforeDrop)).toContain("initSession")
+      expect(recovery.recover).toHaveBeenCalledWith(false)
+    })
+
+    test("should let the requests waiting for the reconnection go once the new session is up to date", async () => {
+      const order: string[] = []
+      wsClient.setSessionRecovery({
+        package: () => savedPackage,
+        recover: async () => {
+          order.push("recover start")
+          await delay(50)
+          order.push("recover end")
+        },
+      })
+      await loseSession()
+
+      await wsClient.send({ type: "probe" }).then(() => order.push("waiting request sent"))
+
+      expect(order).toEqual(["recover start", "recover end", "waiting request sent"])
+    })
+
+    test("should still report the lost session without recovery", async () => {
+      await loseSession()
+
+      await wsClient.send({ type: "probe" })
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+
+      expect(wsClient.event.emitError).toHaveBeenCalledWith(new Error(ClientError.NO_SESSION_FOUND))
+    })
+  })
+
   describe("export", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "export-test"

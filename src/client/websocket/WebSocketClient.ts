@@ -171,6 +171,22 @@ const MATH_SOLVER_NEUTRAL_RESULTS: { [A in TMathSolverAction]: () => TMathSolver
  */
 
 /**
+ * What the client needs to resume once the server has lost the session (expired), see
+ * {@link WebSocketClient.setSessionRecovery}.
+ * @group Client
+ */
+export type TSessionRecovery = {
+  /** Package the new session starts from; none starts an empty session */
+  package(): { data: Uint8Array; partId: string } | undefined
+  /**
+   * Brings the new session up to date. The changes queued while disconnected were meant for the lost
+   * session and are dropped: this is called instead, before the requests waiting for the reconnection go.
+   * @param imported - Whether the new session started from the package
+   */
+  recover(imported: boolean): Promise<void>
+}
+
+/**
  * @group Client
  */
 export class WebSocketClient {
@@ -228,6 +244,9 @@ export class WebSocketClient {
   // Package exports run one after another too: a chunk names its export, but the request it answers
   // is only known by order
   protected packageQueue: Promise<unknown> = Promise.resolve()
+  protected sessionRecovery?: TSessionRecovery
+  /** Set once the server has lost the session, until the new one is brought up to date */
+  protected lostSession?: { packageTried: boolean }
   /** Package the next handshake starts the session from, instead of a new or restored session */
   protected packageImport?: Uint8Array
   /** Session package being received, chunk after chunk */
@@ -423,11 +442,46 @@ export class WebSocketClient {
     this.clearReconnectLoop()
     this.reconnectAttempts = 0
     this.event.emitConnectionStatusChanged("connected")
+    if (this.lostSession) {
+      await this.recoverLostSession()
+    }
     await this.drainOfflineQueue()
     if (!this.isDisconnected()) {
       this.reconnection?.resolve()
       this.reconnection = undefined
     }
+  }
+
+  /**
+   * Tries the recovery package once; an attempt after it failed (refused, dropped) starts an empty session.
+   */
+  protected prepareSessionRecovery(lostSession: { packageTried: boolean }): void {
+    const sessionPackage = lostSession.packageTried ? undefined : this.sessionRecovery?.package()
+    lostSession.packageTried = true
+    this.packageImport = sessionPackage?.data
+    this.currentPartId = sessionPackage?.partId
+  }
+
+  protected async recoverLostSession(): Promise<void> {
+    const imported = !!this.packageImport
+    this.packageImport = undefined
+    this.lostSession = undefined
+    // Meant for the lost session: recover() brings the new one up to date instead
+    this.offlineQueue.forEach((item) => item.deferred.resolve())
+    this.offlineQueue = []
+    try {
+      await this.sessionRecovery?.recover(imported)
+    } catch (error) {
+      this.event.emitError(error instanceof Error ? error : new Error(String(error)))
+    }
+  }
+
+  /**
+   * How to resume once the server has lost the session, after it expired: without it, the client
+   * reports the loss as an error and opens an empty session.
+   */
+  setSessionRecovery(recovery: TSessionRecovery | undefined): void {
+    this.sessionRecovery = recovery
   }
 
   /** Resolves once the reconnect loop has reconnected and replayed the queue; rejects if it gives up. */
@@ -660,8 +714,10 @@ export class WebSocketClient {
     } else {
       message = mapErrorCodeToMessage(this.currentErrorCode) ?? message
       this.rejectDeferredPending(message)
-      // A refused package is reported by importPackage rejecting: its caller may recover from it
-      if (!this.packageImport) {
+      // A refused package is reported by importPackage rejecting, a lost session by the recovery:
+      // their callers recover from them
+      const recovered = this.currentErrorCode === "restore.session.not.found" && !!this.sessionRecovery
+      if (!this.packageImport && !recovered) {
         this.event.emitError(new Error(message))
       }
     }
@@ -794,6 +850,12 @@ export class WebSocketClient {
       this.currentErrorCode = undefined
       this.sessionId = undefined
       this.currentPartId = undefined
+      if (this.sessionRecovery) {
+        this.lostSession = { packageTried: false }
+      }
+    }
+    if (this.lostSession) {
+      this.prepareSessionRecovery(this.lostSession)
     }
     await ensureServerVersion(this.configuration)
     // A fresh handshake per attempt: a late failure of a previous one must not have rejected it
