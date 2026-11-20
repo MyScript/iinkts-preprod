@@ -18,6 +18,7 @@ import type {
   IIPlaybackManager,
   IISearchManager,
   IISelectionManager,
+  IISessionManager,
   IISnapManager,
   IISynchronizerManager,
   IITransformManager,
@@ -88,6 +89,7 @@ export type TInteractiveInkCanvas = {
   trackOperation<T>(label: TCanvasOperationLabel, fn: () => Promise<T>): Promise<T>
   startOperation(label: TCanvasOperationLabel): void
   endOperation(label: TCanvasOperationLabel): void
+  clearOperation(label: TCanvasOperationLabel): void
   hasOperation(label: TCanvasOperationLabel): boolean
 
   // ── Sub-managers ───────────────────────────────────────────────────
@@ -112,6 +114,7 @@ export type TInteractiveInkCanvas = {
   readonly layout: LayoutManager<TInteractiveInkCanvas>
   readonly menu: IIMenuManager
   readonly playback: IIPlaybackManager
+  readonly session: IISessionManager
 
   // ── Symbol mutation ────────────────────────────────────────────────
   createSymbols(partialSymbols: TPartialDeep<TSymbol>[]): Promise<TSymbol[]>

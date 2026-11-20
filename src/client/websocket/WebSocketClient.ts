@@ -276,6 +276,11 @@ export class WebSocketClient {
     this.boundMessageCallback = this.messageCallback.bind(this)
   }
 
+  /** Part of the session the content is written in, once the session is open */
+  get partId(): string | undefined {
+    return this.currentPartId
+  }
+
   get mimeTypes(): string[] {
     return ["application/vnd.myscript.jiix"]
   }
@@ -655,7 +660,10 @@ export class WebSocketClient {
     } else {
       message = mapErrorCodeToMessage(this.currentErrorCode) ?? message
       this.rejectDeferredPending(message)
-      this.event.emitError(new Error(message))
+      // A refused package is reported by importPackage rejecting: its caller may recover from it
+      if (!this.packageImport) {
+        this.event.emitError(new Error(message))
+      }
     }
   }
 

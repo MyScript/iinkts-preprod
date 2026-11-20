@@ -157,7 +157,7 @@ export abstract class AbstractCanvas {
    * For level-triggered signals with a single external "done" event (e.g. the client's
    * `idle` event) rather than one end call per start call.
    */
-  protected clearOperation(label: TCanvasOperationLabel): void {
+  clearOperation(label: TCanvasOperationLabel): void {
     this.#activeOperations.delete(label)
     this.#recomputeConnectionState()
   }

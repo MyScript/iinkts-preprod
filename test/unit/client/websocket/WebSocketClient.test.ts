@@ -33,6 +33,10 @@ describe("WebSocketClient.ts", () => {
       expect(wsClient.url).toEqual("ws://pony/api/v4.0/iink/offscreen?applicationKey=a%26b%3Dc")
     })
 
+    test("should have no part before the session is open", () => {
+      expect(new WebSocketClient(conf).partId).toBeUndefined()
+    })
+
     test(`should get mimeTypes`, () => {
       const wsClient = new WebSocketClient(conf)
       expect(wsClient.mimeTypes).toEqual(["application/vnd.myscript.jiix"])
@@ -1857,6 +1861,7 @@ describe("WebSocketClient.ts", () => {
 
     test("should open the part the package was exported from", async () => {
       await wsClient.importPackage(sessionPackage, "part-7")
+      expect(wsClient.partId).toEqual(partChangeMessage.partId)
 
       expect(parse(mockServer.getMessages("openContentPart"))).toEqual([{ type: "openContentPart", id: "part-7" }])
     })
@@ -1899,6 +1904,8 @@ describe("WebSocketClient.ts", () => {
       wsClient.event.emitError = jest.fn()
 
       await expect(wsClient.importPackage(sessionPackage, "part-7")).rejects.toEqual("Invalid package")
+      // The rejection reports it: the caller may recover, an error event would report it twice
+      expect(wsClient.event.emitError).not.toHaveBeenCalled()
       await wsClient.close(1000, "test")
       await wsClient.init()
 

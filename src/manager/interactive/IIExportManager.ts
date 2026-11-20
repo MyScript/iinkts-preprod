@@ -12,6 +12,8 @@ import { MathUtil, SymbolGeometry, TextUtil } from "@/symbol-utils"
 import type { TExporterMap } from "../base/ExportManager"
 import { ExportManager } from "../base/ExportManager"
 import type { PDFExportManager } from "../base/PDFExportManager"
+import { EXPORT_MIME_TYPES } from "../base/TExport"
+import { serializeSession } from "./SessionEnvelope"
 
 /** JIIX stand-in used when the content has not been recognized yet, so exports stay empty instead of throwing */
 const EMPTY_JIIX: TJIIXExport = { type: "Container", id: "", version: "" }
@@ -53,6 +55,9 @@ export class IIExportManager extends ExportManager {
       mermaid: async () => jiixToMermaid(await this.exportJiix()),
       plantuml: async () => jiixToPlantUML(await this.exportJiix()),
       llm: async () => jiixToLLM(await this.exportJiix()),
+      // The whole session, whatever the export options: a part of it could not be resumed
+      session: async () =>
+        new Blob([serializeSession(await this.canvas.session.save())], { type: EXPORT_MIME_TYPES.session }),
     }
   }
 

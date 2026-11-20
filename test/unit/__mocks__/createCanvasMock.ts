@@ -243,6 +243,7 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
     synchronizer: overrides.synchronizer ?? stubManager(),
     search: overrides.search ?? stubManager(),
     exportManager: overrides.exportManager ?? stubManager(),
+    session: overrides.session ?? stubManager(),
     jiix:
       overrides.jiix ??
       (() => {
@@ -393,6 +394,7 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
       }
     }),
     hasOperation: jest.fn().mockImplementation((label: string) => _activeOperations.has(label)),
+    clearOperation: jest.fn().mockImplementation((label: string) => _activeOperations.delete(label)),
   }
 
   Object.defineProperty(base, "renderingConfiguration", {

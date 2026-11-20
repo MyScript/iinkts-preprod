@@ -30,6 +30,8 @@ export type TExportResultMap = {
   llm: TLLMExport
   /** Raw JIIX export returned by the server */
   jiix: TJIIXExport
+  /** `.iinkts` file to resume the session later, see {@link IISessionManager} */
+  session: Blob
 }
 
 /**
@@ -98,6 +100,7 @@ export const EXPORT_EXTENSIONS: Record<TDownloadFormat, string> = {
   plantuml: "puml",
   llm: "json",
   jiix: "jiix",
+  session: "iinkts",
   pdf: "pdf",
 }
 
@@ -115,5 +118,6 @@ export const EXPORT_MIME_TYPES: Record<TDownloadFormat, string> = {
   plantuml: "text/plain",
   llm: "application/json",
   jiix: "application/vnd.myscript.jiix",
+  session: "application/json",
   pdf: "application/pdf",
 }
