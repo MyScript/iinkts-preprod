@@ -48,7 +48,8 @@ test.describe("Interactive ink canvas session", () => {
     const downloading = page.waitForEvent("download")
     await page.locator("#btn-save").click()
     const download = await downloading
-    expect(download.suggestedFilename()).toMatch(/\.iinkts$/)
+    // Named after the first words of the document
+    expect(download.suggestedFilename()).toEqual("hello.iinkts")
     const file = testInfo.outputPath("hello.iinkts")
     await download.saveAs(file)
 
@@ -70,10 +71,15 @@ test.describe("Interactive ink canvas session", () => {
     }
 
     await openSessionMenu()
+    // The file name field suggests the first words of the document; the user names it
+    await expect(page.locator("#ms-menu-action-session-save-input")).toHaveValue("hello")
+    await page.locator("#ms-menu-action-session-save-input").fill("my notes")
     const downloading = page.waitForEvent("download")
-    await page.locator("#ms-menu-action-session-save").dispatchEvent("pointerup")
+    await page.locator("#ms-menu-action-session-save button").dispatchEvent("pointerup")
+    const download = await downloading
+    expect(download.suggestedFilename()).toEqual("my notes.iinkts")
     const file = testInfo.outputPath("menu.iinkts")
-    await (await downloading).saveAs(file)
+    await download.saveAs(file)
     await page.evaluate(() => rootEl.iink.clear())
 
     await openSessionMenu()

@@ -211,6 +211,42 @@ describe("IISessionManager.ts", () => {
       expect(JSON.parse(await readBlobAsText(file))).toEqual(expect.objectContaining({ format: "iinkts-session" }))
     })
 
+    const withRecognizedText = (canvas: InteractiveInkCanvas, text: string) => {
+      const exportAs = canvas.exportAs.bind(canvas)
+      jest.spyOn(canvas, "exportAs").mockImplementation(((format: "text" | "session") =>
+        format === "text" ? Promise.resolve(text) : exportAs(format)) as InteractiveInkCanvas["exportAs"])
+    }
+    const downloadedName = async (canvas: InteractiveInkCanvas, options?: { filename?: string }) => {
+      const link = document.createElement("a")
+      link.click = jest.fn()
+      jest.spyOn(document, "createElement").mockImplementationOnce(() => link)
+      global.URL.createObjectURL = jest.fn(() => "blob:session")
+      global.URL.revokeObjectURL = jest.fn()
+      await canvas.download("session", options)
+      return link.download
+    }
+
+    test("should suggest the first three words of the document as file name", async () => {
+      const canvas = buildCanvas()
+      withRecognizedText(canvas, "Shopping list for today")
+
+      await expect(canvas.session.suggestedFileName()).resolves.toEqual("Shopping list for")
+    })
+
+    test("should download the session under the first words of the document by default", async () => {
+      const canvas = buildCanvas()
+      withRecognizedText(canvas, "Shopping list for today")
+
+      expect(await downloadedName(canvas)).toEqual("Shopping list for.iinkts")
+    })
+
+    test("should download the session under a timestamped name when nothing is recognized", async () => {
+      const canvas = buildCanvas()
+      withRecognizedText(canvas, "")
+
+      expect(await downloadedName(canvas)).toMatch(/^iink-ts-[\dT-]+\.iinkts$/)
+    })
+
     test("should download the session with the .iinkts extension", async () => {
       const canvas = buildCanvas()
       const link = document.createElement("a")

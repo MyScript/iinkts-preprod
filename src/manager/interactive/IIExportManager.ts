@@ -12,6 +12,7 @@ import { MathUtil, SymbolGeometry, TextUtil } from "@/symbol-utils"
 import type { TExporterMap } from "../base/ExportManager"
 import { ExportManager } from "../base/ExportManager"
 import type { PDFExportManager } from "../base/PDFExportManager"
+import type { TDownloadFormat, TPDFDownloadOptions } from "../base/TExport"
 import { EXPORT_MIME_TYPES } from "../base/TExport"
 import { serializeSession } from "./SessionEnvelope"
 
@@ -44,6 +45,14 @@ export class IIExportManager extends ExportManager {
 
   get configuration(): TInteractiveInkCanvas["configuration"] {
     return this.canvas.configuration
+  }
+
+  /** A session without file name is named after the first words of the document, see `canvas.session.suggestedFileName` */
+  async download(format: TDownloadFormat, options: TPDFDownloadOptions = {}): Promise<void> {
+    if (format === "session" && !options.filename) {
+      return super.download(format, { ...options, filename: await this.canvas.session.suggestedFileName() })
+    }
+    return super.download(format, options)
   }
 
   protected get exporters(): TExporterMap {

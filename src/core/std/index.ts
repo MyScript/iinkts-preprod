@@ -1,5 +1,6 @@
 export * from "./base64"
 export * from "./DeferredPromise"
+export * from "./fileName"
 export * from "./object"
 export * from "./types"
 export * from "./uuid"
