@@ -46,6 +46,8 @@ export abstract class AbstractHistoryStack<TStackItem> {
 
   protected initStack(item: TStackItem): void {
     this.stack.push(item)
+    // Started on content already there (a restored session), the history is not empty
+    this.updateContext()
     this.event.emitChanged(this.context)
   }
 

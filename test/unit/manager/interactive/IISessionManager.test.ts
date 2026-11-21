@@ -117,6 +117,8 @@ describe("IISessionManager.ts", () => {
 
       expect(canvas.history.context.canUndo).toBe(false)
       expect(canvas.history.stack).toHaveLength(1)
+      // The restored content can be cleared
+      expect(canvas.history.context.empty).toBe(false)
     })
 
     test("should import the package into the part it was saved from, without sending the strokes again", async () => {
@@ -178,6 +180,15 @@ describe("IISessionManager.ts", () => {
 
       expect(readOnlyDuringImport).toBe(true)
       expect(canvas.readOnly).toBe(false)
+    })
+
+    test("should refresh the menus once restored, the content they depend on having changed", async () => {
+      const canvas = buildCanvas()
+      const updateLayerUI = jest.spyOn(canvas, "updateLayerUI")
+
+      await canvas.session.restore(envelopeOf([buildIIStroke()]))
+
+      expect(updateLayerUI).toHaveBeenCalled()
     })
 
     test("should read a .iinkts file", async () => {

@@ -82,6 +82,8 @@ export type TInteractiveInkCanvas = {
   set penStyle(v: TPartialDeep<TStyle>)
   tool: CanvasTool
   readOnly: boolean
+  /** Refreshes the menus and overlays once the content changed, debounced by `timeout` ms */
+  updateLayerUI(timeout?: number): void
   set renderingConfiguration(v: TIIRendererConfiguration)
 
   // ── Canvas state (busy/connection badge) ───────────────────────────

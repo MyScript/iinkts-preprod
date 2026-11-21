@@ -30,6 +30,18 @@ describe("IIHistoryManager.ts", () => {
   })
 
   describe("empty context", () => {
+    test("should not be empty when started on a model that already has content", () => {
+      // A restored session: the content is there before the history starts over
+      const manager = new IIHistoryManager(DefaultHistoryConfiguration, event)
+      const model = new IIModel()
+      model.addSymbol(buildIIStroke())
+
+      manager.init(model)
+
+      expect(manager.context.empty).toStrictEqual(false)
+      expect(manager.context.canUndo).toStrictEqual(false)
+    })
+
     test("should reflect the live model passed to init, not the stack content", () => {
       const manager = new IIHistoryManager(DefaultHistoryConfiguration, event)
       const model = new IIModel()

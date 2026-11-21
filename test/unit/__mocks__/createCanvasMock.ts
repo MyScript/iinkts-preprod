@@ -379,6 +379,7 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
     destroy: jest.fn().mockResolvedValue(undefined),
     resize: jest.fn().mockResolvedValue(undefined),
     setCssVars: jest.fn(),
+    updateLayerUI: jest.fn(),
     manageError: jest.fn(),
     connectionState: "online-idle",
     trackOperation: jest.fn().mockImplementation((_label: string, fn: () => Promise<unknown>) => fn()),

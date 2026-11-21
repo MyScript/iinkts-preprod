@@ -212,6 +212,8 @@ export class IISessionManager extends IIAbstractManager {
       this.restoring = false
       this.canvas.readOnly = wasReadOnly
       this.canvas.layers.hideLoader()
+      // The menus depend on the content (Convert needs strokes, Clear something to clear)
+      this.canvas.updateLayerUI()
     }
   }
 
