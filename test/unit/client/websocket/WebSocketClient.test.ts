@@ -1810,6 +1810,43 @@ describe("WebSocketClient.ts", () => {
       await expect(exported).resolves.toBeUndefined()
     })
 
+    test("should explain the server can not save the session when it does not know exportPackage", async () => {
+      // A server announcing 4.6.0 without the feature answers it as an unknown message: "Json mapping error"
+      wsClient.event.emitError = jest.fn()
+      const exported = wsClient.exportPackage()
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      mockServer.send(JSON.stringify({ type: "error", code: "api.mapping.error", message: "Json mapping error: " }))
+
+      await expect(exported).rejects.toEqual(ClientError.SESSION_PACKAGE_UNSUPPORTED)
+      expect(wsClient.event.emitError).toHaveBeenCalledWith(new Error(ClientError.SESSION_PACKAGE_UNSUPPORTED))
+    })
+
+    test("should not ask again a server that did not know exportPackage", async () => {
+      wsClient.event.emitError = jest.fn()
+      expect(wsClient.sessionPackageSupported).toBe(true)
+      const exported = wsClient.exportPackage()
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      mockServer.send(JSON.stringify({ type: "error", code: "api.mapping.error", message: "Json mapping error: " }))
+      await exported.catch(() => undefined)
+
+      expect(wsClient.sessionPackageSupported).toBe(false)
+      await expect(wsClient.exportPackage()).rejects.toThrow("can not export the session package")
+      expect(mockServer.getMessages("exportPackage")).toHaveLength(1)
+    })
+
+    test("should still report another error arriving while a package is awaited", async () => {
+      wsClient.event.emitError = jest.fn()
+      const exported = wsClient.exportPackage()
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      mockServer.send(JSON.stringify({ type: "error", code: "internal.error", message: "Boom" }))
+
+      await expect(exported).rejects.toEqual("Boom")
+      expect(wsClient.event.emitError).toHaveBeenCalledWith(new Error("Boom"))
+    })
+
     test("should reject without asking a server older than 4.6.0", async () => {
       wsClient.configuration.server.version = "4.5.4"
 

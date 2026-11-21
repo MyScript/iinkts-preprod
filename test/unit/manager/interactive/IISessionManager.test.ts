@@ -76,6 +76,17 @@ describe("IISessionManager.ts", () => {
       expect(canvas.client.exportPackage).not.toHaveBeenCalled()
     })
 
+    test("should save without package when the server can not export it", async () => {
+      const canvas = buildCanvas()
+      canvas.model.addSymbol(buildIIStroke())
+      canvas.client.exportPackage = jest.fn(() => Promise.reject("Json mapping error: "))
+
+      const envelope = await canvas.session.save()
+
+      expect(envelope.package).toBeUndefined()
+      expect(envelope.symbols).toHaveLength(1)
+    })
+
     test("should save copies the canvas does not change afterwards", async () => {
       const canvas = buildCanvas()
       canvas.model.addSymbol(buildIIStroke())
@@ -313,6 +324,26 @@ describe("IISessionManager.ts", () => {
 
         expect(quick.client.exportPackage).toHaveBeenCalledTimes(1)
         expect(never.client.exportPackage).not.toHaveBeenCalled()
+      })
+
+      test("should not save an empty canvas in memory", async () => {
+        const canvas = buildRecoverableCanvas()
+
+        change(canvas)
+        await jest.advanceTimersByTimeAsync(5000)
+
+        expect(canvas.client.exportPackage).not.toHaveBeenCalled()
+      })
+
+      test("should not save in memory once the client knows the server can not export the package", async () => {
+        const canvas = buildRecoverableCanvas()
+        canvas.model.addSymbol(buildIIStroke())
+        jest.spyOn(canvas.client, "sessionPackageSupported", "get").mockReturnValue(false)
+
+        change(canvas)
+        await jest.advanceTimersByTimeAsync(5000)
+
+        expect(canvas.client.exportPackage).not.toHaveBeenCalled()
       })
 
       test("should have no package to resume from before a first snapshot", () => {

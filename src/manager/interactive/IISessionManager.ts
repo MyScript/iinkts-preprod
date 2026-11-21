@@ -1,5 +1,4 @@
 import type { TInteractiveInkCanvas } from "@/canvas"
-import { supportsSessionPackage } from "@/client"
 import { base64ToBytes, bytesToBase64 } from "@/core"
 import { readBlobAsText } from "@/dom"
 import { LoggerCategory } from "@/logger"
@@ -120,7 +119,7 @@ export class IISessionManager extends IIAbstractManager {
   }
 
   protected get supportsPackage(): boolean {
-    return supportsSessionPackage(this.client.configuration.server.version)
+    return this.client.sessionPackageSupported
   }
 
   protected get snapshotDelay(): number {
@@ -138,8 +137,14 @@ export class IISessionManager extends IIAbstractManager {
     if (!partId || !this.supportsPackage) {
       return undefined
     }
-    const bytes = await this.client.exportPackage()
-    return bytes && { partId, data: bytesToBase64(bytes) }
+    try {
+      const bytes = await this.client.exportPackage()
+      return bytes && { partId, data: bytesToBase64(bytes) }
+    } catch (error) {
+      // Without package the session still resumes, by sending the strokes again
+      this.logger.warn("save", "Session package not exported", error)
+      return undefined
+    }
   }
 
   /**
@@ -310,7 +315,14 @@ export class IISessionManager extends IIAbstractManager {
   /** Saves the session in memory, if it changed since and can be saved now */
   protected async takeSnapshot(): Promise<void> {
     this.clearSnapshotTimer()
-    if (!this.changedSinceSnapshot || this.restoring || this.client.isOffline || !this.supportsPackage) {
+    // An empty canvas has nothing to resume
+    if (
+      !this.changedSinceSnapshot ||
+      this.restoring ||
+      this.client.isOffline ||
+      !this.supportsPackage ||
+      !this.model.symbols.length
+    ) {
       return
     }
     this.changedSinceSnapshot = false

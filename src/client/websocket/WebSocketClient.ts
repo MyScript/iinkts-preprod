@@ -249,6 +249,8 @@ export class WebSocketClient {
   protected lostSession?: { packageTried: boolean }
   /** Package the next handshake starts the session from, instead of a new or restored session */
   protected packageImport?: Uint8Array
+  /** Set once the server answered exportPackage as an unknown message, though its version should know it */
+  protected packageRefused = false
   /** Session package being received, chunk after chunk */
   protected packageReception?: { exportId: string; size: number; chunks: Uint8Array<ArrayBuffer>[] }
   /** Routes each message the server sends; overriding a `manage*` method changes what its entry does. */
@@ -712,7 +714,14 @@ export class WebSocketClient {
       this.rejectDeferredPending(message)
       this.event.emitConnectionClose({ code: 1000, message: ClientError.NO_ACTIVITY })
     } else {
-      message = mapErrorCodeToMessage(this.currentErrorCode) ?? message
+      // Read before the pending requests are rejected: an awaited package answered as an unknown
+      // message means the server does not have the feature, whatever its version says. Its own
+      // message ("Json mapping error") explains nothing: say what is missing, and do not ask again
+      const refusesPackage = this.currentErrorCode === "api.mapping.error" && this.pendingRequests.has("package")
+      this.packageRefused ||= refusesPackage
+      message = refusesPackage
+        ? ClientError.SESSION_PACKAGE_UNSUPPORTED
+        : (mapErrorCodeToMessage(this.currentErrorCode) ?? message)
       this.rejectDeferredPending(message)
       // A refused package is reported by importPackage rejecting, a lost session by the recovery:
       // their callers recover from them
@@ -1167,9 +1176,17 @@ export class WebSocketClient {
    * @returns `undefined` when the session is closed deliberately before the package arrives
    * @throws when the server is older than 4.6.0
    */
+  /**
+   * Whether the server exports and imports the session package: from 4.6.0, unless it already
+   * answered exportPackage as an unknown message (a server announcing 4.6.0 before the feature)
+   */
+  get sessionPackageSupported(): boolean {
+    return supportsSessionPackage(this.configuration.server.version) && !this.packageRefused
+  }
+
   async exportPackage(): Promise<Uint8Array<ArrayBuffer> | undefined> {
     const version = this.configuration.server.version
-    if (!supportsSessionPackage(version)) {
+    if (!this.sessionPackageSupported) {
       throw new Error(`Server ${version} can not export the session package`)
     }
     const run = this.packageQueue.then(() => this.requestPackage())
