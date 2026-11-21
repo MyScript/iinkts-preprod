@@ -63,4 +63,41 @@ describe("SessionEnvelope.ts", () => {
 
     expect(() => parseSession(text)).toThrow("Session file format 2 is newer than this library reads (1)")
   })
+
+  describe("history", () => {
+    const step = () => {
+      const [a, b, c] = [buildIIStroke(), buildIIStroke(), buildIIStroke()]
+      return {
+        added: [a],
+        erased: [b],
+        updated: [{ before: c, after: { ...c, modificationDate: c.modificationDate + 1 } }],
+        replaced: { oldSymbols: [a], newSymbols: [b] },
+        order: { symbols: [c], position: "first" as const },
+        variables: [{ strokeIds: [a.id], name: "x", before: 1, after: 2 }],
+      }
+    }
+
+    test("should read back the undo/redo steps and where the history stood", () => {
+      const saved = envelope({ history: { stack: [{}, step(), step()], stackIndex: 1 } })
+
+      expect(asData(parseSession(serializeSession(saved)).history)).toEqual(asData(saved.history))
+    })
+
+    test("should keep the dates of the symbols in the steps", () => {
+      const stroke = { ...buildIIStroke(), creationTime: 1000, modificationDate: 2000 }
+      const saved = envelope({ history: { stack: [{}, { added: [stroke] }], stackIndex: 1 } })
+
+      const [, restored] = parseSession(serializeSession(saved)).history!.stack
+      expect([restored.added![0].creationTime, restored.added![0].modificationDate]).toEqual([1000, 2000])
+    })
+
+    test("should open a session whose history can not be read, without its history", () => {
+      const text = serializeSession(envelope({ history: { stack: [{}, { added: [{ type: "unknown" }] }], stackIndex: 1 } } as never))
+
+      const parsed = parseSession(text)
+
+      expect(parsed.history).toBeUndefined()
+      expect(parsed.symbols).toHaveLength(3)
+    })
+  })
 })

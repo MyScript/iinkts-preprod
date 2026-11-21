@@ -97,7 +97,12 @@ export class IISessionManager extends IIAbstractManager {
       package: () => this.snapshotPackage(),
       recover: (imported) => this.recover(imported),
     })
-    this.browserStore = new SessionBrowserStore(this.canvas.event, this.logger, () => this.model.symbols)
+    this.browserStore = new SessionBrowserStore(
+      this.canvas.event,
+      this.logger,
+      () => this.model.symbols,
+      () => this.canvas.history.exportStack()
+    )
     this.canvas.event.addChangedListener(() => this.onChanged())
     document.addEventListener("visibilitychange", this.onVisibilityChange)
   }
@@ -129,7 +134,11 @@ export class IISessionManager extends IIAbstractManager {
   /** The canvas symbols and the server session, as they are now */
   async save(): Promise<TSessionEnvelope> {
     this.logger.info("save")
-    return createSessionEnvelope(this.model.symbols.map(cloneSymbol), await this.exportPackage())
+    return createSessionEnvelope(
+      this.model.symbols.map(cloneSymbol),
+      await this.exportPackage(),
+      this.canvas.history.exportStack()
+    )
   }
 
   /**
@@ -164,7 +173,7 @@ export class IISessionManager extends IIAbstractManager {
    */
   async restore(source: Blob | string | TSessionEnvelope): Promise<TSessionRestoreMode> {
     const envelope = await this.read(source)
-    return this.restoreContent(envelope.symbols, envelope)
+    return this.restoreContent(envelope.symbols, envelope, envelope.history)
   }
 
   /**
@@ -173,8 +182,8 @@ export class IISessionManager extends IIAbstractManager {
    * @throws when no session `id` is saved
    */
   async restoreSaved(id: string): Promise<TSessionRestoreMode> {
-    const { symbols, snapshot } = await this.browserStore.read(id)
-    const mode = await this.restoreContent(symbols, snapshot)
+    const { symbols, snapshot, history } = await this.browserStore.read(id)
+    const mode = await this.restoreContent(symbols, snapshot, history)
     await this.browserStore.discard(id)
     return mode
   }
@@ -190,7 +199,8 @@ export class IISessionManager extends IIAbstractManager {
    */
   protected async restoreContent(
     symbols: TSymbol[],
-    snapshot: TSessionEnvelope | undefined
+    snapshot: TSessionEnvelope | undefined,
+    history?: TSessionEnvelope["history"]
   ): Promise<TSessionRestoreMode> {
     this.logger.info("restore", { symbols: symbols.length, withPackage: !!snapshot?.package })
     const wasReadOnly = this.canvas.readOnly
@@ -199,6 +209,9 @@ export class IISessionManager extends IIAbstractManager {
     this.restoring = true
     try {
       this.replaceContent(symbols)
+      if (history) {
+        this.canvas.history.importStack(history)
+      }
       const mode = await this.openSession(snapshot?.package)
       // Imported, the package is what the server session now holds: an automatic resume can start
       // from it. Replayed, replay() already dropped the snapshot of the previous content

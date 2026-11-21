@@ -238,4 +238,75 @@ describe("IIHistoryManager.ts", () => {
       expect(manager.context.canRedo).toStrictEqual(false)
     })
   })
+
+  describe("exportStack / importStack", () => {
+    const filled = () => {
+      const manager = new IIHistoryManager(DefaultHistoryConfiguration, event)
+      const model = new IIModel()
+      manager.init(model)
+      const [a, b] = [buildIIStroke(), buildIIStroke()]
+      model.addSymbol(a)
+      manager.push({ added: [a] })
+      model.addSymbol(b)
+      manager.push({ added: [b] })
+      return { manager, model, a, b }
+    }
+
+    test("should export the steps and where the history stands", () => {
+      const { manager, a, b } = filled()
+
+      expect(manager.exportStack()).toEqual({ stack: [{}, { added: [a] }, { added: [b] }], stackIndex: 2 })
+    })
+
+    test("should undo, once imported, what was undoable when exported", () => {
+      const { manager, model, b } = filled()
+      const restored = new IIHistoryManager(DefaultHistoryConfiguration, event)
+      restored.init(model)
+
+      restored.importStack(manager.exportStack())
+
+      expect(restored.context).toEqual(expect.objectContaining({ canUndo: true, canRedo: false, stackIndex: 2, empty: false }))
+      expect(restored.undo()).toEqual({ erased: [b] })
+    })
+
+    test("should keep the steps that could be redone", () => {
+      const { manager, model } = filled()
+      manager.undo()
+      const restored = new IIHistoryManager(DefaultHistoryConfiguration, event)
+      restored.init(model)
+
+      restored.importStack(manager.exportStack())
+
+      expect(restored.context).toEqual(expect.objectContaining({ canUndo: true, canRedo: true, stackIndex: 1 }))
+    })
+
+    test("should keep a position the stack holds", () => {
+      const { manager, model } = filled()
+      const restored = new IIHistoryManager(DefaultHistoryConfiguration, event)
+      restored.init(model)
+
+      restored.importStack({ ...manager.exportStack(), stackIndex: 9 })
+
+      expect(restored.context.stackIndex).toEqual(2)
+    })
+
+    test("should ignore an empty stack", () => {
+      const restored = new IIHistoryManager(DefaultHistoryConfiguration, event)
+      restored.init(new IIModel())
+
+      restored.importStack({ stack: [], stackIndex: 0 })
+
+      expect(restored.stack).toEqual([{}])
+    })
+
+    test("should keep only the most recent steps beyond the maximum stack size", () => {
+      const { manager, model, b } = filled()
+      const restored = new IIHistoryManager({ ...DefaultHistoryConfiguration, maxStackSize: 1 }, event)
+      restored.init(model)
+
+      restored.importStack(manager.exportStack())
+
+      expect(restored.exportStack()).toEqual({ stack: [{ added: [b] }], stackIndex: 0 })
+    })
+  })
 })

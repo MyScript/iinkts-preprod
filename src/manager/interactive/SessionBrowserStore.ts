@@ -1,10 +1,11 @@
 import type { CanvasEvent } from "@/canvas"
 import { createUUID } from "@/core"
+import type { THistoryStack, TIIHistoryChanges } from "@/history"
 import type { Logger } from "@/logger"
 import type { TSymbol } from "@/symbol"
 
 import type { TSessionEnvelope } from "./SessionEnvelope"
-import { parseSession, parseSymbols, serializeSession } from "./SessionEnvelope"
+import { parseSavedContent, parseSession, serializeSession } from "./SessionEnvelope"
 import { SessionLock } from "./SessionLock"
 import type { TSavedSessionInfo } from "./SessionStorage"
 import { SessionStorage } from "./SessionStorage"
@@ -39,7 +40,11 @@ function elementPath(element: HTMLElement): string {
  * What a saved session holds: its latest symbols, and the snapshot its server package belongs to
  * @group Manager
  */
-export type TSavedSession = { symbols: TSymbol[]; snapshot?: TSessionEnvelope }
+export type TSavedSession = {
+  symbols: TSymbol[]
+  snapshot?: TSessionEnvelope
+  history?: THistoryStack<TIIHistoryChanges>
+}
 
 /**
  * The session of one canvas saved in the browser, under its document key: one entry per page load,
@@ -59,7 +64,8 @@ export class SessionBrowserStore {
   constructor(
     protected event: CanvasEvent,
     protected logger: Logger,
-    protected symbols: () => TSymbol[]
+    protected symbols: () => TSymbol[],
+    protected history: () => THistoryStack<TIIHistoryChanges>
   ) {}
 
   /**
@@ -119,7 +125,7 @@ export class SessionBrowserStore {
         ? storage.writeSymbols({
             id: this.entryId,
             key,
-            symbols: JSON.stringify(symbols),
+            symbols: JSON.stringify({ symbols, history: this.history() }),
             symbolCount: symbols.length,
             now: Date.now(),
           })
@@ -155,7 +161,7 @@ export class SessionBrowserStore {
       throw new Error(`No saved session ${id}`)
     }
     return {
-      symbols: parseSymbols(stored.symbols),
+      ...parseSavedContent(stored.symbols),
       snapshot: stored.snapshot ? parseSession(stored.snapshot) : undefined,
     }
   }

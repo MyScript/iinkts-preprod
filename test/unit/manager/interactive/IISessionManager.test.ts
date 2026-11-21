@@ -63,7 +63,20 @@ describe("IISessionManager.ts", () => {
         createdAt: expect.any(String),
         symbols: asData([stroke]),
         package: { partId: "part-7", data: "AQID" },
+        history: { stack: [], stackIndex: 0 },
       })
+    })
+
+    test("should save the undo/redo steps and where the history stands", async () => {
+      const canvas = buildCanvas()
+      canvas.history.init(canvas.model)
+      const stroke = buildIIStroke()
+      canvas.model.addSymbol(stroke)
+      canvas.history.push({ added: [stroke] })
+
+      const envelope = await canvas.session.save()
+
+      expect(envelope.history).toEqual({ stack: [{}, { added: [stroke] }], stackIndex: 1 })
     })
 
     test("should save without package on a server older than 4.6.0", async () => {
@@ -119,6 +132,19 @@ describe("IISessionManager.ts", () => {
       expect(canvas.history.stack).toHaveLength(1)
       // The restored content can be cleared
       expect(canvas.history.context.empty).toBe(false)
+    })
+
+    test("should pick the history up where it was saved, so the restored work can be undone", async () => {
+      const canvas = buildCanvas()
+      const [first, second] = [buildIIStroke(), buildIIStroke()]
+      const saved = { ...envelopeOf([first, second]), history: { stack: [{}, { added: [first] }, { added: [second] }], stackIndex: 2 } }
+      canvas.client.undo = jest.fn(() => Promise.resolve())
+
+      await canvas.session.restore(saved)
+      await canvas.undo()
+
+      expect(canvas.history.context.canRedo).toBe(true)
+      expect(canvas.model.symbols.map((s) => s.id)).toEqual([first.id])
     })
 
     test("should import the package into the part it was saved from, without sending the strokes again", async () => {
@@ -656,7 +682,7 @@ describe("IISessionManager.ts", () => {
         Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" })
 
         const [entry] = await stored.list(KEY)
-        expect(JSON.parse((await stored.read(entry.id))!.symbols)).toHaveLength(1)
+        expect(JSON.parse((await stored.read(entry.id))!.symbols).symbols).toHaveLength(1)
       })
 
       test("should delete its session once the canvas is empty", async () => {
@@ -709,6 +735,24 @@ describe("IISessionManager.ts", () => {
         await canvas.session.start()
 
         await expect(canvas.session.restoreSaved("missing")).rejects.toThrow("No saved session missing")
+      })
+
+      test("should restore the history saved with the session", async () => {
+        const writer = buildStoringCanvas()
+        await writer.session.start()
+        writer.history.init(writer.model)
+        const stroke = buildIIStroke()
+        writer.model.addSymbol(stroke)
+        writer.history.push({ added: [stroke] })
+        await jest.advanceTimersByTimeAsync(500)
+        writer.session.destroy()
+        const reader = buildStoringCanvas()
+        await reader.session.start()
+
+        await reader.session.restoreSaved(reader.session.saved[0].id)
+
+        expect(reader.history.context.canUndo).toBe(true)
+        expect(asData(reader.history.exportStack())).toEqual(asData({ stack: [{}, { added: [stroke] }], stackIndex: 1 }))
       })
 
       test("should discard one saved session, or all of them", async () => {
