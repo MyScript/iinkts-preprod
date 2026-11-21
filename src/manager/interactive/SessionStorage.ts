@@ -23,10 +23,11 @@ export type TSavedSessionInfo = {
 type TEntry = Omit<TSavedSessionInfo, "size"> & { symbolsSize: number; snapshotSize: number }
 
 /**
- * A lease on a document key, for browsers without Web Locks
+ * A lease on a document key, for browsers without Web Locks. `tab` and `page` tell a page reloaded
+ * in the same tab, which takes back the lease its previous page could not release.
  * @group Manager
  */
-export type TSessionLease = { key: string; owner: string; expiresAt: number }
+export type TSessionLease = { key: string; owner: string; tab?: string; page?: string; expiresAt: number }
 
 const toInfo = ({ symbolsSize, snapshotSize, ...info }: TEntry): TSavedSessionInfo => ({
   ...info,
@@ -45,6 +46,10 @@ const transactionDone = (transaction: IDBTransaction): Promise<void> =>
     transaction.onerror = () => reject(transaction.error)
     transaction.onabort = () => reject(transaction.error ?? new Error("Session storage transaction aborted"))
   })
+
+/** A reload leaves its lease behind: same tab, another page */
+const leftByEarlierPage = (lease: TSessionLease, holder: Pick<TSessionLease, "tab" | "page">): boolean =>
+  holder.tab !== undefined && lease.tab === holder.tab && lease.page !== holder.page
 
 /** Writes `data` in `store` and updates the entry, in one transaction */
 function writeEntry(
@@ -180,29 +185,24 @@ export class SessionStorage {
   }
 
   /**
-   * Takes or extends the lease on `key` for `owner`, unless another owner holds it unexpired.
+   * Takes or extends the lease on `key` for `owner`, unless another owner holds it unexpired — an
+   * earlier page of the same `tab` does not count: it is gone.
    * @returns whether `owner` holds it
    */
   async acquireLease({
-    key,
-    owner,
     now,
     duration,
-  }: {
-    key: string
-    owner: string
-    now: number
-    duration: number
-  }): Promise<boolean> {
+    ...holder
+  }: Omit<TSessionLease, "expiresAt"> & { now: number; duration: number }): Promise<boolean> {
     const transaction = (await this.database).transaction(LEASES, "readwrite")
     const leases = transaction.objectStore(LEASES)
     let acquired = false
-    const current = leases.get(key)
+    const current = leases.get(holder.key)
     current.onsuccess = () => {
       const lease: TSessionLease | undefined = current.result
-      acquired = !lease || lease.owner === owner || lease.expiresAt <= now
+      acquired = !lease || lease.owner === holder.owner || lease.expiresAt <= now || leftByEarlierPage(lease, holder)
       if (acquired) {
-        leases.put({ key, owner, expiresAt: now + duration } satisfies TSessionLease)
+        leases.put({ ...holder, expiresAt: now + duration } satisfies TSessionLease)
       }
     }
     await transactionDone(transaction)

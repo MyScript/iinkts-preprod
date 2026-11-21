@@ -1,10 +1,35 @@
-import { DeferredPromise } from "@/core"
+import { createUUID, DeferredPromise } from "@/core"
 
 import type { SessionStorage } from "./SessionStorage"
 
 // Long enough to outlive the throttling of a hidden tab, whose timers may run once a minute
 const LEASE_DURATION = 2 * 60 * 1000
 const LEASE_RENEWAL = 20 * 1000
+const TAB_ID_KEY = "iinkts-session-tab"
+/** This page load: a reload gets another one */
+const PAGE_ID = createUUID()
+
+/**
+ * Where a lease is taken from: the tab, kept across reloads, and the page load in it
+ * @group Manager
+ */
+export type TSessionLockContext = { tab?: string; page: string }
+
+/** The id of this tab, kept in `sessionStorage` so that a reload finds it again */
+function tabId(): string | undefined {
+  try {
+    const stored = globalThis.sessionStorage.getItem(TAB_ID_KEY)
+    if (stored) {
+      return stored
+    }
+    const created = createUUID()
+    globalThis.sessionStorage.setItem(TAB_ID_KEY, created)
+    return created
+  } catch {
+    // No sessionStorage: a reload waits for the lease of its previous page to expire
+    return undefined
+  }
+}
 
 /**
  * Makes one canvas at a time, across tabs, write a document: with Web Locks when the browser has
@@ -19,12 +44,21 @@ export class SessionLock {
   /**
    * @param locks - `navigator.locks`, undefined to use the lease
    * @param onLost - Called when another canvas took the lease over, after this page slept past it
+   * @param context - Tab and page load the lease is taken from
    */
   constructor(
     protected storage: SessionStorage,
     protected locks: LockManager | undefined = globalThis.navigator?.locks,
-    protected onLost: () => void = () => undefined
+    protected onLost: () => void = () => undefined,
+    protected context: TSessionLockContext = { tab: tabId(), page: PAGE_ID }
   ) {}
+
+  /** A page leaving for good releases its lease: the next page, in any tab, does not wait for it */
+  protected onPageHide = (event: PageTransitionEvent): void => {
+    if (!event.persisted) {
+      this.release()
+    }
+  }
 
   /** @returns whether this canvas now holds the document; false when another one does */
   acquire(key: string, owner: string): Promise<boolean> {
@@ -50,6 +84,7 @@ export class SessionLock {
       return false
     }
     this.#lease = { key, owner }
+    globalThis.addEventListener?.("pagehide", this.onPageHide)
     this.#renewal = setInterval(async () => {
       if (!(await this.renewLease(key, owner))) {
         this.stopRenewal()
@@ -60,10 +95,11 @@ export class SessionLock {
   }
 
   protected renewLease(key: string, owner: string): Promise<boolean> {
-    return this.storage.acquireLease({ key, owner, now: Date.now(), duration: LEASE_DURATION })
+    return this.storage.acquireLease({ key, owner, ...this.context, now: Date.now(), duration: LEASE_DURATION })
   }
 
   protected stopRenewal(): void {
+    globalThis.removeEventListener?.("pagehide", this.onPageHide)
     clearInterval(this.#renewal)
     this.#renewal = undefined
     this.#lease = undefined

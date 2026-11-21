@@ -94,6 +94,36 @@ describe("SessionLock.ts", () => {
       expect(await new SessionLock(storage, undefined).acquire("k", "second")).toBe(true)
     })
 
+    test("should take back the lease the previous page of the same tab left on reload", async () => {
+      const noop = () => undefined
+      // The page reloads without releasing: the lease stays unexpired
+      await new SessionLock(storage, undefined, noop, { tab: "tab-1", page: "before" }).acquire("k", "a")
+
+      const otherTab = new SessionLock(storage, undefined, noop, { tab: "tab-2", page: "elsewhere" })
+      expect(await otherTab.acquire("k", "b")).toBe(false)
+      const reloaded = new SessionLock(storage, undefined, noop, { tab: "tab-1", page: "after" })
+      expect(await reloaded.acquire("k", "c")).toBe(true)
+    })
+
+    test("should keep the lease from another canvas of the same page", async () => {
+      const noop = () => undefined
+      const first = new SessionLock(storage, undefined, noop, { tab: "tab-1", page: "p" })
+      await first.acquire("k", "first")
+
+      const second = new SessionLock(storage, undefined, noop, { tab: "tab-1", page: "p" })
+      expect(await second.acquire("k", "second")).toBe(false)
+      first.release()
+    })
+
+    test("should release the lease when the page goes away", async () => {
+      await new SessionLock(storage, undefined).acquire("k", "first")
+
+      window.dispatchEvent(new Event("pagehide"))
+      await jest.advanceTimersByTimeAsync(0)
+
+      expect(await new SessionLock(storage, undefined).acquire("k", "second")).toBe(true)
+    })
+
     test("should tell when the lease was taken over while the page slept", async () => {
       const onLost = jest.fn()
       const first = new SessionLock(storage, undefined, onLost)
