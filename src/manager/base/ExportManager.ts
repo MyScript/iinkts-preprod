@@ -1,6 +1,6 @@
 import type { TInteractiveInkCanvas } from "@/canvas"
 import type { TBox } from "@/core"
-import { base64ToBytes } from "@/core"
+import { base64ToBytes, datedFileName } from "@/core"
 import type { Logger } from "@/logger"
 import { LoggerCategory, LoggerManager } from "@/logger"
 import type { IIModel } from "@/model"
@@ -139,11 +139,7 @@ export abstract class ExportManager {
     if (filename) {
       return filename.endsWith(suffix) ? filename : `${filename}${suffix}`
     }
-    const timestamp = new Date()
-      .toISOString()
-      .replace(/\.\d+Z$/, "")
-      .replace(/:/g, "-")
-    return `iink-ts-${timestamp}${suffix}`
+    return `${datedFileName()}${suffix}`
   }
 
   protected triggerDownload(fileName: string, urlData: string): void {

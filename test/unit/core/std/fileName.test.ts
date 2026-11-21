@@ -1,4 +1,4 @@
-import { fileNameFromText } from "@/iink"
+import { datedFileName, fileNameFromText } from "@/iink"
 
 describe("fileName", () => {
   test("should keep the first words", () => {
@@ -25,5 +25,9 @@ describe("fileName", () => {
   test("should give no name for a text without words", () => {
     expect(fileNameFromText("", 3)).toBeUndefined()
     expect(fileNameFromText(" \n /:*? ", 3)).toBeUndefined()
+  })
+
+  test("should name a file after the date, to the second, without characters file names refuse", () => {
+    expect(datedFileName(new Date("2026-11-21T10:30:15.123Z"))).toEqual("iink-ts-2026-11-21T10-30-15")
   })
 })

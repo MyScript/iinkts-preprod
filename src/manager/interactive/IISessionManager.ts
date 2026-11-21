@@ -1,5 +1,5 @@
 import type { TInteractiveInkCanvas } from "@/canvas"
-import { base64ToBytes, bytesToBase64, fileNameFromText } from "@/core"
+import { base64ToBytes, bytesToBase64, datedFileName, fileNameFromText } from "@/core"
 import { readBlobAsText } from "@/dom"
 import { LoggerCategory } from "@/logger"
 import type { TStroke, TSymbol } from "@/symbol"
@@ -143,11 +143,10 @@ export class IISessionManager extends IIAbstractManager {
 
   /**
    * File name the session is downloaded under by default: the first three words of the recognized
-   * text, in reading order
-   * @returns undefined when nothing is recognized as text, the download is then named after the date
+   * text, in reading order, or the date when nothing is recognized as text (`iink-ts-2026-11-21T10-30-15`)
    */
-  async suggestedFileName(): Promise<string | undefined> {
-    return fileNameFromText(await this.canvas.exportAs("text"), 3)
+  async suggestedFileName(): Promise<string> {
+    return fileNameFromText(await this.canvas.exportAs("text"), 3) ?? datedFileName()
   }
 
   protected async exportPackage(): Promise<TSessionEnvelope["package"]> {

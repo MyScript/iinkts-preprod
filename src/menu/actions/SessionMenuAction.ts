@@ -10,7 +10,7 @@ async function saveSession(canvas: TInteractiveInkCanvas, name: string): Promise
   // Known here, not left to download(): the confirmation names the file
   const filename = name || (await canvas.session.suggestedFileName())
   await canvas.download("session", { filename })
-  canvas.layers.showMessageInfo({ message: filename ? `Session saved: ${filename}.iinkts` : "Session saved" })
+  canvas.layers.showMessageInfo({ message: `Session saved: ${filename}.iinkts` })
 }
 
 async function openSession(canvas: TInteractiveInkCanvas, file: File): Promise<void> {

@@ -13,7 +13,7 @@ const flush = async () => {
 describe("SessionMenuAction.ts", () => {
   const build = (
     restore = jest.fn(() => Promise.resolve("imported")),
-    suggestedFileName = jest.fn(() => Promise.resolve<string | undefined>("Shopping list for"))
+    suggestedFileName = jest.fn(() => Promise.resolve<string>("Shopping list for"))
   ) => {
     const canvas = createCanvasMock({ session: { restore, suggestedFileName } as never })
     jest.spyOn(canvas.layers, "showMessageInfo").mockImplementation(() => undefined)
@@ -88,14 +88,19 @@ describe("SessionMenuAction.ts", () => {
     expect(canvas.layers.showMessageInfo).toHaveBeenCalledWith({ message: "Session saved: Shopping list for.iinkts" })
   })
 
-  test("should download the session under its dated name when nothing is recognized", async () => {
-    const { canvas, wrapper } = build(undefined, jest.fn(() => Promise.resolve<string | undefined>(undefined)))
+  test("should show, and download under, the dated name when nothing is recognized as text", async () => {
+    const dated = "iink-ts-2026-11-21T10-30-15"
+    const { canvas, wrapper } = build(undefined, jest.fn(() => Promise.resolve(dated)))
+    const submenu = wrapper.querySelector("#ms-menu-action-session-trigger") as HTMLButtonElement
 
-    save(wrapper, "")
+    submenu.dispatchEvent(new Event("pointerdown"))
+    await flush()
+    expect((wrapper.querySelector("#ms-menu-action-session-save-input") as HTMLInputElement).value).toEqual(dated)
+    save(wrapper)
     await flush()
 
-    expect(canvas.download).toHaveBeenCalledWith("session", { filename: undefined })
-    expect(canvas.layers.showMessageInfo).toHaveBeenCalledWith({ message: "Session saved" })
+    expect(canvas.download).toHaveBeenCalledWith("session", { filename: dated })
+    expect(canvas.layers.showMessageInfo).toHaveBeenCalledWith({ message: `Session saved: ${dated}.iinkts` })
   })
 
   test("should restore the session from the file opened", async () => {

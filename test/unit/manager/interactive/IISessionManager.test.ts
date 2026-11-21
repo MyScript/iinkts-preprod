@@ -277,6 +277,13 @@ describe("IISessionManager.ts", () => {
       expect(await downloadedName(canvas)).toEqual("Shopping list for.iinkts")
     })
 
+    test("should suggest a dated file name when nothing is recognized as text", async () => {
+      const canvas = buildCanvas()
+      withRecognizedText(canvas, "")
+
+      await expect(canvas.session.suggestedFileName()).resolves.toMatch(/^iink-ts-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}$/)
+    })
+
     test("should download the session under a timestamped name when nothing is recognized", async () => {
       const canvas = buildCanvas()
       withRecognizedText(canvas, "")

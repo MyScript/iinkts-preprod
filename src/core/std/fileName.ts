@@ -17,3 +17,14 @@ export const fileNameFromText = (text: string, wordCount: number): string | unde
     .replace(/^[.\s]+|[.\s]+$/g, "")
   return name || undefined
 }
+
+/**
+ * @group Core/Std
+ * @summary The default file name, after the date to the second: `iink-ts-2026-11-21T10-30-15`
+ * @remarks An ISO instant, so it reads the same in every locale, without the `:` file names refuse
+ */
+export const datedFileName = (date: Date = new Date()): string =>
+  `iink-ts-${date
+    .toISOString()
+    .replace(/\.\d+Z$/, "")
+    .replace(/:/g, "-")}`
