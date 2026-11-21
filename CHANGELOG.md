@@ -80,6 +80,11 @@ Full record: [changelog/5.1.0.md](changelog/5.1.0.md)
 **Recognition**
 - **Session package**: `WebSocketClient.exportPackage()` and `importPackage(bytes, partId)` save the server session as a `.iink` package and start a new session from it, stroke ids kept (server 4.6.0+, `supportsSessionPackage`) · [details](changelog/5.1.0.md#session-package-export-and-import)
 
+## 🐛 Bug fixes
+
+**Export**
+- `exportAs("text")` / `download("text")` added the id of a shape's block (`raw-content 31`) to the recognized text · [details](changelog/5.1.0.md#bug-fixes)
+
 # [v5.0.0](https://github.com/MyScript/iinkTS/tree/v5.0.0)
 
 Full record: [changelog/5.0.0.md](changelog/5.0.0.md)

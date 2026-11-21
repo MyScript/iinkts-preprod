@@ -117,6 +117,31 @@ describe("IIExportManager.ts", () => {
       expect(text).not.toContain("xx==2")
     })
 
+    test("should leave out the shapes, which are no text", async () => {
+      // A shape's block has no label: the id it falls back to ("raw-content 31") used to end up in
+      // the text, and in the session file name derived from it
+      const canvas = buildCanvas()
+      const strokeWithId = (id: string): void => {
+        const s = buildIIStroke()
+        s.id = id
+        canvas.model.addSymbol(s)
+      }
+      strokeWithId("word")
+      strokeWithId("line")
+      const box = { x: 0, y: 0, width: 10, height: 10 }
+      canvas.model.mergeExport({
+        "application/vnd.myscript.jiix": {
+          type: "Raw Content",
+          elements: [
+            { type: "Text", id: "text 1", label: "hello", "bounding-box": box, words: [{ label: "hello", items: [{ type: "stroke", id: "word" }] }] },
+            { type: "Edge", kind: "line", id: "raw-content 31", "bounding-box": { ...box, x: 50 }, items: [{ type: "stroke", id: "line" }] },
+          ],
+        } as never,
+      })
+
+      await expect(canvas.exportAs("text")).resolves.toBe("hello")
+    })
+
     test("should order extracted text by reading position, not draw order", async () => {
       const canvas = buildCanvas()
       const charFor = (label: string): TSymbolChar => ({

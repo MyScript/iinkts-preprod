@@ -1,6 +1,6 @@
 import type { TInteractiveInkCanvas } from "@/canvas"
 import type { TJIIXExport, WebSocketClient } from "@/client"
-import { ExportType } from "@/client"
+import { ExportType, JIIXElementType } from "@/client"
 import type { TBox } from "@/core"
 import { BoxOps } from "@/core"
 import { jiixToLLM, jiixToMarkdown, jiixToMermaid, jiixToPlantUML } from "@/export"
@@ -105,7 +105,9 @@ export class IIExportManager extends ExportManager {
         }
       } else if (isStroke(s)) {
         const element = this.canvas.jiix.getElementForStroke(s.id)
-        if (element && !seenElementIds.has(element.id)) {
+        // Only text and math are read: a shape has no label, its block id would stand in for one
+        const readable = element?.type === JIIXElementType.Text || element?.type === JIIXElementType.Math
+        if (element && readable && !seenElementIds.has(element.id)) {
           seenElementIds.add(element.id)
           const label = this.canvas.jiix.getBlockLabel(element.id)
           if (label) {
