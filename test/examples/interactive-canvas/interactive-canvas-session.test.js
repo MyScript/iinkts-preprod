@@ -137,7 +137,8 @@ test.describe("Interactive ink canvas session", () => {
  * The server drops a session after about an hour without activity. Here the recognition websocket
  * goes through `page.routeWebSocket`, a proxy to the real server: once `server.lost` is set, it
  * answers the client's `restoreSession` as the server does for an expired session, without
- * passing it on. Everything else, the package import included, reaches the real server.
+ * passing it on (only reached with `serverSideRecovery: true`; by default the client never sends
+ * it). Everything else, the package import included, reaches the real server.
  */
 test.describe("Interactive ink canvas session resumed once the server lost it", () => {
   const routes = []
@@ -194,6 +195,8 @@ test.describe("Interactive ink canvas session resumed once the server lost it", 
     const jiix = await callCanvasExport(page, JIIX)
 
     expect(sent).toContain("importPackage")
+    // serverSideRecovery is false by default: the server did not save the session, never ask it back
+    expect(sent).not.toContain("restoreSession")
     expect(jiix.elements).toHaveLength(1)
     expect(jiix.elements[0].label).toEqual(madrid.exports[JIIX].label)
     // Resumed, not an error

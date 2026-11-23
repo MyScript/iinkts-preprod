@@ -632,10 +632,18 @@ export class WebSocketClient {
     this.sendOnSocket({
       type: this.sessionId ? "restoreSession" : "initSession",
       iinkSessionId: this.sessionId,
+      ...this.sessionStartFields(),
+    })
+  }
+
+  /** Fields of the messages starting a session; serverSideRecovery only when off, unknown to older servers */
+  protected sessionStartFields(): Record<string, unknown> {
+    return {
       scaleX: PX_TO_MM_RATIO,
       scaleY: PX_TO_MM_RATIO,
       configuration: this.configuration.recognition,
-    })
+      ...(this.configuration.server.serverSideRecovery === false && { serverSideRecovery: false }),
+    }
   }
 
   /** Raw bytes per importPackageChunk: base64 turns 3 bytes into 4 characters */
@@ -650,9 +658,7 @@ export class WebSocketClient {
       type: "importPackage",
       importId,
       size: sessionPackage.length,
-      scaleX: PX_TO_MM_RATIO,
-      scaleY: PX_TO_MM_RATIO,
-      configuration: this.configuration.recognition,
+      ...this.sessionStartFields(),
     })
     const chunkSize = this.packageChunkSize
     const chunkCount = Math.max(1, Math.ceil(sessionPackage.length / chunkSize))
@@ -853,14 +859,25 @@ export class WebSocketClient {
     return this.connectingPromise
   }
 
+  /** The server session is gone: the next one starts from the recovery package if any, else empty */
+  protected forgetServerSession(): void {
+    this.sessionId = undefined
+    this.currentPartId = undefined
+    if (this.sessionRecovery) {
+      this.lostSession = { packageTried: false }
+    }
+  }
+
   protected async connect(): Promise<void> {
     this.event.emitStartInitialization()
     if (this.currentErrorCode === "restore.session.not.found") {
       this.currentErrorCode = undefined
-      this.sessionId = undefined
-      this.currentPartId = undefined
-      if (this.sessionRecovery) {
-        this.lostSession = { packageTried: false }
+      this.forgetServerSession()
+    } else if (this.sessionId && this.configuration.server.serverSideRecovery === false) {
+      // The server did not save it: never restoreSession, resume from the local snapshot instead
+      this.forgetServerSession()
+      if (!this.sessionRecovery) {
+        this.event.emitError(new Error(ClientError.NO_SESSION_FOUND))
       }
     }
     if (this.lostSession) {

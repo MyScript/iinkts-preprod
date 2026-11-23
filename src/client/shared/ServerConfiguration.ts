@@ -46,6 +46,17 @@ export const DefaultServerHTTPConfiguration: TServerHTTPConfiguration = {
  * @group Client
  */
 export type TServerWebsocketConfiguration = TServerHTTPConfiguration & {
+  /**
+   * `WebSocketClient` only, server 4.6.0 or later. `false` asks the server not to save the session
+   * (no server autosave, `restoreSession` unavailable): the client alone keeps it, through the
+   * session package (`canvas.session` snapshots, `configuration.persistence`). After a drop, the
+   * client then never sends `restoreSession`: it starts a new session from the last snapshot
+   * (without session recovery, an empty one, and reports the session lost). Left out of the messages unless `false`, so a server
+   * that does not know it still accepts the session; `true` or unset lets the server save and
+   * restore it.
+   * @defaultValue false
+   */
+  serverSideRecovery?: boolean
   websocket: {
     pingEnabled: boolean
     pingDelay: number
@@ -74,6 +85,7 @@ export type TServerWebsocketConfiguration = TServerHTTPConfiguration & {
  */
 export const DefaultServerWebsocketConfiguration: TServerWebsocketConfiguration = {
   ...DefaultServerHTTPConfiguration,
+  serverSideRecovery: false,
   websocket: {
     pingEnabled: true,
     pingDelay: 15000,

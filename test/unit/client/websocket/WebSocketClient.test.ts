@@ -654,6 +654,8 @@ describe("WebSocketClient.ts", () => {
   describe("offline queue", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "offline-queue-test"
+    // The server keeps the session: a reconnection restores it
+    conf.server.serverSideRecovery = true
     conf.server.websocket.autoReconnect = true
     conf.server.websocket.reconnectDelay = 50
     conf.server.websocket.maxReconnectAttempts = 5
@@ -1857,10 +1859,55 @@ describe("WebSocketClient.ts", () => {
     })
   })
 
+  describe("serverSideRecovery", () => {
+    const sessionPackage = new Uint8Array(10)
+    const firstMessage = (mockServer: ServerWebSocketMock, type: string) =>
+      JSON.parse(mockServer.getMessages(type)[0] as string) as Record<string, unknown>
+    let mockServer: ServerWebSocketMock
+    let wsClient: WebSocketClient
+
+    const start = (serverSideRecovery?: boolean) => {
+      const conf = structuredClone(configuration)
+      conf.server.host = "server-side-recovery-test"
+      conf.server.version = "4.6.0"
+      conf.server.serverSideRecovery = serverSideRecovery
+      wsClient = new WebSocketClient(conf)
+      mockServer = new ServerWebSocketMock(wsClient.url)
+      mockServer.init()
+    }
+    afterEach(async () => {
+      await wsClient.destroy()
+      mockServer.close()
+    })
+
+    test("should leave the field out when unset, so a server without it still accepts the session", async () => {
+      start()
+      await wsClient.init()
+      await wsClient.importPackage(sessionPackage, "part-1")
+      expect(firstMessage(mockServer, "initSession")).not.toHaveProperty("serverSideRecovery")
+      expect(firstMessage(mockServer, "importPackage")).not.toHaveProperty("serverSideRecovery")
+    })
+
+    test("should leave the field out when set to true, the server default", async () => {
+      start(true)
+      await wsClient.init()
+      expect(firstMessage(mockServer, "initSession")).not.toHaveProperty("serverSideRecovery")
+    })
+
+    test("should ask initSession and importPackage for no server side recovery when set to false", async () => {
+      start(false)
+      await wsClient.init()
+      await wsClient.importPackage(sessionPackage, "part-1")
+      expect(firstMessage(mockServer, "initSession")).toHaveProperty("serverSideRecovery", false)
+      expect(firstMessage(mockServer, "importPackage")).toHaveProperty("serverSideRecovery", false)
+    })
+  })
+
   describe("importPackage", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "import-package-test"
     conf.server.version = "4.6.0"
+    conf.server.serverSideRecovery = true
     const sessionPackage = new Uint8Array(100).map((_, i) => i)
     const parse = (messages: unknown[]) => messages.map((m) => JSON.parse(m as string) as TWebSocketClientMessage)
     let mockServer: ServerWebSocketMock
@@ -2081,6 +2128,52 @@ describe("WebSocketClient.ts", () => {
       await wsClient.send({ type: "probe" }).then(() => order.push("waiting request sent"))
 
       expect(order).toEqual(["recover start", "recover end", "waiting request sent"])
+    })
+
+    describe("without server side recovery", () => {
+      /** Connects, then drops the connection; the server still has the session, but it may not be restored */
+      const dropConnection = async () => {
+        wsClient = new WebSocketClient({ ...conf, server: { ...conf.server, serverSideRecovery: false } })
+        wsClient.event.emitError = jest.fn()
+        mockServer = new ServerWebSocketMock(wsClient.url)
+        mockServer.init({ withHMAC: true, withIdle: true })
+        await wsClient.init()
+        const [client] = mockServer.server.clients()
+        client.close({ code: 1006, reason: "network drop", wasClean: false })
+        await delay(10)
+        return mockServer.messages.length
+      }
+
+      test("should resume from the local snapshot instead of restoring the session", async () => {
+        const recovery = recoveryWith(savedPackage)
+        await wsClient.destroy()
+        const sentBeforeDrop = await dropConnection()
+        wsClient.setSessionRecovery(recovery)
+
+        await wsClient.send({ type: "probe" })
+        //¯\_(ツ)_/¯  required to wait server received message
+        await delay(100)
+
+        const sent = types().slice(sentBeforeDrop)
+        expect(sent).not.toContain("restoreSession")
+        expect(sent).toContain("importPackage")
+        expect(recovery.recover).toHaveBeenCalledWith(true)
+        expect(wsClient.event.emitError).not.toHaveBeenCalled()
+      })
+
+      test("should start a new session and report the loss without recovery", async () => {
+        await wsClient.destroy()
+        const sentBeforeDrop = await dropConnection()
+
+        await wsClient.send({ type: "probe" })
+        //¯\_(ツ)_/¯  required to wait server received message
+        await delay(100)
+
+        const sent = types().slice(sentBeforeDrop)
+        expect(sent).not.toContain("restoreSession")
+        expect(sent).toContain("initSession")
+        expect(wsClient.event.emitError).toHaveBeenCalledWith(new Error(ClientError.NO_SESSION_FOUND))
+      })
     })
 
     test("should still report the lost session without recovery", async () => {
