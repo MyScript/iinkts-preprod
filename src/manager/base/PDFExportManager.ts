@@ -269,13 +269,15 @@ export class PDFExportManager {
    */
   openExportDialog(onConfirm: (options: TPDFExportDialogOptions) => void, onCancel?: () => void): void {
     const defaults = PDFExportManager.DEFAULT_OPTIONS
+    const { i18n } = this.canvas
     const modal = new Modal({
-      title: "Export as PDF",
+      title: i18n.t("pdf.title"),
+      i18n,
       container: this.canvas.layers.root,
       fields: [
         {
           id: DIALOG_FIELD_IDS.format,
-          label: "Page format",
+          label: i18n.t("pdf.pageFormat"),
           type: "select",
           defaultValue: defaults.format,
           options: [
@@ -286,34 +288,34 @@ export class PDFExportManager {
         },
         {
           id: DIALOG_FIELD_IDS.orientation,
-          label: "Orientation",
+          label: i18n.t("pdf.orientation"),
           type: "select",
           defaultValue: defaults.orientation,
           options: [
-            { value: "portrait", label: "Portrait" },
-            { value: "landscape", label: "Landscape" },
+            { value: "portrait", label: i18n.t("pdf.portrait") },
+            { value: "landscape", label: i18n.t("pdf.landscape") },
           ],
         },
         {
           id: DIALOG_FIELD_IDS.mode,
-          label: "Page mode",
+          label: i18n.t("pdf.pageMode"),
           type: "select",
           defaultValue: defaults.mode,
           options: [
-            { value: "single", label: "Single page (fit to page)" },
-            { value: "multi", label: "Multi-page (tiled)" },
+            { value: "single", label: i18n.t("pdf.single") },
+            { value: "multi", label: i18n.t("pdf.multi") },
           ],
         },
         {
           id: DIALOG_FIELD_IDS.scale,
-          label: "Scale (%)",
+          label: i18n.t("pdf.scale"),
           type: "number",
           defaultValue: defaults.scale,
         },
       ],
       buttons: [
         {
-          label: "Cancel",
+          label: i18n.t("common.cancel"),
           variant: "secondary",
           onClick: () => {
             modal.destroy()
@@ -321,7 +323,7 @@ export class PDFExportManager {
           },
         },
         {
-          label: "Export",
+          label: i18n.t("common.export"),
           variant: "primary",
           onClick: () => {
             const options = this.#readDialogOptions()

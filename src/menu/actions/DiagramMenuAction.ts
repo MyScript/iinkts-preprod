@@ -13,14 +13,14 @@ export class DiagramMenuAction extends SubMenuItem {
     const config: TMenuSubMenu = {
       type: "submenu",
       id: `${idPrefix}-diagram`,
-      label: "Diagram",
-      menuTitle: "Diagram",
+      label: canvas.i18n.t("menu.action.diagram"),
+      menuTitle: canvas.i18n.t("menu.action.diagram"),
       position: "right-top",
       items: [
         {
           type: "checkbox",
           id: `${idPrefix}-diagram-follow-connected-edges`,
-          label: "Follow connected edges",
+          label: canvas.i18n.t("menu.action.diagram.followEdges"),
           getValue: (canvas) => canvas.connector.connectorConfiguration.followConnectedEdges,
           setValue: (canvas, value) => {
             canvas.connector.connectorConfiguration.followConnectedEdges = value

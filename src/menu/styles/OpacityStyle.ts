@@ -16,7 +16,7 @@ export class OpacityStyle extends BaseMenuItem<HTMLDivElement> {
     const config = {
       type: "opacity" as const,
       id: `${idPrefix}-opacity`,
-      label: "Opacity",
+      label: canvas.i18n.t("menu.style.opacity"),
       visible: (canvas: TInteractiveInkCanvas) => [CanvasTool.Write, CanvasTool.Select].includes(canvas.tool),
     }
     super(config, canvas)
@@ -50,7 +50,11 @@ export class OpacityStyle extends BaseMenuItem<HTMLDivElement> {
 
     this.opacityItem = new RangeMenuItem(opacityConfig, this.canvas)
     const opacityElement = this.opacityItem.getElement()
-    const wrapper = new CollapsibleWrapper(opacityElement, "Opacity", this.config.id)
+    const wrapper = new CollapsibleWrapper(
+      opacityElement,
+      this.canvas.i18n.t("menu.style.section.opacity"),
+      this.config.id
+    )
     return wrapper.getElement()
   }
 

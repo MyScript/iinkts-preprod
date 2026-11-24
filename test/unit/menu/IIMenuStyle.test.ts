@@ -10,6 +10,17 @@ describe("IIMenuStyle.ts", () => {
     expect(menu).toBeDefined()
   })
 
+  test("should show the section titles in the recognition language", () => {
+    const canvas = createCanvasMock()
+    canvas.tool = CanvasTool.Select
+    canvas.i18n.setLanguage("fr_FR")
+    const layer = document.createElement("div")
+    new IIMenuStyle(asCanvas(canvas)).render(layer)
+    const titles = [...layer.querySelectorAll(".collapsible-header")].map((h) => h.firstChild?.textContent)
+    expect(titles).toEqual(expect.arrayContaining(["Couleurs", "Épaisseur", "Opacité"]))
+    expect(titles).not.toContain("Thickness")
+  })
+
   describe("render", () => {
     const canvas = createCanvasMock()
     const menu = new IIMenuStyle(asCanvas(canvas))

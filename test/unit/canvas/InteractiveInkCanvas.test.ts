@@ -996,6 +996,25 @@ describe("InteractiveInkCanvas.ts", () => {
     })
   })
 
+  describe("i18n", () => {
+    test("should show the UI in the configured recognition language", () => {
+      const options = structuredClone(CanvasOptions)
+      options.configuration!.recognition = { lang: "fr_FR" }
+      const canvas = new InteractiveInkCanvas(document.createElement("div"), options)
+      expect(canvas.i18n.language).toEqual("fr_FR")
+      expect(canvas.i18n.t("menu.action.clear")).toEqual("Effacer")
+    })
+
+    test("should show the labels given in the configuration over the built-in ones", () => {
+      const options = structuredClone(CanvasOptions)
+      options.configuration!.recognition = { lang: "fr_FR" }
+      options.configuration!.translations = { fr: { "menu.action.clear": "Tout effacer", "my.label": "Le mien" } }
+      const canvas = new InteractiveInkCanvas(document.createElement("div"), options)
+      expect(canvas.i18n.t("menu.action.clear")).toEqual("Tout effacer")
+      expect(canvas.i18n.t("my.label")).toEqual("Le mien")
+    })
+  })
+
   describe("updateRecognitionConfiguration", () => {
     const buildCanvas = async () => {
       const canvas = new InteractiveInkCanvas(document.createElement("div"), structuredClone(CanvasOptions))
@@ -1256,6 +1275,50 @@ describe("InteractiveInkCanvas.ts", () => {
       await expect(first).rejects.toThrow("boom")
       await expect(second).resolves.toBeUndefined()
       expect(canvas.configuration.recognition.lang).toEqual("de_DE")
+    })
+
+    test("should show the UI in the recognition language once the new session is open", async () => {
+      const canvas = await buildCanvas()
+
+      await canvas.updateRecognitionConfiguration({ lang: "fr_FR" })
+
+      expect(canvas.i18n.language).toEqual("fr_FR")
+      expect(canvas.i18n.t("menu.action.clear")).toEqual("Effacer")
+    })
+
+    test("should veil the canvas while a new session opens, not while the configuration of the session changes", async () => {
+      const canvas = await buildCanvas()
+      canvas.layers.showVeil = jest.fn()
+      canvas.layers.hideVeil = jest.fn()
+
+      await canvas.updateRecognitionConfiguration({ math: { solver: { "angle-unit": "deg" } } })
+      expect(canvas.layers.showVeil).not.toHaveBeenCalled()
+
+      await canvas.updateRecognitionConfiguration({ lang: "fr_FR" })
+      expect(canvas.layers.showVeil).toHaveBeenCalledTimes(1)
+      expect(canvas.layers.hideVeil).toHaveBeenCalledTimes(1)
+    })
+
+    test("should lift the veil when the new session fails", async () => {
+      const canvas = await buildCanvas()
+      canvas.layers.hideVeil = jest.fn()
+      canvas.client.newSession = jest.fn(() => Promise.reject(new Error("refused")))
+      canvas.event.addErrorListener(jest.fn())
+
+      await expect(canvas.updateRecognitionConfiguration({ lang: "fr_FR" })).rejects.toThrow("refused")
+
+      expect(canvas.layers.hideVeil).toHaveBeenCalledTimes(1)
+    })
+
+    test("should keep the UI language when the new session fails", async () => {
+      const canvas = await buildCanvas()
+      const before = canvas.i18n.language
+      canvas.client.newSession = jest.fn(() => Promise.reject(new Error("refused")))
+      canvas.event.addErrorListener(jest.fn())
+
+      await expect(canvas.updateRecognitionConfiguration({ lang: "fr_FR" })).rejects.toThrow("refused")
+
+      expect(canvas.i18n.language).toEqual(before)
     })
 
     test("should restore the previous configuration and rethrow when the resynchronization fails", async () => {

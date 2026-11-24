@@ -17,7 +17,7 @@ export class FillColorStyle extends BaseMenuItem<HTMLDivElement> {
     const config = {
       type: "fillcolor" as const,
       id: `${idPrefix}-fill`,
-      label: "Fill Color",
+      label: canvas.i18n.t("menu.style.fillColor"),
       visible: (canvas: TInteractiveInkCanvas) => {
         const writeShape = [
           CanvasWriteTool.Rectangle,
@@ -57,7 +57,7 @@ export class FillColorStyle extends BaseMenuItem<HTMLDivElement> {
 
     this.colorItem = new ColorListMenuItem(colorConfig, this.canvas)
     const colorElement = this.colorItem.getElement()
-    const wrapper = new CollapsibleWrapper(colorElement, "Fill", this.config.id)
+    const wrapper = new CollapsibleWrapper(colorElement, this.canvas.i18n.t("menu.style.section.fill"), this.config.id)
     return wrapper.getElement()
   }
 

@@ -193,6 +193,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
 
     registerBuiltinSymbolUtils()
     this.#configuration = new InteractiveInkCanvasConfiguration(options?.configuration)
+    this.i18n.setLanguage(this.#configuration.recognition.lang)
     this.#penStyle = Object.assign({}, this.#configuration.penStyle)
     const Client = options?.override?.client ?? WebSocketClient
     this.client = new Client(this.#configuration)
@@ -527,11 +528,20 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
       this.logger.info("updateRecognitionConfiguration", { override })
       this.readOnly = true
       overrideDeep(this.configuration.recognition, override)
+      // A new session resends every stroke, which can take seconds: show the canvas is busy
+      if (isLangChanged) {
+        this.layers.showVeil()
+      }
       await this.#resynchronizeSession(isLangChanged)
+      // The UI follows the recognition language only once the server accepted it
+      this.i18n.setLanguage(this.configuration.recognition.lang)
     } catch (error) {
       this.configuration.recognition = snapshot
       this.#reportAndThrow("updateRecognitionConfiguration", error)
     } finally {
+      if (isLangChanged) {
+        this.layers.hideVeil()
+      }
       this.readOnly = wasReadOnly
       this.updateLayerUI()
     }

@@ -17,7 +17,7 @@ export class StrokeColorStyle extends BaseMenuItem<HTMLDivElement> {
     const config = {
       type: "strokecolor" as const,
       id: `${idPrefix}-color`,
-      label: "Stroke Color",
+      label: canvas.i18n.t("menu.style.strokeColor"),
       visible: (canvas: TInteractiveInkCanvas) => [CanvasTool.Write, CanvasTool.Select].includes(canvas.tool),
     }
     super(config, canvas)
@@ -33,7 +33,7 @@ export class StrokeColorStyle extends BaseMenuItem<HTMLDivElement> {
     const colorConfig: TMenuColorList = {
       type: "colorlist",
       id: `${this.config.id}-list`,
-      label: "Colors",
+      label: this.canvas.i18n.t("common.colors"),
       fill: false,
       colors: this.colors,
       initValue: color,
@@ -48,7 +48,11 @@ export class StrokeColorStyle extends BaseMenuItem<HTMLDivElement> {
 
     this.colorItem = new ColorListMenuItem(colorConfig, this.canvas)
     const colorElement = this.colorItem.getElement()
-    const wrapper = new CollapsibleWrapper(colorElement, "Colors", this.config.id)
+    const wrapper = new CollapsibleWrapper(
+      colorElement,
+      this.canvas.i18n.t("menu.style.section.colors"),
+      this.config.id
+    )
     return wrapper.getElement()
   }
 

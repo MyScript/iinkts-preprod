@@ -23,8 +23,8 @@ export class SnapMenuAction extends SubMenuItem {
     const config: TMenuSubMenu = {
       type: "submenu",
       id: `${idPrefix}-snap`,
-      label: "Snap",
-      menuTitle: "Snap",
+      label: canvas.i18n.t("menu.action.snap"),
+      menuTitle: canvas.i18n.t("menu.action.snap"),
       position: "right-top",
       items: [],
     }
@@ -33,7 +33,7 @@ export class SnapMenuAction extends SubMenuItem {
       config.items.push({
         type: "checkbox",
         id: `${idPrefix}-snap-to-guide`,
-        label: "Snap to guide",
+        label: canvas.i18n.t("menu.action.snap.guide"),
         getValue: (canvas) => canvas.snaps.snapConfiguration.guide,
         setValue: (canvas, value) => {
           canvas.snaps.snapConfiguration.guide = value
@@ -45,7 +45,7 @@ export class SnapMenuAction extends SubMenuItem {
       config.items.push({
         type: "checkbox",
         id: `${idPrefix}-snap-to-element`,
-        label: "Snap to element",
+        label: canvas.i18n.t("menu.action.snap.element"),
         getValue: (canvas) => canvas.snaps.snapConfiguration.symbol,
         setValue: (canvas, value) => {
           canvas.snaps.snapConfiguration.symbol = value
@@ -57,9 +57,9 @@ export class SnapMenuAction extends SubMenuItem {
       config.items.push({
         type: "select",
         id: `${idPrefix}-snap-angle`,
-        label: "Snap angle",
+        label: canvas.i18n.t("menu.action.snap.angle"),
         options: [
-          { label: "None", value: "0" },
+          { label: canvas.i18n.t("common.none"), value: "0" },
           { label: "10°", value: "10" },
           { label: "30°", value: "30" },
           { label: "45°", value: "45" },

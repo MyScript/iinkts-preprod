@@ -29,7 +29,7 @@ export class FontSizeStyle extends BaseMenuItem<HTMLDivElement> {
     const config = {
       type: "fontsize" as const,
       id: `${idPrefix}-font-size`,
-      label: "Font Size",
+      label: canvas.i18n.t("menu.style.fontSize"),
       visible: (canvas: TInteractiveInkCanvas) => [CanvasTool.Write, CanvasTool.Select].includes(canvas.tool),
     }
     super(config, canvas)
@@ -42,7 +42,7 @@ export class FontSizeStyle extends BaseMenuItem<HTMLDivElement> {
       type: "buttonlist",
       id: this.config.id,
       options: this.fontSizeList.map((f) => ({
-        label: f.label,
+        label: this.canvas.i18n.t(f.label),
         value: f.value.toString(),
       })),
       getValue: (canvas) => canvas.configuration.fontStyle.size.toString(),
@@ -64,7 +64,11 @@ export class FontSizeStyle extends BaseMenuItem<HTMLDivElement> {
 
     this.fontSizeItem = new ButtonListMenuItem(fontSizeConfig, this.canvas)
     const fontSizeElement = this.fontSizeItem.getElement()
-    const wrapper = new CollapsibleWrapper(fontSizeElement, "Font size", this.config.id)
+    const wrapper = new CollapsibleWrapper(
+      fontSizeElement,
+      this.canvas.i18n.t("menu.style.section.fontSize"),
+      this.config.id
+    )
     return wrapper.getElement()
   }
 

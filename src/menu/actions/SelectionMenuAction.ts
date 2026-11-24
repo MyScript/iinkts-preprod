@@ -23,8 +23,8 @@ export class SelectionMenuAction extends SubMenuItem {
     const config: TMenuSubMenu = {
       type: "submenu",
       id: `${idPrefix}-selection`,
-      label: "Selection",
-      menuTitle: "Selection",
+      label: canvas.i18n.t("menu.action.selection"),
+      menuTitle: canvas.i18n.t("menu.action.selection"),
       position: "right-top",
       items: [],
     }
@@ -33,11 +33,11 @@ export class SelectionMenuAction extends SubMenuItem {
       config.items.push({
         type: "select",
         id: `${idPrefix}-selection-text-level`,
-        label: "Text selection",
+        label: canvas.i18n.t("menu.action.selection.text"),
         options: [
-          { label: "Element", value: "element" },
-          { label: "Word", value: "word" },
-          { label: "Character", value: "char" },
+          { label: canvas.i18n.t("common.element"), value: "element" },
+          { label: canvas.i18n.t("menu.action.selection.word"), value: "word" },
+          { label: canvas.i18n.t("menu.action.selection.character"), value: "char" },
         ],
         getValue: (canvas: TInteractiveInkCanvas) => canvas.configuration.selection.textLevel,
         setValue: (canvas: TInteractiveInkCanvas, value: string) => {
@@ -50,10 +50,10 @@ export class SelectionMenuAction extends SubMenuItem {
       config.items.push({
         type: "select",
         id: `${idPrefix}-selection-math-level`,
-        label: "Math selection",
+        label: canvas.i18n.t("menu.action.selection.math"),
         options: [
-          { label: "Element", value: "element" },
-          { label: "Operand", value: "operand" },
+          { label: canvas.i18n.t("common.element"), value: "element" },
+          { label: canvas.i18n.t("menu.action.selection.operand"), value: "operand" },
         ],
         getValue: (canvas: TInteractiveInkCanvas) => canvas.configuration.selection.mathLevel,
         setValue: (canvas: TInteractiveInkCanvas, value: string) => {
@@ -66,10 +66,10 @@ export class SelectionMenuAction extends SubMenuItem {
       config.items.push({
         type: "select",
         id: `${idPrefix}-selection-shape-level`,
-        label: "Shape selection",
+        label: canvas.i18n.t("menu.action.selection.shape"),
         options: [
-          { label: "Element", value: "element" },
-          { label: "Stroke", value: "stroke" },
+          { label: canvas.i18n.t("common.element"), value: "element" },
+          { label: canvas.i18n.t("menu.action.selection.stroke"), value: "stroke" },
         ],
         getValue: (canvas: TInteractiveInkCanvas) => canvas.configuration.selection.shapeLevel,
         setValue: (canvas: TInteractiveInkCanvas, value: string) => {

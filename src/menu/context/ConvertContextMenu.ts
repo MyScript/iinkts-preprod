@@ -12,7 +12,7 @@ export class ConvertContextMenu extends ButtonMenuItem {
     const config: TMenuButton = {
       type: "button",
       id: `${idPrefix}-convert`,
-      label: "Convert",
+      label: canvas.i18n.t("menu.context.convert"),
       action: (canvas: TInteractiveInkCanvas) => {
         const symbolsSelected = canvas.model.symbolsSelected
         canvas.convert(symbolsSelected)

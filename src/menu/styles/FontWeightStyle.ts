@@ -27,7 +27,7 @@ export class FontWeightStyle extends BaseMenuItem<HTMLDivElement> {
     const config = {
       type: "fontweight" as const,
       id: `${idPrefix}-font-weight`,
-      label: "Font Weight",
+      label: canvas.i18n.t("menu.style.fontWeight"),
       visible: (canvas: TInteractiveInkCanvas) => [CanvasTool.Write, CanvasTool.Select].includes(canvas.tool),
     }
     super(config, canvas)
@@ -39,7 +39,7 @@ export class FontWeightStyle extends BaseMenuItem<HTMLDivElement> {
       type: "buttonlist",
       id: this.config.id,
       options: this.fontWeightList.map((f) => ({
-        label: f.label,
+        label: this.canvas.i18n.t(f.label),
         value: f.value,
       })),
       getValue: (canvas) => canvas.configuration.fontStyle.weight,
@@ -58,7 +58,11 @@ export class FontWeightStyle extends BaseMenuItem<HTMLDivElement> {
 
     this.fontWeightItem = new ButtonListMenuItem(fontWeightConfig, this.canvas)
     const fontWeightElement = this.fontWeightItem.getElement()
-    const wrapper = new CollapsibleWrapper(fontWeightElement, "Font weight", this.config.id)
+    const wrapper = new CollapsibleWrapper(
+      fontWeightElement,
+      this.canvas.i18n.t("menu.style.section.fontWeight"),
+      this.config.id
+    )
     return wrapper.getElement()
   }
 

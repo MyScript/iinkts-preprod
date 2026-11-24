@@ -77,6 +77,7 @@ export class InkCanvas extends AbstractCanvas implements TInkCanvas {
 
     registerBuiltinSymbolUtils()
     this.#configuration = new InkCanvasConfiguration(options?.configuration)
+    this.i18n.setLanguage(this.#configuration.recognition.lang)
 
     this.#penStyle = Object.assign({}, this.#configuration.penStyle)
 

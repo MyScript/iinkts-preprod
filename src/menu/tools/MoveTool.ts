@@ -14,7 +14,7 @@ export class MoveTool extends ButtonMenuItem {
     const config: TMenuButton = {
       type: "button",
       id: `${idPrefix}-move`,
-      label: "Move",
+      label: canvas.i18n.t("menu.tool.move"),
       icon: handIcon,
       action: (canvas: TInteractiveInkCanvas) => {
         canvas.tool = CanvasTool.Move

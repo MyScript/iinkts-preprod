@@ -1,6 +1,8 @@
 import type { TConnectionStatus, TServerHTTPConfiguration } from "@/client"
 import { getApiInfos, type TApiInfos } from "@/client"
 import type { TPartialDeep } from "@/core"
+import type { TTranslationsConfiguration } from "@/i18n"
+import { Translator } from "@/i18n"
 import type { TLoggerConfiguration } from "@/logger"
 import { DefaultLoggerConfiguration, LoggerCategory, LoggerManager } from "@/logger"
 import type { TLayoutConfiguration } from "@/manager"
@@ -23,6 +25,11 @@ export type TCanvasConfiguration = {
   }
   /** Where the menus, the connection state and the minimap sit; see {@link TLayoutConfiguration} */
   layout?: TLayoutConfiguration
+  /**
+   * Labels to add or override, by language code (`fr`, `fr_FR`): the UI shows them in the recognition language,
+   * see {@link Translator}
+   */
+  translations?: TTranslationsConfiguration
 }
 
 /**
@@ -59,6 +66,8 @@ export abstract class AbstractCanvas {
   layers: CanvasLayer
   /** Event bus for subscribing to canvas lifecycle and content events. */
   event: CanvasEvent
+  /** Translates the labels of the UI into the recognition language; add or override labels with `i18n.add`. */
+  i18n: Translator
   /** Server API information (version, etc.) loaded on first connection. */
   info?: TApiInfos
 
@@ -83,7 +92,8 @@ export abstract class AbstractCanvas {
     })
 
     this.event = new CanvasEvent(rootElement)
-    this.layers = new CanvasLayer(rootElement, options?.override?.cssClass || "ms-ink")
+    this.i18n = new Translator(options?.configuration?.translations)
+    this.layers = new CanvasLayer(rootElement, options?.override?.cssClass || "ms-ink", this.i18n)
     if (options?.configuration?.ui?.showConnectionState === false) {
       this.layers.ui.state.root.style.display = "none"
     }

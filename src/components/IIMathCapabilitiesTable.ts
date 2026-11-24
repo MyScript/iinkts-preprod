@@ -85,7 +85,7 @@ export class IIMathCapabilitiesTable {
       // Symbol label cell
       const symbolCell = DOMFactory.span({
         className: "ms-symbol-cell",
-        text: this.canvas.jiix.getBlockLabel(cap.jiixBlockId) || "Unknown Symbol",
+        text: this.canvas.jiix.getBlockLabel(cap.jiixBlockId) || this.canvas.i18n.t("math.capabilities.unknownSymbol"),
       })
       symbolCell.title = this.canvas.jiix.getBlockLabel(cap.jiixBlockId) || ""
 
@@ -105,21 +105,21 @@ export class IIMathCapabilitiesTable {
     // Create table
     const table = new Table({
       columns: [
-        { header: "Symbol", align: "left" },
+        { header: this.canvas.i18n.t("math.capabilities.symbol"), align: "left" },
         {
-          header: "Check Diagnostic",
+          header: this.canvas.i18n.t("math.checkDiagnostic"),
           align: "center",
         },
         {
-          header: "Edit Variables",
+          header: this.canvas.i18n.t("math.editVariables"),
           align: "center",
         },
         {
-          header: "Compute Result",
+          header: this.canvas.i18n.t("math.computeResult"),
           align: "center",
         },
         {
-          header: "Evaluate Function",
+          header: this.canvas.i18n.t("math.evaluateFunction"),
           align: "center",
         },
       ],
@@ -204,25 +204,25 @@ export class IIMathCapabilitiesTable {
     // Define button configurations
     const buttonConfigs: TButtonElConfig[] = [
       {
-        label: "Check Diagnostic",
+        label: this.canvas.i18n.t("math.checkDiagnostic"),
         variant: "primary",
         onClick: () => this.executeCheckDiagnostic(),
         id: "checkDiagnostic",
       },
       {
-        label: "Edit Variables",
+        label: this.canvas.i18n.t("math.editVariables"),
         variant: "secondary",
         onClick: () => this.executeEditVariables(),
         id: "editVariables",
       },
       {
-        label: "Compute Result",
+        label: this.canvas.i18n.t("math.computeResult"),
         variant: "success",
         onClick: () => this.executeComputeResult(),
         id: "computeResult",
       },
       {
-        label: "Evaluate Function",
+        label: this.canvas.i18n.t("math.evaluateFunction"),
         variant: "info",
         onClick: () => this.executeEvaluateFunction(),
         id: "evaluateFunction",
@@ -365,10 +365,11 @@ export class IIMathCapabilitiesTable {
 
     // Show modal
     this.modal = new Modal({
-      title: `Math Symbols Capabilities (${mathBlocks.length} symbols)`,
+      title: this.canvas.i18n.t("math.capabilities.title", { count: mathBlocks.length }),
       fields: [],
       customContent: container,
       container: this.canvas.layers.ui.root,
+      i18n: this.canvas.i18n,
     })
     this.modal.open()
   }

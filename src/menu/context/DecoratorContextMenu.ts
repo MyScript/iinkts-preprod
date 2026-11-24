@@ -36,7 +36,7 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement> {
     } = {
       type: "custom",
       id: `${idPrefix}-decorator`,
-      label: "Decorator",
+      label: canvas.i18n.t("menu.context.decorator"),
       idPrefix,
     }
     super(config, canvas)
@@ -79,7 +79,7 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement> {
       className: ["ms-menu-item", "checkbox"],
     })
     const enableLabel = this.dom.span({
-      text: "Enable",
+      text: this.canvas.i18n.t("common.enable"),
     })
     enableWrapper.appendChild(enableLabel)
     const checkbox = this.dom.checkbox({
@@ -124,7 +124,7 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement> {
       className: ["ms-menu-item", "colors"],
     })
     const colorLabel = this.dom.span({
-      text: "Colors",
+      text: this.canvas.i18n.t("common.colors"),
     })
     colorWrapper.appendChild(colorLabel)
 
@@ -207,7 +207,7 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement> {
       id: this.config.id,
     })
     const label = this.dom.span({
-      text: "Decorator",
+      text: this.canvas.i18n.t("menu.context.decorator"),
     })
     trigger.appendChild(label)
     const icon = this.dom.span({})
@@ -221,16 +221,27 @@ export class DecoratorContextMenu extends BaseMenuItem<HTMLElement> {
     })
 
     if (enabled("highlight")) {
-      subMenuWrapper.appendChild(this.createDecoratorSubMenu("Highlight", DecoratorKind.Highlight))
+      subMenuWrapper.appendChild(
+        this.createDecoratorSubMenu(this.canvas.i18n.t("menu.context.decorator.highlight"), DecoratorKind.Highlight)
+      )
     }
     if (enabled("surround")) {
-      subMenuWrapper.appendChild(this.createDecoratorSubMenu("Surround", DecoratorKind.Surround))
+      subMenuWrapper.appendChild(
+        this.createDecoratorSubMenu(this.canvas.i18n.t("menu.context.decorator.surround"), DecoratorKind.Surround)
+      )
     }
     if (enabled("underline")) {
-      subMenuWrapper.appendChild(this.createDecoratorSubMenu("Underline", DecoratorKind.Underline))
+      subMenuWrapper.appendChild(
+        this.createDecoratorSubMenu(this.canvas.i18n.t("menu.context.decorator.underline"), DecoratorKind.Underline)
+      )
     }
     if (enabled("strikethrough")) {
-      subMenuWrapper.appendChild(this.createDecoratorSubMenu("Strikethrough", DecoratorKind.Strikethrough))
+      subMenuWrapper.appendChild(
+        this.createDecoratorSubMenu(
+          this.canvas.i18n.t("menu.context.decorator.strikethrough"),
+          DecoratorKind.Strikethrough
+        )
+      )
     }
 
     const wrapper = this.dom.div({

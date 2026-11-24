@@ -12,7 +12,7 @@ export class DuplicateContextMenu extends ButtonMenuItem {
     const config: TMenuButton = {
       type: "button",
       id: `${idPrefix}-duplicate`,
-      label: "Duplicate",
+      label: canvas.i18n.t("menu.context.duplicate"),
       action: async () => {
         const symbolsToDuplicate = this.canvas.model.symbolsSelected.slice()
         await this.canvas.duplicate(symbolsToDuplicate)

@@ -4,11 +4,15 @@ import syncIcon from "@/assets/svg/sync.svg"
 import warningTriangleIcon from "@/assets/svg/warning-triangle.svg"
 import wifiIcon from "@/assets/svg/wifi.svg"
 import wifiOffIcon from "@/assets/svg/wifi-off.svg"
+import { ClientError } from "@/client"
 import { DOMFactory } from "@/dom"
+import type { TTranslationKey } from "@/i18n"
+import { Translator } from "@/i18n"
 import style from "@/iink.css"
 import { Modal } from "@/ui"
 
 import type { TCanvasConnectionState } from "./CanvasEvent"
+import type { TCanvasOperationLabel } from "./TCanvasOperationLabel"
 
 /**
  * @group Canvas
@@ -39,14 +43,43 @@ export type TCanvasStateDetail = {
   activeOperations: string[]
 }
 
-const CONNECTION_STATE_INFO: Record<TCanvasConnectionState, { icon: string; tooltip: string }> = {
-  initializing: { icon: loadingRingIcon, tooltip: "Connecting…" },
-  "online-idle": { icon: wifiIcon, tooltip: "Connected" },
-  "online-working": { icon: loadingDotsIcon, tooltip: "Processing…" },
-  syncing: { icon: syncIcon, tooltip: "Reconnecting — strokes queued to send" },
-  offline: { icon: wifiOffIcon, tooltip: "Offline — reconnecting…" },
-  error: { icon: warningTriangleIcon, tooltip: "Sync failed — reconnection attempts exhausted" },
+const CONNECTION_STATE_INFO: Record<TCanvasConnectionState, { icon: string; tooltip: TTranslationKey }> = {
+  initializing: { icon: loadingRingIcon, tooltip: "canvas.state.initializing" },
+  "online-idle": { icon: wifiIcon, tooltip: "canvas.state.onlineIdle" },
+  "online-working": { icon: loadingDotsIcon, tooltip: "canvas.state.onlineWorking" },
+  syncing: { icon: syncIcon, tooltip: "canvas.state.syncing" },
+  offline: { icon: wifiOffIcon, tooltip: "canvas.state.offline" },
+  error: { icon: warningTriangleIcon, tooltip: "canvas.state.error" },
 }
+
+/** The messages the client gives its errors, to show them translated */
+const CLIENT_ERROR_KEYS = new Map<string, string>(
+  Object.entries(ClientError).map(([name, message]) => [message, `client.error.${name}`])
+)
+
+const OPERATION_LABEL_KEYS = new Map<string, TTranslationKey>(
+  Object.entries({
+    Recognizing: "canvas.operation.recognizing",
+    Writing: "canvas.operation.writing",
+    Translating: "canvas.operation.translating",
+    Resizing: "canvas.operation.resizing",
+    Rotating: "canvas.operation.rotating",
+    Synchronizing: "canvas.operation.synchronizing",
+    "Applying gesture": "canvas.operation.applyingGesture",
+    Converting: "canvas.operation.converting",
+    Computing: "canvas.operation.computing",
+    "Updating variables": "canvas.operation.updatingVariables",
+    "Loading variables": "canvas.operation.loadingVariables",
+    Evaluating: "canvas.operation.evaluating",
+    Checking: "canvas.operation.checking",
+    Exporting: "canvas.operation.exporting",
+    Importing: "canvas.operation.importing",
+    Undoing: "canvas.operation.undoing",
+    Redoing: "canvas.operation.redoing",
+    Clearing: "canvas.operation.clearing",
+    "Removing strokes": "canvas.operation.removingStrokes",
+  } satisfies Record<TCanvasOperationLabel, TTranslationKey>)
+)
 
 /**
  * @group Canvas
@@ -55,17 +88,31 @@ export class CanvasLayer {
   root: HTMLElement
   ui: TCanvasLayerUI
   rendering: HTMLElement
+  /** Covers the whole canvas, menus included, with a spinner while it cannot be used; see {@link showVeil} */
+  veil: HTMLDivElement
 
   onCloseModal?: (inError?: boolean) => void
+  /** Translates the badge tooltip and the message titles */
+  i18n: Translator
 
   #modal?: Modal
   #documentPointerdownHandler?: (e: PointerEvent) => void
+  #lastState?: { state: TCanvasConnectionState; detail: TCanvasStateDetail }
+  #veilTimer?: ReturnType<typeof setTimeout>
+  #unsubscribeI18n: () => void
 
-  constructor(root: HTMLElement, rootClassCss: string = "ms-ink") {
+  constructor(root: HTMLElement, rootClassCss: string = "ms-ink", i18n: Translator = new Translator()) {
     this.root = root
+    this.i18n = i18n
+    // The badge tooltip shows until the next state change: retranslate it at once
+    this.#unsubscribeI18n = i18n.onChange(
+      () => this.#lastState && this.updateCanvasState(this.#lastState.state, this.#lastState.detail)
+    )
     this.root.classList.add(rootClassCss)
     this.rendering = this.createLayerRender()
     this.ui = this.createLayerUI()
+    this.veil = DOMFactory.div({ className: "ms-ink-veil" })
+    this.veil.appendChild(DOMFactory.div({ className: "ms-ink-veil-spinner" }))
   }
 
   render(): void {
@@ -74,6 +121,22 @@ export class CanvasLayer {
 
     this.root.appendChild(this.rendering)
     this.root.appendChild(this.ui.root)
+    this.root.appendChild(this.veil)
+  }
+
+  /**
+   * Covers the canvas after `delay` ms, so that what ends sooner shows nothing rather than a flash.
+   * Only shows the canvas is busy: blocking the input is up to the caller.
+   */
+  showVeil(delay = 300): void {
+    clearTimeout(this.#veilTimer)
+    this.#veilTimer = setTimeout(() => this.veil.classList.add("open"), delay)
+  }
+
+  /** Lifts the veil, or cancels it while its delay runs */
+  hideVeil(): void {
+    clearTimeout(this.#veilTimer)
+    this.veil.classList.remove("open")
   }
 
   createLoader(): HTMLDivElement {
@@ -97,7 +160,8 @@ export class CanvasLayer {
   showMessageInfo(notif: { message: string; timeout?: number }): void {
     this.#modal?.destroySilent()
     this.#modal = new Modal({
-      title: "Info",
+      title: this.i18n.t("canvas.message.info"),
+      i18n: this.i18n,
       type: "info",
       fields: [],
       customContent: DOMFactory.p({
@@ -113,16 +177,23 @@ export class CanvasLayer {
   showMessageError(err: Error | string): void {
     this.#modal?.destroySilent()
     this.#modal = new Modal({
-      title: "Error",
+      title: this.i18n.t("canvas.message.error"),
+      i18n: this.i18n,
       type: "error",
       fields: [],
       customContent: DOMFactory.p({
-        text: typeof err === "string" ? err : err.message,
+        text: this.translateError(typeof err === "string" ? err : err.message),
       }),
       container: this.root,
       onClose: () => this.onCloseModal?.(true),
     })
     this.#modal.open()
+  }
+
+  /** A message of the client in the current language; any other message, from the server or the integrator, as is */
+  protected translateError(message: string): string {
+    const key = CLIENT_ERROR_KEYS.get(message)
+    return key ? this.i18n.t(key) : message
   }
 
   createState(): TCanvasLayerUIState {
@@ -158,18 +229,22 @@ export class CanvasLayer {
    */
   updateCanvasState(state: TCanvasConnectionState, detail: TCanvasStateDetail): void {
     const { root, icon, count, tooltip } = this.ui.state
+    this.#lastState = { state, detail }
     const info = CONNECTION_STATE_INFO[state]
+    const stateLabel = this.i18n.t(info.tooltip)
     root.className = `ms-ink-state ms-ink-state-${state}`
     icon.innerHTML = info.icon
     if (state === "syncing" && detail.queuedCount > 0) {
-      tooltip.textContent = `${info.tooltip} — ${detail.queuedCount} change(s) waiting to be sent`
+      tooltip.textContent = this.i18n.t("canvas.state.queued", { state: stateLabel, count: detail.queuedCount })
       count.textContent = String(detail.queuedCount)
       count.style.display = "flex"
     } else if (state === "online-working" && detail.activeOperations.length > 0) {
-      tooltip.textContent = detail.activeOperations.join(", ")
+      tooltip.textContent = detail.activeOperations
+        .map((label) => this.i18n.t(OPERATION_LABEL_KEYS.get(label) ?? label))
+        .join(", ")
       count.style.display = "none"
     } else {
-      tooltip.textContent = info.tooltip
+      tooltip.textContent = stateLabel
       count.style.display = "none"
     }
   }
@@ -199,6 +274,8 @@ export class CanvasLayer {
   }
 
   destroy(): void {
+    this.#unsubscribeI18n()
+    clearTimeout(this.#veilTimer)
     this.#modal = undefined
     if (this.#documentPointerdownHandler) {
       document.removeEventListener("pointerdown", this.#documentPointerdownHandler)

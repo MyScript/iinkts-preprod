@@ -12,7 +12,7 @@ export class SelectAllContextMenu extends ButtonMenuItem {
     const config: TMenuButton = {
       type: "button",
       id: `${idPrefix}-select-all`,
-      label: "Select all",
+      label: canvas.i18n.t("menu.context.selectAll"),
       action: async (canvas: TInteractiveInkCanvas) => {
         await canvas.selectAll()
       },

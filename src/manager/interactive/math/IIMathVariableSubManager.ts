@@ -469,7 +469,9 @@ export class IIMathVariableSubManager extends IIAbstractManager {
     // One row per definition entry (authoritative source of truth)
     for (const vd of defs) {
       for (const d of vd.definitions) {
-        const targetLabel = d.blockId ? (this.canvas.jiix.getBlockLabel(d.blockId) ?? d.blockId) : "Global"
+        const targetLabel = d.blockId
+          ? (this.canvas.jiix.getBlockLabel(d.blockId) ?? d.blockId)
+          : this.canvas.i18n.t("math.variables.target.global")
         usages.push({
           id: `${vd.name}|def|${d.blockId || "global"}|${d.sourceType}`,
           name: vd.name,
@@ -584,7 +586,7 @@ export class IIMathVariableSubManager extends IIAbstractManager {
       return {
         name: variable.name,
         value: variable.value?.toString() ?? "undefined",
-        typeLabel: SOURCE_TYPE_LABELS[sourceType] ?? sourceType,
+        typeLabel: this.canvas.i18n.t(SOURCE_TYPE_LABELS[sourceType] ?? sourceType),
         typeColor: SOURCE_TYPE_COLORS[sourceType] ?? SOURCE_TYPE_COLORS.UNDEFINED,
         swatchColor: this.#colorManager.getColorForVariable(variable.name),
       }

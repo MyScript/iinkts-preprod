@@ -13,17 +13,17 @@ export class ImportMenuAction extends SubMenuItem {
     const config: TMenuSubMenu = {
       type: "submenu",
       id: `${idPrefix}-import`,
-      label: "Import",
-      menuTitle: "Import",
+      label: canvas.i18n.t("menu.action.import"),
+      menuTitle: canvas.i18n.t("menu.action.import"),
       position: "right-top",
       items: [
         {
           type: "fileinput",
           id: `${idPrefix}-import-file`,
-          label: "Import",
+          label: canvas.i18n.t("menu.action.import"),
           accept: ".json",
           multiple: false,
-          buttonLabel: "Import",
+          buttonLabel: canvas.i18n.t("menu.action.import"),
           action: async (canvas, files) => {
             if (files.length) {
               const fileString = await this.readFileAsText(files[0])

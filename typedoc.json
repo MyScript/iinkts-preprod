@@ -44,6 +44,7 @@
     "Renderer",
     "Grabber",
     "Menu",
+    "I18n",
     "SmartGuide",
     "UI",
     "Components",

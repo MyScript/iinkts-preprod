@@ -1553,3 +1553,46 @@
   flex-shrink: 0;
   border: 1px solid rgba(0, 0, 0, 0.15);
 }
+
+/** veil: covers the canvas, menus included, while it cannot be used (CanvasLayer.showVeil) **/
+.ms-ink .ms-ink-veil {
+  z-index: 1000;
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--ms-ink-veil-bg, color-mix(in srgb, var(--ms-ink-canvas-bg) 75%, transparent));
+  cursor: progress;
+  pointer-events: all;
+}
+
+.ms-ink .ms-ink-veil.open {
+  display: flex;
+  animation: ms-ink-veil-in 150ms ease-out;
+}
+
+.ms-ink .ms-ink-veil-spinner {
+  width: 48px;
+  height: 48px;
+  border: 6px solid var(--ms-ink-surface);
+  border-radius: 50%;
+  border-top-color: var(--ms-ink-primary);
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes ms-ink-veil-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-ink .ms-ink-veil.open {
+    animation: none;
+  }
+
+  .ms-ink .ms-ink-veil-spinner {
+    animation-duration: 2.5s;
+  }
+}

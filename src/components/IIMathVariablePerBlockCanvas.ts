@@ -66,16 +66,19 @@ export class IIMathVariablePerBlockCanvas {
 
     const container = this.createModalContent()
     const count = this.blockVariables.length
-    const title = `Edit Variable${count > 1 ? "s" : ""} (${count} symbol${count > 1 ? "s" : ""})`
+    const title = this.canvas.i18n.t(count > 1 ? "math.variables.editTitlePlural" : "math.variables.editTitle", {
+      count,
+    })
 
     this.modal = new Modal({
       title,
       fields: [],
       customContent: container,
       container: this.canvas.layers.ui.root,
+      i18n: this.canvas.i18n,
       buttons: [
         {
-          label: "Apply",
+          label: this.canvas.i18n.t("common.apply"),
           variant: "primary",
           onClick: () => this.applyChanges(),
         },
@@ -127,7 +130,7 @@ export class IIMathVariablePerBlockCanvas {
       }
     })
 
-    const inputList = new IIMathVariableInputList(items)
+    const inputList = new IIMathVariableInputList(items, this.canvas.i18n)
     this.inputLists.set(symVar.jiixBlockId, inputList)
     section.appendChild(inputList.element)
 

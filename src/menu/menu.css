@@ -203,3 +203,23 @@
   text-align: center;
   opacity: 0.8;
 }
+
+/* After a change of language, the menus fade in with their new labels (IIMenuManager.relabel) */
+@media (prefers-reduced-motion: no-preference) {
+  .ms-ink.ms-menu-relabel .ms-menu,
+  .ms-ink .ms-menu-relabel .ms-menu {
+    animation: ms-menu-relabel 250ms ease-out;
+  }
+}
+
+@keyframes ms-menu-relabel {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

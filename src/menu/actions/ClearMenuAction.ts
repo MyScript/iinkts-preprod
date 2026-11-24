@@ -13,7 +13,7 @@ export class ClearMenuAction extends ButtonMenuItem {
     const config: TMenuButton = {
       type: "button",
       id: `${idPrefix}-clear`,
-      label: "Clear",
+      label: canvas.i18n.t("menu.action.clear"),
       icon: trashIcon,
       action: (canvas) => canvas.clear(),
       disabled: (canvas) => canvas.history.context.empty,

@@ -30,7 +30,7 @@
 
       /* Notification toast */
       #toast {
-        position: fixed;
+        position: absolute;
         bottom: 60px;
         left: 50%;
         transform: translateX(-50%) translateY(20px);
@@ -82,9 +82,13 @@
         <div class="ex-panel-item">
           <div class="ex-panel-item-desc">For what adding items cannot do, the menu class is replaced through <code>canvasOptions.override.menu</code>: <strong>CustomMenuStyle</strong> extends <code>IIMenuStyle</code> to allow six brand colors only, without font controls.</div>
         </div>
+        <div class="ex-panel-item">
+          <div class="ex-panel-item-desc">The menus speak the <strong>recognition language</strong>: pick one in <strong>… › Language</strong> and every label follows. English and French are built in. <code>configuration.translations</code> gives the labels of the added items, by language, and can override a built-in one (here the <em>Colors</em> title of the style menu). German is not built in: only the labels given here are German, the others fall back to English. Labels read through <code>canvas.i18n.t(key, params)</code>.</div>
+        </div>
       </aside>
-      <div id="rootEl"></div>
-      <div id="toast"></div>
+      <div id="rootEl">
+        <div id="toast"></div>
+      </div>
     </div>
 
     <script type="module">
@@ -137,9 +141,9 @@
         }
 
         createElement() {
-          const button = menuButton('stroke-count', 'Stroke count', icons.list, () => {
-            const count = this.canvas.model.symbols.length
-            showToast(`${count} symbol${count !== 1 ? 's' : ''} on canvas`)
+          const { i18n } = this.canvas
+          const button = menuButton('stroke-count', i18n.t('example.strokeCount'), icons.list, () => {
+            showToast(i18n.t('example.symbolsOnCanvas', { count: this.canvas.model.symbols.length }))
           })
           this.badge = document.createElement('span')
           this.badge.classList.add('custom-badge')
@@ -167,22 +171,22 @@
         // A raw element is for static content: removed with the menu, never updated
         {
           menu: 'action', key: 'download-png', options: { zone: 'bar' },
-          factory: (canvas) => menuButton('download-png', 'Download as PNG', icons.download, async () => {
+          factory: (canvas) => menuButton('download-png', canvas.i18n.t('example.downloadPng'), icons.download, async () => {
             try {
               await canvas.download('png')
-              showToast('PNG downloaded')
+              showToast(canvas.i18n.t('example.pngDownloaded'))
             }
             catch (e) {
-              showToast('Export failed: ' + e.message)
+              showToast(canvas.i18n.t('example.exportFailed', { error: e.message }))
             }
           })
         },
         { menu: 'action', key: 'stroke-count', options: { zone: 'bar' }, factory: (canvas) => new StrokeCountItem(canvas) },
         {
           menu: 'tool', key: 'reset-zoom',
-          factory: (canvas) => menuButton('reset-zoom', 'Reset zoom', icons.zoomReset, () => {
+          factory: (canvas) => menuButton('reset-zoom', canvas.i18n.t('example.resetZoom'), icons.zoomReset, () => {
             zoomTo(canvas, 1)
-            showToast('Zoom reset to 100%')
+            showToast(canvas.i18n.t('example.zoomReset'))
           })
         },
         // A built-in item can move to another menu: undo/redo, hidden from the action bar by the
@@ -191,9 +195,8 @@
         // A quick action above the context menu list
         {
           menu: 'context', key: 'count-selected', options: { zone: 'bar' },
-          factory: (canvas) => menuButton('count-selected', 'Count the selection', icons.count, () => {
-            const count = canvas.model.symbolsSelected.length
-            showToast(`${count} symbol${count !== 1 ? 's' : ''} selected`)
+          factory: (canvas) => menuButton('count-selected', canvas.i18n.t('example.countSelection'), icons.count, () => {
+            showToast(canvas.i18n.t('example.symbolsSelected', { count: canvas.model.symbolsSelected.length }))
           })
         },
       ]
@@ -217,6 +220,56 @@
         }
       }
 
+      // ─── Translations ─────────────────────────────────────────────────────────────
+      // The menus show their labels in the recognition language, which the user picks in … › Language.
+      // configuration.translations gives labels by language code ("fr" or "fr_FR"): the ones of the added
+      // items, and overrides of built-in ones. A label is looked up in fr_FR, then fr, then en; a language
+      // the library does not ship (de) falls back to English for every label not given here.
+      // canvas.i18n.add(language, labels) does the same once the canvas is loaded.
+
+      const translations = {
+        en: {
+          'example.downloadPng': 'Download as PNG',
+          'example.pngDownloaded': 'PNG downloaded',
+          'example.exportFailed': 'Export failed: {error}',
+          'example.strokeCount': 'Stroke count',
+          'example.symbolsOnCanvas': 'Symbols on canvas: {count}',
+          'example.resetZoom': 'Reset zoom',
+          'example.zoomReset': 'Zoom reset to 100%',
+          'example.countSelection': 'Count the selection',
+          'example.symbolsSelected': 'Symbols selected: {count}',
+          // Overrides a built-in label: the style menu only offers the brand colors
+          'menu.style.section.colors': 'Brand colors',
+        },
+        fr: {
+          'example.downloadPng': 'Télécharger en PNG',
+          'example.pngDownloaded': 'PNG téléchargé',
+          'example.exportFailed': 'Échec de l\'export : {error}',
+          'example.strokeCount': 'Nombre de traits',
+          'example.symbolsOnCanvas': 'Symboles sur le canvas : {count}',
+          'example.resetZoom': 'Réinitialiser le zoom',
+          'example.zoomReset': 'Zoom remis à 100 %',
+          'example.countSelection': 'Compter la sélection',
+          'example.symbolsSelected': 'Symboles sélectionnés : {count}',
+          'menu.style.section.colors': 'Couleurs de la marque',
+        },
+        de: {
+          'example.downloadPng': 'Als PNG herunterladen',
+          'example.pngDownloaded': 'PNG heruntergeladen',
+          'example.exportFailed': 'Export fehlgeschlagen: {error}',
+          'example.strokeCount': 'Anzahl der Striche',
+          'example.symbolsOnCanvas': 'Symbole auf der Zeichenfläche: {count}',
+          'example.resetZoom': 'Zoom zurücksetzen',
+          'example.zoomReset': 'Zoom auf 100 % zurückgesetzt',
+          'example.countSelection': 'Auswahl zählen',
+          'example.symbolsSelected': 'Ausgewählte Symbole: {count}',
+          'menu.style.section.colors': 'Markenfarben',
+          'menu.action.language': 'Sprache',
+          'menu.style.section.thickness': 'Strichstärke',
+          'menu.style.section.opacity': 'Deckkraft',
+        },
+      }
+
       // ─── Canvas setup ─────────────────────────────────────────────────────────────
 
       const rootElement = document.getElementById('rootEl')
@@ -224,6 +277,7 @@
 
       const canvasOptions = {
         configuration: {
+          translations,
           recognition: {
             lang: 'en_US',
             'raw-content': {
@@ -236,9 +290,12 @@
               convert: false,
               zoom: false,
               clear: false,
-              language: false,
+              language: true,
               undoRedo: false,
               minimap: false,
+              export: false,
+              overlay: false,
+              math: false,
             }
           }
         },
@@ -256,6 +313,8 @@
         await canvas?.destroy()
         canvas = await Canvas.load(rootElement, 'INTERACTIVE_INK', options)
         window.canvas = canvas
+        // The menus are rebuilt in the new language on their own; anything else of the page listens here
+        canvas.i18n.onChange(() => showToast(`${canvas.i18n.t('menu.action.language')}: ${canvas.i18n.language}`))
       }
       showModalBtn.addEventListener('click', () => {
         ModalCanvasOptions.show(loadCanvas, canvasOptions)

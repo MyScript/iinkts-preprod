@@ -19,7 +19,7 @@ export class EditContextMenu extends BaseMenuItem<HTMLElement> {
     const config: TGenericMenuItem = {
       type: "custom",
       id: `${idPrefix}-edit`,
-      label: "Edit",
+      label: canvas.i18n.t("menu.context.edit"),
     }
     super(config, canvas)
   }
@@ -28,7 +28,7 @@ export class EditContextMenu extends BaseMenuItem<HTMLElement> {
     const trigger = this.dom.button({
       id: `${this.config.id}-trigger`,
     })
-    const label = this.dom.span({ text: "Edit" })
+    const label = this.dom.span({ text: this.canvas.i18n.t("menu.context.edit") })
     trigger.appendChild(label)
     const icon = this.dom.span({
       html: ArrowDown,
@@ -45,7 +45,7 @@ export class EditContextMenu extends BaseMenuItem<HTMLElement> {
     subMenuWrapper.appendChild(this.editInput)
 
     this.editSaveBtn = this.dom.button({
-      label: "Save",
+      label: this.canvas.i18n.t("menu.context.edit.save"),
     })
     subMenuWrapper.appendChild(this.editSaveBtn)
 

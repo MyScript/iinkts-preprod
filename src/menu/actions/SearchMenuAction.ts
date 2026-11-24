@@ -13,7 +13,7 @@ export class SearchMenuAction extends ButtonMenuItem {
     const config: TMenuButton = {
       type: "button",
       id: `${idPrefix}-search`,
-      label: "Search",
+      label: canvas.i18n.t("menu.action.search"),
       icon: searchIcon,
       action: (canvas) => this.toggle(canvas),
     }

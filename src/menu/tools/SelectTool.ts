@@ -14,7 +14,7 @@ export class SelectTool extends ButtonMenuItem {
     const config: TMenuButton = {
       type: "button",
       id: `${idPrefix}-select`,
-      label: "Select",
+      label: canvas.i18n.t("menu.tool.select"),
       icon: cursorIcon,
       action: (canvas: TInteractiveInkCanvas) => {
         canvas.tool = CanvasTool.Select

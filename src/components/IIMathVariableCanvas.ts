@@ -49,13 +49,14 @@ export class IIMathVariableCanvas {
     const container = this.createModalContent()
 
     this.modal = new Modal({
-      title: "Variable Definitions",
+      title: this.canvas.i18n.t("math.variables.title"),
       fields: [],
       customContent: container,
       container: this.canvas.layers.ui.root,
+      i18n: this.canvas.i18n,
       buttons: [
         {
-          label: "Apply",
+          label: this.canvas.i18n.t("common.apply"),
           variant: "primary",
           onClick: () => this.applyChanges(),
         },
@@ -91,7 +92,7 @@ export class IIMathVariableCanvas {
           : undefined,
       }))
 
-      this.inputList = new IIMathVariableInputList(items)
+      this.inputList = new IIMathVariableInputList(items, this.canvas.i18n)
       section.appendChild(this.inputList.element)
       container.appendChild(section)
     }
@@ -106,7 +107,7 @@ export class IIMathVariableCanvas {
     })
 
     const title = DOMFactory.div({
-      text: "Add Global Variable",
+      text: this.canvas.i18n.t("math.variables.addGlobal"),
       className: "ms-var-section-title",
     })
     section.appendChild(title)
@@ -117,7 +118,7 @@ export class IIMathVariableCanvas {
     section.appendChild(newVarsContainer)
 
     const addButton = DOMFactory.button({
-      label: "+ Add",
+      label: this.canvas.i18n.t("math.variables.add"),
       className: "ms-add-var-btn",
     })
     addButton.addEventListener("click", () => {
@@ -141,19 +142,19 @@ export class IIMathVariableCanvas {
     })
 
     const nameInput = DOMFactory.textInput({
-      placeholder: "Variable name",
+      placeholder: this.canvas.i18n.t("math.variables.name"),
     })
     row.appendChild(nameInput)
 
     const valueInput = DOMFactory.numberInput({
-      placeholder: "Value",
+      placeholder: this.canvas.i18n.t("math.variables.value"),
       step: "any",
     })
     row.appendChild(valueInput)
 
     const deleteBtn = DOMFactory.button({
       label: "✕",
-      title: "Remove row",
+      title: this.canvas.i18n.t("math.variables.removeRow"),
       variant: "danger",
     })
     deleteBtn.addEventListener("click", () => {

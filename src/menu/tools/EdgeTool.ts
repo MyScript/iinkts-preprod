@@ -25,7 +25,7 @@ export class EdgeTool extends BaseMenuItem<HTMLDivElement> {
     const config: TEdgeToolConfig = {
       type: "edge",
       id: `${idPrefix}-write-edge`,
-      label: "Edge",
+      label: canvas.i18n.t("menu.tool.edge"),
     }
     super(config, canvas)
   }
@@ -69,9 +69,19 @@ export class EdgeTool extends BaseMenuItem<HTMLDivElement> {
       id: `${this.config.id}-list`,
       className: ["ms-menu-row", "sub-menu-content-edge"],
     })
-    subMenuContent.appendChild(this.createEdgeButton(lineIcon, CanvasWriteTool.Line, "Line"))
-    subMenuContent.appendChild(this.createEdgeButton(arrowIcon, CanvasWriteTool.Arrow, "Arrow"))
-    subMenuContent.appendChild(this.createEdgeButton(doubleArrowIcon, CanvasWriteTool.DoubleArrow, "Double Arrow"))
+    subMenuContent.appendChild(
+      this.createEdgeButton(lineIcon, CanvasWriteTool.Line, this.canvas.i18n.t("menu.tool.edge.line"))
+    )
+    subMenuContent.appendChild(
+      this.createEdgeButton(arrowIcon, CanvasWriteTool.Arrow, this.canvas.i18n.t("menu.tool.edge.arrow"))
+    )
+    subMenuContent.appendChild(
+      this.createEdgeButton(
+        doubleArrowIcon,
+        CanvasWriteTool.DoubleArrow,
+        this.canvas.i18n.t("menu.tool.edge.doubleArrow")
+      )
+    )
 
     const content = this.dom.div({
       className: ["sub-menu-content", this.openPosition ?? "top"],

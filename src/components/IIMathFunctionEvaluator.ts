@@ -96,10 +96,11 @@ export class IIMathFunctionEvaluator {
 
     // Create modal
     this.modal = new Modal({
-      title: "Evaluate Function",
+      title: this.canvas.i18n.t("math.evaluateFunction"),
       fields: [],
       customContent: container,
       container: this.canvas.layers.ui.root,
+      i18n: this.canvas.i18n,
     })
 
     this.modal.open()
@@ -140,7 +141,7 @@ export class IIMathFunctionEvaluator {
       style: `font-family: monospace; flex-shrink: 0;`,
     })
 
-    const blockLabel = this.canvas.jiix.getBlockLabel(func.jiixBlockId) || "N/A"
+    const blockLabel = this.canvas.jiix.getBlockLabel(func.jiixBlockId) || this.canvas.i18n.t("common.notAvailable")
     const symbolLabel = DOMFactory.span({
       text: ` - ${blockLabel}`,
       className: "ms-symbol-label",
@@ -157,7 +158,7 @@ export class IIMathFunctionEvaluator {
       })
 
       const selectLabel = DOMFactory.span({
-        text: "Variant:",
+        text: this.canvas.i18n.t("math.evaluator.variant"),
         className: "ms-select-label",
       })
 
@@ -196,7 +197,7 @@ export class IIMathFunctionEvaluator {
     })
 
     const functionsTitle = DOMFactory.div({
-      text: "Functions to evaluate:",
+      text: this.canvas.i18n.t("math.evaluator.functions"),
       className: "ms-functions-title",
     })
     functionsDiv.appendChild(functionsTitle)
@@ -227,22 +228,22 @@ export class IIMathFunctionEvaluator {
 
     const fromInput = DOMFactory.labeledInput({
       id: "from",
-      label: "From:",
+      label: this.canvas.i18n.t("math.evaluator.from"),
       defaultValue: -10,
     }).wrapper
     const toInput = DOMFactory.labeledInput({
       id: "to",
-      label: "To:",
+      label: this.canvas.i18n.t("math.evaluator.to"),
       defaultValue: 10,
     }).wrapper
     const pointCountInput = DOMFactory.labeledInput({
       id: "pointCount",
-      label: "Points:",
+      label: this.canvas.i18n.t("math.evaluator.points"),
       defaultValue: 21,
     }).wrapper
     const stepInput = DOMFactory.labeledInput({
       id: "step",
-      label: "Step:",
+      label: this.canvas.i18n.t("math.evaluator.step"),
       defaultValue: 1,
     }).wrapper
 
@@ -271,7 +272,7 @@ export class IIMathFunctionEvaluator {
     pointCountInput: HTMLDivElement
   ): HTMLButtonElement {
     const evaluateBtn = DOMFactory.button({
-      label: "Evaluate",
+      label: this.canvas.i18n.t("math.evaluator.evaluate"),
       variant: "primary",
       onClick: () => {
         this.evaluateFunctions(this.functionsToEvaluate, fromInput, toInput, pointCountInput)
@@ -398,8 +399,8 @@ export class IIMathFunctionEvaluator {
       className: "ms-tab-headers",
     })
 
-    const graphTab = this.createTabHeader("Graph", true)
-    const tableTab = this.createTabHeader("Table", false)
+    const graphTab = this.createTabHeader(this.canvas.i18n.t("math.evaluator.graph"), true)
+    const tableTab = this.createTabHeader(this.canvas.i18n.t("math.evaluator.table"), false)
 
     tabHeaders.appendChild(graphTab)
     tabHeaders.appendChild(tableTab)
@@ -416,7 +417,7 @@ export class IIMathFunctionEvaluator {
 
     // Initial message
     const initialMessage = DOMFactory.div({
-      text: "Click 'Evaluate' to display results",
+      text: this.canvas.i18n.t("math.evaluator.empty"),
       className: "ms-tab-empty",
     })
     tabContent.appendChild(initialMessage)
@@ -520,7 +521,7 @@ export class IIMathFunctionEvaluator {
 
     if (!results || results.length === 0) {
       const message = DOMFactory.div({
-        text: "Click 'Evaluate' to display results",
+        text: this.canvas.i18n.t("math.evaluator.empty"),
         className: "ms-tab-empty",
       })
       this.tabContent.appendChild(message)
@@ -588,6 +589,7 @@ export class IIMathFunctionEvaluator {
         showGrid: true,
         showPoints: true,
         seriesColors: seriesColors,
+        i18n: this.canvas.i18n,
       })
 
       chart.setData(normalizedData)
@@ -627,7 +629,7 @@ export class IIMathFunctionEvaluator {
    */
   private createTableTitle(inputName: string): HTMLDivElement {
     return DOMFactory.div({
-      text: `Input: ${inputName}`,
+      text: this.canvas.i18n.t("math.evaluator.input", { name: inputName }),
       className: "ms-table-title-header",
     })
   }

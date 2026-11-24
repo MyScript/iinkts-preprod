@@ -1,6 +1,7 @@
 import type { HTTPClientV2, TExportV2 } from "@/client"
 import type { TPartialDeep } from "@/core"
 import type { IHistoryManager } from "@/history"
+import type { Translator } from "@/i18n"
 import type { CanvasTool, LayoutManager } from "@/manager"
 import type { IModel } from "@/model"
 import type { SVGRenderer } from "@/renderer"
@@ -28,6 +29,8 @@ export type TInkCanvas = {
   readonly configuration: InkCanvasConfiguration
   readonly event: CanvasEvent
   readonly layers: CanvasLayer
+  /** Translates the labels of the UI into the recognition language */
+  readonly i18n: Translator
   readonly layout: LayoutManager<TInkCanvas>
   readonly renderer: SVGRenderer
   readonly client: HTTPClientV2

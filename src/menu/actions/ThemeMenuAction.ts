@@ -21,8 +21,8 @@ export class ThemeMenuAction extends SubMenuItem {
     const config: TMenuSubMenu = {
       type: "submenu",
       id: `${idPrefix}-theme`,
-      label: "Theme",
-      menuTitle: "Theme",
+      label: canvas.i18n.t("menu.action.theme"),
+      menuTitle: canvas.i18n.t("menu.action.theme"),
       position: "right-top",
       items: [],
     }
@@ -55,7 +55,7 @@ export class ThemeMenuAction extends SubMenuItem {
       swatch.style.backgroundColor = theme.swatch
 
       const label = this.dom.span({
-        text: theme.label,
+        text: this.canvas.i18n.t(theme.label),
       })
       label.style.color = theme.color
 

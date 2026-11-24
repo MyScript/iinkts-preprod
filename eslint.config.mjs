@@ -381,6 +381,24 @@ export default [
     },
   },
 
+  // Layer boundary: `i18n` only translates labels, every layer showing one may use it — so it stands on core alone
+  {
+    files: ["src/i18n/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/*", "@/**", "!@/core", "!@/core/**"],
+              message: "i18n may only depend on core",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // Layer boundary: `ui` holds generic widgets. They may build DOM and use core helpers, and must
   // know nothing about a canvas, a manager, a symbol or the client — that is the whole difference
   // between them and the interactive widgets left in `components/`.
@@ -392,8 +410,8 @@ export default [
         {
           patterns: [
             {
-              group: ["@/*", "@/**", "!@/dom", "!@/dom/**", "!@/core", "!@/core/**", "!@/logger", "!@/constants"],
-              message: "ui widgets may only depend on dom, core, logger and constants",
+              group: ["@/*", "@/**", "!@/dom", "!@/dom/**", "!@/core", "!@/core/**", "!@/logger", "!@/constants", "!@/i18n"],
+              message: "ui widgets may only depend on dom, core, logger, constants and i18n",
             },
           ],
         },

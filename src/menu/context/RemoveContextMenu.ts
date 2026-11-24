@@ -12,7 +12,7 @@ export class RemoveContextMenu extends ButtonMenuItem {
     const config: TMenuButton = {
       type: "button",
       id: `${idPrefix}-remove`,
-      label: "Remove",
+      label: canvas.i18n.t("menu.context.remove"),
       action: async (canvas: TInteractiveInkCanvas) => {
         const symbolsSelected = canvas.model.symbolsSelected
         canvas.selector.removeSelectedGroup()

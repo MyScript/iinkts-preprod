@@ -27,7 +27,7 @@ export class ShapeTool extends BaseMenuItem<HTMLDivElement> {
     const config: TShapeToolConfig = {
       type: "shape",
       id: `${idPrefix}-write-shape`,
-      label: "Shape",
+      label: canvas.i18n.t("menu.tool.shape"),
     }
     super(config, canvas)
   }
@@ -71,11 +71,21 @@ export class ShapeTool extends BaseMenuItem<HTMLDivElement> {
       id: `${this.config.id}-list`,
       className: ["ms-menu-row", "sub-menu-content-shape"],
     })
-    subMenuContent.appendChild(this.createShapeButton(rectangleIcon, CanvasWriteTool.Rectangle, "Rectangle"))
-    subMenuContent.appendChild(this.createShapeButton(circleIcon, CanvasWriteTool.Circle, "Circle"))
-    subMenuContent.appendChild(this.createShapeButton(ellipseIcon, CanvasWriteTool.Ellipse, "Ellipse"))
-    subMenuContent.appendChild(this.createShapeButton(triangleIcon, CanvasWriteTool.Triangle, "Triangle"))
-    subMenuContent.appendChild(this.createShapeButton(rhombusIcon, CanvasWriteTool.Rhombus, "Rhombus"))
+    subMenuContent.appendChild(
+      this.createShapeButton(rectangleIcon, CanvasWriteTool.Rectangle, this.canvas.i18n.t("menu.tool.shape.rectangle"))
+    )
+    subMenuContent.appendChild(
+      this.createShapeButton(circleIcon, CanvasWriteTool.Circle, this.canvas.i18n.t("menu.tool.shape.circle"))
+    )
+    subMenuContent.appendChild(
+      this.createShapeButton(ellipseIcon, CanvasWriteTool.Ellipse, this.canvas.i18n.t("menu.tool.shape.ellipse"))
+    )
+    subMenuContent.appendChild(
+      this.createShapeButton(triangleIcon, CanvasWriteTool.Triangle, this.canvas.i18n.t("menu.tool.shape.triangle"))
+    )
+    subMenuContent.appendChild(
+      this.createShapeButton(rhombusIcon, CanvasWriteTool.Rhombus, this.canvas.i18n.t("menu.tool.shape.rhombus"))
+    )
 
     const content = this.dom.div({
       className: ["sub-menu-content", this.openPosition ?? "top"],

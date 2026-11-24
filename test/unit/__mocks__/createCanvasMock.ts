@@ -1,4 +1,4 @@
-import { IIModel, DefaultInteractiveInkCanvasConfiguration, InteractiveInkCanvasConfiguration, DefaultStyle, CanvasTool, CanvasWriteTool, SymbolType, DOMFactory, CanvasLayer, LayoutManager, registerBuiltinSymbolUtils } from "@/iink"
+import { IIModel, DefaultInteractiveInkCanvasConfiguration, InteractiveInkCanvasConfiguration, DefaultStyle, CanvasTool, CanvasWriteTool, SymbolType, DOMFactory, CanvasLayer, LayoutManager, registerBuiltinSymbolUtils, Translator } from "@/iink"
 import type { TInteractiveInkCanvas, TStyle, TSymbol, TStroke, TSymbolUpdate } from "@/iink"
 import { CanvasEventMock } from "./CanvasEventMock"
 
@@ -182,8 +182,10 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
   let _readOnly = false
   const _activeOperations = new Map<string, number>()
 
-  const layers = overrides.layers ?? new CanvasLayer(document.createElement("div"))
+  const i18n = overrides.i18n ?? new Translator(undefined, configuration.recognition.lang)
+  const layers = overrides.layers ?? new CanvasLayer(document.createElement("div"), "ms-ink", i18n)
   const base = {
+    i18n,
     model,
     renderer,
     client,

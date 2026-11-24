@@ -58,6 +58,9 @@ export type TMenuName = "action" | "tool" | "style" | "context"
 
 const MENU_NAMES: readonly TMenuName[] = ["action", "style", "tool", "context"]
 
+/** How long the menus fade in after a change of language; matches `ms-menu-relabel` in menu.css */
+const RELABEL_DURATION_MS = 250
+
 function isMenuName(name: string): name is TMenuName {
   return MENU_NAMES.some((menu) => menu === name)
 }
@@ -97,6 +100,8 @@ export class IIMenuManager {
     style: new Map(),
     context: new Map(),
   }
+  #unsubscribeI18n: () => void
+  #relabelTimer?: ReturnType<typeof setTimeout>
 
   constructor(canvas: TInteractiveInkCanvas, custom?: TMenuOverride, items: readonly TMenuItemRegistration[] = []) {
     this.#logger.info("constructor")
@@ -112,6 +117,8 @@ export class IIMenuManager {
     MENU_NAMES.forEach((name) => this.createMenu(name))
     this.search = new IIMenuSearch(canvas)
     this.canvas.layout.onOccupantMoved((occupant) => this.onOccupantMoved(occupant))
+    // Labels are read when an item is built: rebuild everything in the new language
+    this.#unsubscribeI18n = canvas.i18n.onChange(() => this.relabel())
   }
 
   /** A menu the layout moved rebuilds for its new slot; the minimap lives in the action menu, which rebuilds for it */
@@ -216,6 +223,19 @@ export class IIMenuManager {
    */
   setConfig(config: TMenuConfigUpdate): void {
     mergeDeep(this.canvas.configuration.menu, config)
+    this.rebuildAll()
+  }
+
+  /** Rebuilds every menu in the new language, fading them in while the `ms-menu-relabel` class is on the layer */
+  protected relabel(): void {
+    clearTimeout(this.#relabelTimer)
+    this.layer?.classList.add("ms-menu-relabel")
+    this.rebuildAll()
+    this.#relabelTimer = setTimeout(() => this.layer?.classList.remove("ms-menu-relabel"), RELABEL_DURATION_MS)
+  }
+
+  /** Destroys and rebuilds every menu and the search bar, once rendered; the context menu keeps its state */
+  protected rebuildAll(): void {
     if (!this.layer) {
       return
     }
@@ -281,6 +301,8 @@ export class IIMenuManager {
   }
 
   destroy(): void {
+    this.#unsubscribeI18n()
+    clearTimeout(this.#relabelTimer)
     MENU_NAMES.forEach((name) => this.getMenu(name).destroy())
     this.search.destroy()
   }

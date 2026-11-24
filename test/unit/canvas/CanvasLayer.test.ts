@@ -1,6 +1,65 @@
-import { CanvasLayer } from "@/iink"
+import { CanvasLayer, ClientError, Translator } from "@/iink"
 
 describe("CanvasLayer.ts", () => {
+  describe("error message", () => {
+    const showError = (lang: string, error: Error | string) => {
+      const root = document.createElement("div")
+      new CanvasLayer(root, "ms-ink", new Translator(undefined, lang)).showMessageError(error)
+      return root.querySelector(".ms-modal")?.textContent ?? ""
+    }
+
+    test("should translate a message the client knows", () => {
+      expect(showError("fr_FR", new Error(ClientError.WRONG_CREDENTIALS))).toContain("identifiants")
+    })
+
+    test("should show any other message as is", () => {
+      expect(showError("fr_FR", "Something the server said")).toContain("Something the server said")
+    })
+
+    test("should give in English the very message of each client error", () => {
+      const english = new Translator()
+      Object.entries(ClientError).forEach(([name, message]) => {
+        expect(english.t(`client.error.${name}`)).toEqual(message)
+      })
+    })
+  })
+
+  describe("veil", () => {
+    let layer: CanvasLayer
+
+    beforeEach(() => {
+      jest.useFakeTimers()
+      layer = new CanvasLayer(document.createElement("div"))
+      layer.render()
+    })
+
+    afterEach(() => {
+      jest.useRealTimers()
+    })
+
+    test("should cover the canvas once the delay elapsed", () => {
+      layer.showVeil(300)
+      expect(layer.veil.classList.contains("open")).toBe(false)
+      jest.advanceTimersByTime(300)
+      expect(layer.veil.classList.contains("open")).toBe(true)
+      expect(layer.root.contains(layer.veil)).toBe(true)
+    })
+
+    test("should never show when hidden before the delay", () => {
+      layer.showVeil(300)
+      layer.hideVeil()
+      jest.advanceTimersByTime(300)
+      expect(layer.veil.classList.contains("open")).toBe(false)
+    })
+
+    test("should hide once shown", () => {
+      layer.showVeil(0)
+      jest.advanceTimersByTime(0)
+      layer.hideVeil()
+      expect(layer.veil.classList.contains("open")).toBe(false)
+    })
+  })
+
   describe("canvas state badge", () => {
     let layer: CanvasLayer
 
@@ -65,6 +124,33 @@ describe("CanvasLayer.ts", () => {
 
       root.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }))
       expect(tooltip.classList.contains("open")).toBe(false)
+    })
+
+    test("should translate the tooltip and the operation labels", () => {
+      const french = new CanvasLayer(document.createElement("div"), "ms-ink", new Translator(undefined, "fr_FR"))
+      french.updateCanvasState("online-idle", { queuedCount: 0, activeOperations: [] })
+      expect(french.ui.state.tooltip.textContent).toEqual("Connecté")
+      french.updateCanvasState("online-working", { queuedCount: 0, activeOperations: ["Converting", "custom"] })
+      expect(french.ui.state.tooltip.textContent).toEqual("Conversion, custom")
+    })
+
+    test("should translate the tooltip again when the language changes", () => {
+      const i18n = new Translator()
+      const translated = new CanvasLayer(document.createElement("div"), "ms-ink", i18n)
+      translated.updateCanvasState("syncing", { queuedCount: 2, activeOperations: [] })
+      i18n.setLanguage("fr_FR")
+      expect(translated.ui.state.tooltip.textContent).toEqual(
+        "Reconnexion — traits en attente d'envoi — 2 modification(s) en attente d'envoi"
+      )
+    })
+
+    test("should stop following the language once destroyed", () => {
+      const i18n = new Translator()
+      const translated = new CanvasLayer(document.createElement("div"), "ms-ink", i18n)
+      translated.updateCanvasState("online-idle", { queuedCount: 0, activeOperations: [] })
+      translated.destroy()
+      i18n.setLanguage("fr_FR")
+      expect(translated.ui.state.tooltip.textContent).toEqual("Connected")
     })
 
     test("should remove the document click listener on destroy", () => {

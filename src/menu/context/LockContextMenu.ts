@@ -30,7 +30,9 @@ export class LockContextMenu extends ButtonMenuItem {
 
   static #labelFor(canvas: TInteractiveInkCanvas): string {
     const selected = canvas.model.symbolsSelected
-    return selected.length && selected.every((s) => s.locked) ? "Unlock" : "Lock"
+    return selected.length && selected.every((s) => s.locked)
+      ? canvas.i18n.t("menu.context.unlock")
+      : canvas.i18n.t("menu.context.lock")
   }
 
   update(): void {

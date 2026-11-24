@@ -38,7 +38,7 @@ export class PenNibStyle extends BaseMenuItem<HTMLDivElement> {
       {
         type: "pen" as const,
         id: `${idPrefix}-pen`,
-        label: "Pen",
+        label: canvas.i18n.t("menu.style.pen"),
         visible: (canvas: TInteractiveInkCanvas) => [CanvasTool.Write, CanvasTool.Select].includes(canvas.tool),
       },
       canvas
@@ -74,7 +74,11 @@ export class PenNibStyle extends BaseMenuItem<HTMLDivElement> {
     }
 
     this.nibItem = new ButtonListMenuItem(config, this.canvas)
-    const wrapper = new CollapsibleWrapper(this.nibItem.getElement(), "Pen", this.config.id)
+    const wrapper = new CollapsibleWrapper(
+      this.nibItem.getElement(),
+      this.canvas.i18n.t("menu.style.section.pen"),
+      this.config.id
+    )
     return wrapper.getElement()
   }
 
