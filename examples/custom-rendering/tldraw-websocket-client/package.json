@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",
-    "iink-ts": "4.1.0",
+    "iink-ts": "5.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-portal": "^4.3.0",
