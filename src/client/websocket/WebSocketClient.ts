@@ -455,11 +455,11 @@ export class WebSocketClient {
   }
 
   /**
-   * Tries the recovery package once; an attempt after it failed (refused, dropped) starts an empty session.
+   * Tries the recovery package once it reached the server; an attempt after it failed (refused,
+   * dropped) starts an empty session. One the network dropped before the handshake tries it again.
    */
   protected prepareSessionRecovery(lostSession: { packageTried: boolean }): void {
     const sessionPackage = lostSession.packageTried ? undefined : this.sessionRecovery?.package()
-    lostSession.packageTried = true
     this.packageImport = sessionPackage?.data
     this.currentPartId = sessionPackage?.partId
   }
@@ -626,6 +626,9 @@ export class WebSocketClient {
       delete this.configuration.recognition["raw-content"].classification
     }
     if (this.packageImport) {
+      if (this.lostSession) {
+        this.lostSession.packageTried = true
+      }
       this.sendPackageImport(this.packageImport)
       return
     }

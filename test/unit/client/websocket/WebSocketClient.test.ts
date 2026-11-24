@@ -2161,6 +2161,30 @@ describe("WebSocketClient.ts", () => {
         expect(wsClient.event.emitError).not.toHaveBeenCalled()
       })
 
+      test("should still resume from the local snapshot after a reconnection attempt the network dropped", async () => {
+        const recovery = recoveryWith(savedPackage)
+        await wsClient.destroy()
+        const sentBeforeDrop = await dropConnection()
+        wsClient.setSessionRecovery(recovery)
+        // The network is still down for the first attempt: it never reaches the handshake
+        let dropNext = 1
+        mockServer.on("connection", (socket) => {
+          if (dropNext > 0) {
+            dropNext--
+            socket.close({ code: 1006, reason: "network down", wasClean: false })
+          }
+        })
+
+        await wsClient.send({ type: "probe" })
+        //¯\_(ツ)_/¯  required to wait server received message
+        await delay(100)
+
+        const sent = types().slice(sentBeforeDrop)
+        expect(sent).toContain("importPackage")
+        expect(sent).not.toContain("initSession")
+        expect(recovery.recover).toHaveBeenCalledWith(true)
+      })
+
       test("should start a new session and report the loss without recovery", async () => {
         await wsClient.destroy()
         const sentBeforeDrop = await dropConnection()
