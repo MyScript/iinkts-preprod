@@ -157,6 +157,9 @@ export class IIMenuAction extends IIAbstractMenu<
 
   protected renderDropdownItems(): void {
     const { config } = this
+    if (config.language) {
+      this.addItem("language", new LanguageMenuAction(this.canvas, this.id))
+    }
     if (config.theme) {
       this.addItem("theme", new ThemeMenuAction(this.canvas, this.id, config.themes))
     }
@@ -196,17 +199,14 @@ export class IIMenuAction extends IIAbstractMenu<
   protected renderBarItems(layer: HTMLElement): void {
     const bar: TMenuItemOptions = { zone: "bar" }
     const { config } = this
-    if (config.language) {
-      this.addItem("language", new LanguageMenuAction(this.canvas, this.id), bar)
-    }
-    if (config.clear) {
-      this.addItem("clear", new ClearMenuAction(this.canvas, this.id), bar)
+    if (config.convert) {
+      this.addItem("convert", new ConvertMenuAction(this.canvas, this.id), bar)
     }
     if (config.undoRedo) {
       this.addItem("undoRedo", new UndoRedoMenuAction(this.canvas, this.id), bar)
     }
-    if (config.convert) {
-      this.addItem("convert", new ConvertMenuAction(this.canvas, this.id), bar)
+    if (config.clear) {
+      this.addItem("clear", new ClearMenuAction(this.canvas, this.id), bar)
     }
     if (config.search && this.canvas.configuration.menu.search.enable) {
       this.addItem("search", new SearchMenuAction(this.canvas, this.id), bar)

@@ -161,14 +161,15 @@ test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch"
 
   test("language", async ({ page }) => {
     await test.step("should display language list", async () => {
+      // The language lives in the action dropdown
+      await expect(page.locator(locator.menu.action.language.trigger)).toBeHidden()
+      await page.locator(locator.menu.action.triggerBtn).click()
       await page.locator(locator.menu.action.language.trigger).click()
       await page.locator(locator.menu.action.language.inputSelect).click()
       const languageOptions = await page.locator(locator.menu.action.language.inputSelect + " option").all()
       expect(languageOptions.length).toBeGreaterThan(0)
-      // Close the language submenu by toggling its own trigger. The burger button is a
-      // sibling submenu, so clicking it would open the action list over the canvas and
-      // swallow the pointer events of the strokes written in the next steps.
-      await page.locator(locator.menu.action.language.trigger).click()
+      // Close the dropdown with its own trigger, or the action list stays over the canvas
+      await page.locator(locator.menu.action.triggerBtn).click()
       await expect(page.locator(locator.menu.action.language.inputSelect)).toBeHidden()
     })
 
@@ -184,8 +185,11 @@ test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch"
 
       await Promise.all([
         waitForLoadedEvent(page),
-        page.locator(locator.menu.action.language.trigger).click(),
-        page.locator(locator.menu.action.language.inputSelect).selectOption({ value: "fr_FR" })
+        (async () => {
+          await page.locator(locator.menu.action.triggerBtn).click()
+          await page.locator(locator.menu.action.language.trigger).click()
+          await page.locator(locator.menu.action.language.inputSelect).selectOption({ value: "fr_FR" })
+        })()
       ])
 
       const findSessionConfiguration = () => sentFrames

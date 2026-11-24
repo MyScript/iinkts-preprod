@@ -30,6 +30,12 @@ Ctrl+F on handwriting: find a word or an expression in the recognized text and m
 - new: `IIJiixQueryManager.getElements()`, `strokeIdsFromJIIXItems`, `LoggerCategory.SEARCH`, types `TSearchMatch`, `TSearchKind`, `TSearchSource`, `TSearchUnit`, `TSearchUnitChar`
 - example: `interactive_canvas_search.html`
 
+## Changes
+
+### Narrower action bar
+- **behaviour** the Language menu moves from the action bar into the action dropdown, as a labelled sub-menu like Theme or Guide; `LanguageMenuAction` now extends `SubMenuItem`. Its select id becomes `ms-menu-action-language-input` (`ms-menu-action-language` is now the sub-menu wrapper)
+- **behaviour** action bar order: Convert, Undo/Redo, then Clear (Clear used to come first)
+
 # [v5.0.0](https://github.com/MyScript/iinkTS/tree/v5.0.0)
 
 Full record: [changelog/5.0.0.md](changelog/5.0.0.md)

@@ -1,22 +1,19 @@
-import languageIcon from "@/assets/svg/language.svg"
 import type { TInteractiveInkCanvas } from "@/canvas"
 import { getAvailableLanguageList } from "@/client"
 
-import { BaseMenuItem } from "../items/BaseMenuItem"
+import type { TMenuSubMenu } from "../items/SubMenuItem"
+import { SubMenuItem } from "../items/SubMenuItem"
 
 /**
  * @group Menu
- * @remarks Menu action Language - Sélection de la langue
+ * @remarks Menu action Language - picks the recognition language among the ones the server offers
  */
-export class LanguageMenuAction extends BaseMenuItem<HTMLDivElement> {
-  #documentPointerdownHandler?: (e: PointerEvent) => void
-  private select!: HTMLSelectElement
-  private subMenuWrapper!: HTMLDivElement
-  private subMenuContent!: HTMLDivElement
+export class LanguageMenuAction extends SubMenuItem {
+  private select?: HTMLSelectElement
 
   constructor(canvas: TInteractiveInkCanvas, idPrefix = "ms-menu-action") {
-    const config = {
-      type: "language" as const,
+    const config: TMenuSubMenu = {
+      type: "submenu",
       id: `${idPrefix}-language`,
       label: "Language",
       menuTitle: "Language",
@@ -27,14 +24,9 @@ export class LanguageMenuAction extends BaseMenuItem<HTMLDivElement> {
   }
 
   createElement(): HTMLDivElement {
-    const triggerBtn = this.dom.button({
-      className: "square",
-      html: languageIcon,
-    })
-    triggerBtn.id = `${this.config.id}-trigger`
-
+    const wrapper = super.createElement()
     this.select = this.dom.select({
-      id: this.config.id,
+      id: `${this.config.id}-input`,
       options: [],
       className: "select-language",
       onChange: (value) => {
@@ -42,77 +34,29 @@ export class LanguageMenuAction extends BaseMenuItem<HTMLDivElement> {
         this.canvas.updateRecognitionConfiguration({ lang: value })
       },
     })
+    this.subMenuWrapper?.appendChild(this.select)
+    this.loadLanguages(this.select)
+    return wrapper
+  }
 
-    // Chargement asynchrone des langues disponibles
+  /** Fills `select` with the languages the server offers, the current one selected */
+  protected loadLanguages(select: HTMLSelectElement): void {
     getAvailableLanguageList(this.canvas.configuration)
       .then((json) => {
-        const languages = json.result as {
-          [key: string]: string
-        }
+        const languages = json.result as Record<string, string>
         for (const key in languages) {
           const selected = key === this.canvas.configuration.recognition.lang
-          const opt = new Option(languages[key], key, selected, selected)
-          this.select.appendChild(opt)
+          select.appendChild(new Option(languages[key], key, selected, selected))
         }
       })
       // No list to pick from: the select stays empty and recognition keeps its language
       .catch((error) => this.logger.error("getAvailableLanguageList", error))
-
-    this.subMenuWrapper = this.dom.div({
-      className: "sub-menu",
-    })
-    this.subMenuWrapper.appendChild(triggerBtn)
-
-    this.subMenuContent = this.dom.div({
-      className: ["sub-menu-content", this.openPosition ?? "bottom-right"],
-    })
-    this.subMenuContent.appendChild(this.select)
-    this.subMenuWrapper.appendChild(this.subMenuContent)
-
-    // Event listeners
-    triggerBtn.addEventListener("pointerdown", () => this.subMenuContent.classList.toggle("open"))
-    this.#documentPointerdownHandler = (e: PointerEvent) => {
-      if (!this.subMenuWrapper.contains(e.target as HTMLElement)) {
-        this.subMenuContent.classList.remove("open")
-      }
-    }
-    document.addEventListener("pointerdown", this.#documentPointerdownHandler)
-
-    return this.subMenuWrapper
-  }
-
-  destroy(): void {
-    if (this.#documentPointerdownHandler) {
-      document.removeEventListener("pointerdown", this.#documentPointerdownHandler)
-      this.#documentPointerdownHandler = undefined
-    }
-    super.destroy()
-  }
-
-  /**
-   * Wraps/unwraps according to screen size (mobile)
-   */
-  wrap(): void {
-    if (this.subMenuContent && this.subMenuWrapper) {
-      this.subMenuContent.classList.add("sub-menu-content")
-      this.subMenuWrapper.appendChild(this.subMenuContent)
-      this.subMenuWrapper.style.display = "block"
-    }
-  }
-
-  unwrap(): void {
-    if (this.subMenuContent && this.subMenuWrapper) {
-      this.subMenuContent.classList.remove("sub-menu-content")
-      this.subMenuWrapper.insertAdjacentElement("beforebegin", this.subMenuContent)
-      this.subMenuWrapper.style.display = "none"
-    }
   }
 
   update(): void {
     if (this.select) {
       this.select.value = this.canvas.configuration.recognition.lang
     }
-    this.updateDisabled()
-    this.updateVisible()
+    super.update()
   }
 }

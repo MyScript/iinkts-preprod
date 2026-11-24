@@ -114,7 +114,7 @@ describe("IIMenuAction.ts", () => {
       const changeEvt = new ChangeEventMock({
         target: { value: "fr_FR" } as unknown as HTMLInputElement,
       })
-      canvas.layers.ui.root.querySelector("#ms-menu-action-language")?.dispatchEvent(changeEvt)
+      canvas.layers.ui.root.querySelector("#ms-menu-action-language-input")?.dispatchEvent(changeEvt)
       expect(canvas.updateRecognitionConfiguration).toHaveBeenCalled()
     })
     test("should call canvas.undo on pointerup", () => {
@@ -288,6 +288,7 @@ describe("IIMenuAction.ts", () => {
 describe("IIMenuAction zones", () => {
   const noDropdownItem: TMenuActionConfig = {
     theme: false,
+    language: false,
     gesture: false,
     guide: false,
     pen: false,
@@ -331,6 +332,21 @@ describe("IIMenuAction zones", () => {
     const { menu, root } = render(noDropdownItem, [{ key: "extra-dropdown" }])
     expect(menu.wrapper?.firstElementChild?.querySelector("#extra-dropdown")).not.toBeNull()
     expect(root.querySelector("#ms-menu-action")).not.toBeNull()
+  })
+
+  test("should put the language in the dropdown", () => {
+    const { menu, root } = render()
+    expect(menu.wrapper?.firstElementChild?.querySelector("#ms-menu-action-language")).not.toBeNull()
+    expect(root.querySelector("#ms-menu-action-language")?.parentElement).not.toBe(menu.wrapper)
+  })
+
+  test("should order convert, undo/redo then clear in the bar", () => {
+    const { menu } = render()
+    const ids = Array.from(menu.wrapper?.children ?? []).map((child) => child.id)
+    const convert = ids.indexOf("ms-menu-action-convert")
+    const clear = ids.indexOf("ms-menu-action-clear")
+    expect(convert).toBeGreaterThan(-1)
+    expect(clear).toBeGreaterThan(convert)
   })
 
   test("should put an added bar item in the bar", () => {
