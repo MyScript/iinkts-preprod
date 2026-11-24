@@ -341,6 +341,10 @@
       dependenciesList.innerHTML = html
     }
 
+    showModalBtn.addEventListener('click', () => {
+      ModalCanvasOptions.show(loadCanvas, canvasOptions)
+    })
+
     ModalCanvasOptions.initConfiguration(loadCanvas, canvasOptions)
   </script>
   <script type="module" src="../components/code-viewer/code-viewer.js"></script>
