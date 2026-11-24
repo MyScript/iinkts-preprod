@@ -1,6 +1,6 @@
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { buildIIStroke, buildIIText } from "../../helpers"
-import { DecoratorContextMenu, DecoratorKind, DecoratorUtil, DefaultStyle } from "@/iink"
+import { buildIIMath, buildIIStroke, buildIIText } from "../../helpers"
+import { DecoratorContextMenu, DecoratorKind, DecoratorUtil, DefaultStyle, OBBOps, StrokeUtil, SymbolGeometry, TDecorator, TIIHistoryChanges, TMath, TSymbol, TText, isDecorator } from "@/iink"
 
 describe("DecoratorContextMenu.ts", () => {
   afterEach(() => {
@@ -46,36 +46,44 @@ describe("DecoratorContextMenu.ts", () => {
     expect(wrapper.querySelector(`#ms-menu-context-decorator-${DecoratorKind.Surround}`)).toBeTruthy()
   })
 
-  test("symbolsDecorable should only include selected text symbols", () => {
+  const strokeAt = (x: number) => {
+    const stroke = buildIIStroke()
+    StrokeUtil.addPointer(stroke, { x, y: 0, p: 1, dt: 100 })
+    StrokeUtil.addPointer(stroke, { x: x + 10, y: 10, p: 1, dt: 200 })
+    return stroke
+  }
+
+  const select = (canvas: ReturnType<typeof createCanvasMock>, symbols: TSymbol[]) =>
+    symbols.forEach((s) => {
+      canvas.model.addSymbol(s)
+      canvas.model.selectSymbol(s.id)
+    })
+
+  const standaloneIn = (canvas: ReturnType<typeof createCanvasMock>, kind: DecoratorKind) =>
+    canvas.model.symbols.filter((s): s is TDecorator => isDecorator(s) && s.kind === kind)
+
+  const kindsOf = (canvas: ReturnType<typeof createCanvasMock>, id: string) =>
+    (canvas.model.getSymbol(id) as TText | TMath).decorators.map((d) => d.kind)
+
+  test("symbolsDecorable should include the selected strokes, texts and maths", () => {
     const canvas = createCanvasMock()
     const text = buildTextSymbol()
-    const stroke = buildIIStroke()
-    canvas.model.addSymbol(text)
-    canvas.model.addSymbol(stroke)
-    canvas.model.selectSymbol(text.id)
-    canvas.model.selectSymbol(stroke.id)
+    const math = buildIIMath()
+    const stroke = strokeAt(0)
+    select(canvas, [text, math, stroke])
     const item = new DecoratorContextMenu(asCanvas(canvas))
 
-    expect(item.symbolsDecorable.map((s) => s.id)).toEqual([text.id])
+    expect(item.symbolsDecorable.map((s) => s.id).sort()).toEqual([text.id, math.id, stroke.id].sort())
     expect(item.showDecorator).toBe(true)
   })
 
-  test("hasSingleMathSymbol should be true only for a single recognized-math stroke selection", () => {
-    const canvas = createCanvasMock()
-    const mathStroke = buildIIStroke()
-    mathStroke.jiixBlockType = "Math"
-    canvas.model.addSymbol(mathStroke)
-    canvas.model.selectSymbol(mathStroke.id)
-    const item = new DecoratorContextMenu(asCanvas(canvas))
-
-    expect(item.hasSingleMathSymbol).toBe(true)
-  })
-
-  test("should toggle a decorator on for every decorable symbol via the enable checkbox", () => {
+  test("should set the decorator on every selected text, math and stroke via the enable checkbox, in one undo step", () => {
     const canvas = createCanvasMock()
     const text = buildTextSymbol()
-    canvas.model.addSymbol(text)
-    canvas.model.selectSymbol(text.id)
+    const math = buildIIMath()
+    const first = strokeAt(0)
+    const second = strokeAt(50)
+    select(canvas, [text, math, first, second])
     const item = new DecoratorContextMenu(asCanvas(canvas))
     const wrapper = item.getElement()
     document.body.appendChild(wrapper)
@@ -90,20 +98,86 @@ describe("DecoratorContextMenu.ts", () => {
     checkbox.checked = true
     checkbox.dispatchEvent(new Event("change", { bubbles: true }))
 
-    // IIModel.symbolsSelected clones on read, so the handler mutates a clone, not `text` itself
-    const updatedSymbols = (canvas.updateSymbols as jest.Mock).mock.calls[0][0].map((id: string) => canvas.model.getSymbol(id))
-    expect(updatedSymbols).toHaveLength(1)
-    expect(updatedSymbols[0].decorators.some((d: { kind: string }) => d.kind === DecoratorKind.Highlight)).toBe(true)
+    expect(kindsOf(canvas, text.id)).toEqual([DecoratorKind.Highlight])
+    expect(kindsOf(canvas, math.id)).toEqual([DecoratorKind.Highlight])
+    const standalone = standaloneIn(canvas, DecoratorKind.Highlight)
+    expect(standalone).toHaveLength(1)
+    expect(standalone[0].targetIds).toEqual([first.id, second.id])
+    expect(standalone[0].targetBounds).toEqual(
+      OBBOps.createFromOBBs([SymbolGeometry.boundsOf(first), SymbolGeometry.boundsOf(second)])
+    )
+    expect(canvas.history.push).toHaveBeenCalledTimes(1)
+    const changes = (canvas.history.push as jest.Mock).mock.calls[0][0] as TIIHistoryChanges
+    expect(changes.added).toEqual(standalone)
+    expect(changes.updated).toHaveLength(2)
     expect(firstColorButton.disabled).toBe(false)
     expect(firstColorButton.classList.contains("active")).toBe(true)
   })
 
-  test("should set the decorator color for every decorable symbol on color pick", () => {
+  test("enabling leaves alone the strokes that already carry the decorator", () => {
+    const canvas = createCanvasMock()
+    const decorated = strokeAt(0)
+    const bare = strokeAt(50)
+    select(canvas, [decorated, bare])
+    canvas.model.addSymbol(DecoratorUtil.createDecorator(DecoratorKind.Underline, DefaultStyle, [decorated.id]))
+    const item = new DecoratorContextMenu(asCanvas(canvas))
+
+    item.setDecorator(DecoratorKind.Underline, true)
+
+    expect(standaloneIn(canvas, DecoratorKind.Underline).map((d) => d.targetIds)).toEqual([[decorated.id], [bare.id]])
+  })
+
+  test("disabling removes it from every selected symbol and shrinks a decorator also on unselected strokes", () => {
+    const canvas = createCanvasMock()
+    const text = buildTextSymbol()
+    text.decorators.push(DecoratorUtil.createDecorator(DecoratorKind.Surround, DefaultStyle))
+    const selected = strokeAt(0)
+    const unselected = strokeAt(50)
+    select(canvas, [text, selected])
+    canvas.model.addSymbol(unselected)
+    const own = DecoratorUtil.createDecorator(DecoratorKind.Surround, DefaultStyle, [selected.id])
+    const shared = DecoratorUtil.createDecorator(DecoratorKind.Surround, DefaultStyle, [selected.id, unselected.id])
+    canvas.model.addSymbol(own)
+    canvas.model.addSymbol(shared)
+    const item = new DecoratorContextMenu(asCanvas(canvas))
+
+    item.setDecorator(DecoratorKind.Surround, false)
+
+    expect(kindsOf(canvas, text.id)).toEqual([])
+    expect(canvas.model.getSymbol(own.id)).toBeUndefined()
+    const shrunk = canvas.model.getSymbol(shared.id) as TDecorator
+    expect(shrunk.targetIds).toEqual([unselected.id])
+    expect(shrunk.targetBounds).toEqual(SymbolGeometry.boundsOf(unselected))
+    expect(canvas.history.push).toHaveBeenCalledTimes(1)
+    const changes = (canvas.history.push as jest.Mock).mock.calls[0][0] as TIIHistoryChanges
+    expect(changes.erased).toEqual([own])
+    expect(changes.updated).toHaveLength(2)
+  })
+
+  test("a locked text is refused, the other symbols are still decorated", () => {
+    const canvas = createCanvasMock()
+    const locked = { ...buildTextSymbol(), locked: true }
+    const stroke = strokeAt(0)
+    select(canvas, [locked, stroke])
+    const item = new DecoratorContextMenu(asCanvas(canvas))
+
+    item.setDecorator(DecoratorKind.Highlight, true)
+
+    expect(kindsOf(canvas, locked.id)).toEqual([])
+    expect(canvas.event.emitLockedRefused).toHaveBeenCalled()
+    expect(standaloneIn(canvas, DecoratorKind.Highlight)).toHaveLength(1)
+  })
+
+  test("should set the decorator color on every selected text, math and stroke on color pick", () => {
     const canvas = createCanvasMock()
     const text = buildTextSymbol()
     text.decorators.push(DecoratorUtil.createDecorator(DecoratorKind.Highlight, DefaultStyle))
-    canvas.model.addSymbol(text)
-    canvas.model.selectSymbol(text.id)
+    const math = buildIIMath()
+    math.decorators.push(DecoratorUtil.createDecorator(DecoratorKind.Highlight, DefaultStyle))
+    const stroke = strokeAt(0)
+    select(canvas, [text, math, stroke])
+    const standalone = DecoratorUtil.createDecorator(DecoratorKind.Highlight, DefaultStyle, [stroke.id])
+    canvas.model.addSymbol(standalone)
     const item = new DecoratorContextMenu(asCanvas(canvas))
     const wrapper = item.getElement()
     document.body.appendChild(wrapper)
@@ -113,9 +187,13 @@ describe("DecoratorContextMenu.ts", () => {
 
     redButton.dispatchEvent(new Event("pointerup", { bubbles: true, cancelable: true }))
 
-    const updatedSymbols = (canvas.updateSymbols as jest.Mock).mock.calls[0][0].map((id: string) => canvas.model.getSymbol(id))
-    const decorator = updatedSymbols[0].decorators.find((d: { kind: string }) => d.kind === DecoratorKind.Highlight)
-    expect(decorator?.style.color).toEqual("#ff0000")
+    const colorOf = (id: string) =>
+      (canvas.model.getSymbol(id) as TText | TMath).decorators.find((d) => d.kind === DecoratorKind.Highlight)?.style
+        .color
+    expect(colorOf(text.id)).toEqual("#ff0000")
+    expect(colorOf(math.id)).toEqual("#ff0000")
+    expect((canvas.model.getSymbol(standalone.id) as TDecorator).style.color).toEqual("#ff0000")
+    expect(canvas.history.push).toHaveBeenCalledTimes(1)
     expect(redButton.classList.contains("active")).toBe(true)
   })
 
@@ -166,6 +244,62 @@ describe("DecoratorContextMenu.ts", () => {
     expect(wrapper.style.display).not.toEqual("none")
     expect(checkbox.checked).toBe(true)
     expect(checkbox.indeterminate).toBe(false)
+  })
+
+  test("should show the menu on update() for a lone stroke recognized as math", () => {
+    const canvas = createCanvasMock()
+    const mathStroke = strokeAt(0)
+    mathStroke.jiixBlockType = "Math"
+    select(canvas, [mathStroke])
+    const item = new DecoratorContextMenu(asCanvas(canvas))
+    const wrapper = item.getElement()
+
+    item.update()
+
+    expect(wrapper.style.display).not.toEqual("none")
+  })
+
+  test("update() reads a stroke's standalone decorator: checked when all have it, indeterminate when some", () => {
+    const canvas = createCanvasMock()
+    const decorated = strokeAt(0)
+    const bare = strokeAt(50)
+    select(canvas, [decorated])
+    canvas.model.addSymbol(DecoratorUtil.createDecorator(DecoratorKind.Underline, DefaultStyle, [decorated.id]))
+    const item = new DecoratorContextMenu(asCanvas(canvas))
+    const wrapper = item.getElement()
+    document.body.appendChild(wrapper)
+    const checkbox = wrapper.querySelector(
+      `#ms-menu-context-decorator-${DecoratorKind.Underline}-enable`
+    ) as HTMLInputElement
+
+    item.update()
+    expect(checkbox.checked).toBe(true)
+
+    select(canvas, [bare])
+    item.update()
+    expect(checkbox.indeterminate).toBe(true)
+  })
+
+  test("a click on the mixed state sets the decorator on every symbol, even when the box was checked before", () => {
+    const canvas = createCanvasMock()
+    const decorated = strokeAt(0)
+    const bare = strokeAt(50)
+    select(canvas, [decorated])
+    canvas.model.addSymbol(DecoratorUtil.createDecorator(DecoratorKind.Underline, DefaultStyle, [decorated.id]))
+    const item = new DecoratorContextMenu(asCanvas(canvas))
+    const wrapper = item.getElement()
+    document.body.appendChild(wrapper)
+    const checkbox = wrapper.querySelector(
+      `#ms-menu-context-decorator-${DecoratorKind.Underline}-enable`
+    ) as HTMLInputElement
+    item.update()
+    expect(checkbox.checked).toBe(true)
+    select(canvas, [bare])
+    item.update()
+
+    checkbox.click()
+
+    expect(standaloneIn(canvas, DecoratorKind.Underline).map((d) => d.targetIds)).toEqual([[decorated.id], [bare.id]])
   })
 
   test("should not throw and remove document listeners on destroy()", () => {
