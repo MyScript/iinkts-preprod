@@ -27,6 +27,23 @@ describe("BoxOps", () => {
     })
   })
 
+  describe("groupIntoLines", () => {
+    const at = (label: string, x: number, y: number) => ({ label, box: { x, y, width: 10, height: 10 } })
+
+    test("should return no line for no item", () => {
+      expect(BoxOps.groupIntoLines([], (e: { box: TBox }) => e.box)).toEqual([])
+    })
+
+    test("should group items sharing a vertical extent, top-to-bottom then left-to-right", () => {
+      const items = [at("d", 20, 30), at("b", 20, 2), at("a", 0, 0), at("c", 0, 31)]
+      const lines = BoxOps.groupIntoLines(items, (e) => e.box)
+      expect(lines.map((line) => line.map((e) => e.label))).toEqual([
+        ["a", "b"],
+        ["c", "d"],
+      ])
+    })
+  })
+
   describe("createFromBoxes", () => {
     test("should return empty box when no boxes", () => {
       const box = BoxOps.createFromBoxes([])

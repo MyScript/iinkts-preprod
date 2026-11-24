@@ -3,7 +3,6 @@ import type { TJIIXMathElement } from "@/client"
 import { DOMFactory } from "@/dom"
 import type { TStroke, TSymbol, TText } from "@/symbol"
 import { isStroke, isText } from "@/symbol"
-import { TextUtil } from "@/symbol-utils"
 
 import type {
   TContextDecoratorConfig,
@@ -207,18 +206,6 @@ export class IIMenuContext extends IIAbstractMenu<Required<TMenuContextConfig> &
     }
 
     if (this.haveSymbolsSelected) {
-      // Update edit menu
-      const editMenuInstance = this.items.get("edit") as EditContextMenu | undefined
-      if (editMenuInstance) {
-        const textSymbol = this.canvas.model.symbolsSelected.find((s) => isText(s))
-        if (editMenuInstance.editInput && this.canvas.model.symbolsSelected.length === 1 && textSymbol) {
-          editMenuInstance.editInput.value = TextUtil.getLabel(textSymbol as TText)
-          editMenuInstance.getElement().style.removeProperty("display")
-        } else {
-          editMenuInstance.getElement().style.setProperty("display", "none")
-        }
-      }
-
       // Show convert button only if there are strokes AND not only math selected
       if (this.canvas.extractStrokesFromSymbols(this.symbolsSelected).length) {
         this.items.get("convert")?.getElement().style.removeProperty("display")
@@ -232,7 +219,6 @@ export class IIMenuContext extends IIAbstractMenu<Required<TMenuContextConfig> &
       this.items.get("remove")?.getElement().style.removeProperty("display")
       this.items.get("export")?.getElement().style.removeProperty("display")
     } else {
-      this.items.get("edit")?.getElement().style.setProperty("display", "none")
       this.items.get("convert")?.getElement().style.setProperty("display", "none")
       this.items.get("reorder")?.getElement().style.setProperty("display", "none")
       this.items.get("duplicate")?.getElement().style.setProperty("display", "none")

@@ -77,6 +77,32 @@ export function buildTextInput(config: TInputElConfig): HTMLInputElement {
 }
 
 /** @group DOM */
+export type TTextareaElConfig = {
+  id?: string
+  value?: string
+  placeholder?: string
+  rows?: number
+  name?: string
+}
+
+/** @group DOM */
+export function buildTextarea(config: TTextareaElConfig): HTMLTextAreaElement {
+  const textarea = document.createElement("textarea")
+  if (config.id) {
+    textarea.id = config.id
+  }
+  textarea.value = config.value ?? ""
+  textarea.placeholder = config.placeholder ?? ""
+  textarea.rows = config.rows ?? 3
+  if (config.name) {
+    textarea.name = config.name
+  }
+  textarea.style.cssText = DEFAULT_INPUT_STYLE
+  textarea.style.resize = "vertical"
+  return textarea
+}
+
+/** @group DOM */
 export function buildNumberInput(config: TInputElConfig): HTMLInputElement {
   const input = document.createElement("input")
   input.type = "number"

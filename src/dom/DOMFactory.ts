@@ -2,8 +2,21 @@ import type { TButtonElConfig } from "./buttonElement"
 import { buildButton } from "./buttonElement"
 import type { TContainerElConfig } from "./containerElement"
 import { buildDiv, buildH3, buildP, buildSection, buildSpan, buildStyle } from "./containerElement"
-import type { TCheckboxElConfig, TFileInputElConfig, TInputElConfig, TRangeElConfig } from "./inputElement"
-import { buildCheckbox, buildFileInput, buildNumberInput, buildRange, buildTextInput } from "./inputElement"
+import type {
+  TCheckboxElConfig,
+  TFileInputElConfig,
+  TInputElConfig,
+  TRangeElConfig,
+  TTextareaElConfig,
+} from "./inputElement"
+import {
+  buildCheckbox,
+  buildFileInput,
+  buildNumberInput,
+  buildRange,
+  buildTextarea,
+  buildTextInput,
+} from "./inputElement"
 import type { TLabelElConfig } from "./labelElement"
 import { buildLabel } from "./labelElement"
 import { buildCanvas } from "./miscElement"
@@ -53,6 +66,10 @@ export class DOMFactory {
 
   static textInput(config: TInputElConfig): HTMLInputElement {
     return buildTextInput(config)
+  }
+
+  static textarea(config: TTextareaElConfig): HTMLTextAreaElement {
+    return buildTextarea(config)
   }
 
   static numberInput(config: TInputElConfig): HTMLInputElement {

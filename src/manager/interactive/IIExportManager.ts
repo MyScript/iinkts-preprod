@@ -102,31 +102,8 @@ export class IIExportManager extends ExportManager {
       }
     })
 
-    return this.#groupEntriesIntoLines(entries)
+    return BoxOps.groupIntoLines(entries, (e) => e.box)
       .map((line) => line.map((e) => e.label).join(" "))
       .join("\n")
-  }
-
-  /**
-   * Group entries (words, math expressions) sharing a vertical extent into the same reading line,
-   * ordered top-to-bottom then left-to-right, so words drawn on the same line stay on the same
-   * line in the export.
-   */
-  #groupEntriesIntoLines<T extends { box: TBox }>(entries: T[]): T[][] {
-    const sortedByTop = [...entries].sort((a, b) => a.box.y - b.box.y)
-    const lines: { bottom: number; entries: T[] }[] = []
-
-    sortedByTop.forEach((entry) => {
-      const bottom = entry.box.y + entry.box.height
-      const currentLine = lines[lines.length - 1]
-      if (currentLine && entry.box.y < currentLine.bottom) {
-        currentLine.entries.push(entry)
-        currentLine.bottom = Math.max(currentLine.bottom, bottom)
-      } else {
-        lines.push({ bottom, entries: [entry] })
-      }
-    })
-
-    return lines.map((line) => line.entries.sort((a, b) => a.box.x - b.box.x))
   }
 }
