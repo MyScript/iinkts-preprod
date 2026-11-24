@@ -180,6 +180,37 @@ describe("IIConnectorManager", () => {
     })
   })
 
+  describe("locked edges stay where they are", () => {
+    test("a locked converted edge does not follow the shape it is anchored to", () => {
+      const line = { ...buildLineWithStartAnchor(), locked: true }
+      setupSymbols(mock, [line])
+
+      const result = manager.updateAnchoredEdges([TARGET_ID])
+
+      expect(fromModel<typeof line>(line).start).toEqual(line.start)
+      expect(result.newSymbols).toEqual([])
+    })
+
+    test("a locked converted edge is left out of the drag preview", () => {
+      const line = { ...buildLineWithStartAnchor(), locked: true }
+      setupSymbols(mock, [line])
+
+      manager.drawAnchoredEdgesForMatrix([TARGET_ID], MatrixTransform.identity().translate(10, 0))
+
+      expect(mock.renderer.drawSymbol).not.toHaveBeenCalled()
+    })
+
+    test("a locked edge stroke does not follow its shape before conversion", () => {
+      const stroke = { ...buildStrokeWithSingleAnchor("block-shape-1"), locked: true }
+      setupSymbols(mock, [stroke])
+      jest
+        .spyOn(mock.jiix, "getStrokesForElement")
+        .mockImplementation((id: string) => (id === "block-shape-1" ? ["shape-stroke-1"] : []))
+
+      expect(manager.getFollowedStrokeIds(["shape-stroke-1"])).toEqual([])
+    })
+  })
+
   describe("updateAnchoredEdges", () => {
     test("empty symbolIds → model.updateSymbol never called", () => {
       const updateSpy = jest.spyOn(mock.model, "updateSymbol")

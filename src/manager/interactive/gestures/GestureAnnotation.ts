@@ -58,6 +58,13 @@ export class IIGestureAnnotationProcessor {
     const erased: TDecorator[] = []
 
     for (const id of ids) {
+      // A text carries its decorators inside it: decorating a locked one would rewrite it. A locked
+      // stroke is left as it is by a decorator, which is a symbol of its own.
+      const current = this.canvas.model.getSymbol(id)
+      if (current?.locked && isText(current)) {
+        this.canvas.event.emitLockedRefused([current])
+        continue
+      }
       // A draft rather than a read: the text branch below adds or removes a decorator on the
       // symbol and commits it.
       const sym = this.canvas.model.draftSymbol(id)
@@ -149,7 +156,9 @@ export class IIGestureAnnotationProcessor {
       .filter(isDecorator)
       .find((d) => d.kind === kind && this.#sameTargets(d.targetIds, targetIds))
 
-    if (existing) {
+    if (existing?.locked) {
+      this.canvas.event.emitLockedRefused([existing])
+    } else if (existing) {
       this.canvas.model.removeSymbol(existing.id)
       this.canvas.renderer.removeElement(existing.id)
       erased.push(existing)

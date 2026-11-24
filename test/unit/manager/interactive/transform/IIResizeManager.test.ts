@@ -821,4 +821,35 @@ describe("start() — selection containing an unregistered symbol type", () => {
     // assigning it.
     expect(manager.keepRatio).toBe(false)
   })
+  describe("locked symbols in the selection", () => {
+    test("end leaves locked symbols alone and tells the server about the others only", async () => {
+      const canvas = createCanvasMock()
+      canvas.snaps.snapConfiguration.guide = false
+      canvas.snaps.snapConfiguration.symbol = false
+      canvas.client.transformScale = jest.fn(() => Promise.resolve())
+      canvas.renderer.setAttribute = jest.fn()
+      canvas.renderer.setSymbolTransform = jest.fn()
+      const manager = new IIResizeManager(asCanvas(canvas))
+      const locked: TStroke = { ...buildIIStroke(), locked: true }
+      const free = buildIIStroke()
+      canvas.model.addSymbol(locked)
+      canvas.model.addSymbol(free)
+      canvas.model.selectSymbol(locked.id)
+      canvas.model.selectSymbol(free.id)
+      const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+      group.setAttribute("id", "group-id")
+      group.setAttribute("role", SvgElementRole.InteractElementsGroup)
+      const handle = document.createElementNS("http://www.w3.org/2000/svg", "circle")
+      handle.setAttribute("resize-direction", "e-resize")
+      group.appendChild(handle)
+
+      manager.start(handle, { x: 11, y: 6 })
+      await manager.end({ x: 20, y: 20 })
+
+      expect(canvas.event.emitLockedRefused).toHaveBeenCalledWith([locked])
+      expect(canvas.model.getSymbol(locked.id)).toBe(locked)
+      expect(canvas.model.getSymbol(free.id)).not.toBe(free)
+      expect((canvas.client.transformScale as jest.Mock).mock.calls[0][0]).toEqual([free.id])
+    })
+  })
 })

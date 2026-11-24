@@ -17,6 +17,7 @@ import {
   DuplicateContextMenu,
   EditContextMenu,
   ExportContextMenu,
+  LockContextMenu,
   MathContextMenu,
   RemoveContextMenu,
   ReorderContextMenu,
@@ -46,6 +47,8 @@ export type TMenuContextConfig = {
   group?: boolean
   /** Enable/disable Duplicate menu */
   duplicate?: boolean
+  /** Enable/disable Lock / Unlock menu. Turn it off to keep locking to the API (`lockSymbols`) */
+  lock?: boolean
   /** Enable/disable Remove menu */
   remove?: boolean
   /** Enable/disable Select All menu */
@@ -62,6 +65,7 @@ export const DefaultMenuContextConfig: Required<TMenuContextConfig> = {
   math: true,
   group: true,
   duplicate: true,
+  lock: true,
   remove: true,
   selectAll: true,
 }
@@ -224,6 +228,7 @@ export class IIMenuContext extends IIAbstractMenu<Required<TMenuContextConfig> &
 
       this.items.get("reorder")?.getElement().style.removeProperty("display")
       this.items.get("duplicate")?.getElement().style.removeProperty("display")
+      this.items.get("lock")?.getElement().style.removeProperty("display")
       this.items.get("remove")?.getElement().style.removeProperty("display")
       this.items.get("export")?.getElement().style.removeProperty("display")
     } else {
@@ -231,6 +236,7 @@ export class IIMenuContext extends IIAbstractMenu<Required<TMenuContextConfig> &
       this.items.get("convert")?.getElement().style.setProperty("display", "none")
       this.items.get("reorder")?.getElement().style.setProperty("display", "none")
       this.items.get("duplicate")?.getElement().style.setProperty("display", "none")
+      this.items.get("lock")?.getElement().style.setProperty("display", "none")
       this.items.get("remove")?.getElement().style.setProperty("display", "none")
       this.items.get("export")?.getElement().style.setProperty("display", "none")
     }
@@ -239,6 +245,7 @@ export class IIMenuContext extends IIAbstractMenu<Required<TMenuContextConfig> &
     this.items.get("edit")?.update()
     this.items.get("decorator")?.update()
     this.items.get("duplicate")?.update()
+    this.items.get("lock")?.update()
     this.updateMathMenu()
   }
 
@@ -288,6 +295,9 @@ export class IIMenuContext extends IIAbstractMenu<Required<TMenuContextConfig> &
     }
     if (config.duplicate) {
       this.addItem("duplicate", new DuplicateContextMenu(canvas, id))
+    }
+    if (config.lock) {
+      this.addItem("lock", new LockContextMenu(canvas, id))
     }
     if (config.remove) {
       this.addItem("remove", new RemoveContextMenu(canvas, id))

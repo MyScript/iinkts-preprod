@@ -254,4 +254,32 @@ describe("IIMenuContext zones", () => {
     expect(bar?.classList.contains("ms-menu-context-bar")).toBe(true)
     expect(bar?.querySelector("#extra-bar")).not.toBeNull()
   })
+  describe("lock item", () => {
+    const render = (config: { lock: boolean }) => {
+      const canvas = createCanvasMock()
+      const stroke = buildIIStroke()
+      canvas.model.addSymbol(stroke)
+      canvas.model.selectSymbol(stroke.id)
+      const menuContext = new IIMenuContext(asCanvas(canvas), "ms-menu-context", { ...ONLY_MATH_MENU_CONFIG, math: false, ...config })
+      menuContext.render(canvas.layers.rendering)
+      return { canvas, menuContext, stroke }
+    }
+    const lockButton = (menuContext: IIMenuContext) =>
+      menuContext.wrapper!.querySelector("#ms-menu-context-lock") as HTMLElement | null
+
+    test("is shown by default and relabelled when the menu updates", () => {
+      const { canvas, menuContext, stroke } = render({ lock: true })
+      canvas.model.updateSymbol({ ...stroke, locked: true })
+
+      menuContext.show()
+
+      expect(lockButton(menuContext)?.style.display).not.toEqual("none")
+      expect(lockButton(menuContext)?.textContent).toEqual("Unlock")
+    })
+
+    test("is left out when the integrator keeps locking to the API", () => {
+      const { menuContext } = render({ lock: false })
+      expect(lockButton(menuContext)).toBeNull()
+    })
+  })
 })

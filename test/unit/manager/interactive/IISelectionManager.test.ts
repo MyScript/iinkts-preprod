@@ -970,4 +970,52 @@ describe("createInteractElementsGroup skips unregistered symbol types", () => {
     expect(() => manager.drawSelectedGroup([stroke, orphan])).not.toThrow()
     expect(manager.selectedGroup).toBeDefined()
   })
+  describe("locked selection", () => {
+    const setup = async (symbols: TSymbol[]) => {
+      const canvas = createCanvasMock()
+      const manager = new IISelectionManager(asCanvas(canvas))
+      await canvas.init()
+      symbols.forEach((s) => canvas.model.addSymbol(s))
+      manager.drawSelectedGroup(symbols)
+      const group = canvas.renderer.layer.querySelector(`[role=${SvgElementRole.InteractElementsGroup}]`) as SVGGElement
+      return { canvas, group }
+    }
+    const handlesIn = (group: SVGGElement) =>
+      group.querySelectorAll(`[role=${SvgElementRole.Resize}], [role=${SvgElementRole.Rotate}]`).length
+
+    test("a fully locked selection gets a lock badge and no resize or rotate handle", async () => {
+      const { group } = await setup([{ ...buildIIStroke(), locked: true }])
+      expect(group.querySelector(`[role=${SvgElementRole.Lock}]`)).not.toBeNull()
+      expect(handlesIn(group)).toBe(0)
+    })
+
+    test("a locked edge alone gets no vertex handle", async () => {
+      const { group } = await setup([{ ...buildIILine(), locked: true }])
+      expect(group.querySelector(`[role=${SvgElementRole.Lock}]`)).not.toBeNull()
+      expect(handlesIn(group)).toBe(0)
+    })
+
+    test("a mixed selection keeps its handles and shows no lock badge", async () => {
+      const { group } = await setup([{ ...buildIIStroke(), locked: true }, buildIIStroke()])
+      expect(group.querySelector(`[role=${SvgElementRole.Lock}]`)).toBeNull()
+      expect(handlesIn(group)).toBeGreaterThan(0)
+    })
+
+    test("pressing a fully locked selection reports the refusal", async () => {
+      const locked: TSymbol = { ...buildIIStroke(), locked: true }
+      const { canvas, group } = await setup([locked])
+      group.querySelector(`[role=${SvgElementRole.Translate}]`)!.dispatchEvent(new Event("pointerdown"))
+      expect(canvas.event.emitLockedRefused).toHaveBeenCalledWith([locked])
+    })
+
+    test("pressing a fully locked selection does not reach the canvas behind it", async () => {
+      const { canvas, group } = await setup([{ ...buildIIStroke(), locked: true }])
+      const behind = jest.fn()
+      canvas.renderer.layer.addEventListener("pointerdown", behind)
+
+      group.querySelector(`[role=${SvgElementRole.Translate}]`)!.dispatchEvent(new Event("pointerdown", { bubbles: true }))
+
+      expect(behind).not.toHaveBeenCalled()
+    })
+  })
 })

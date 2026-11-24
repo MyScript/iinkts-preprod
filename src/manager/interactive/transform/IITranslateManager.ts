@@ -102,6 +102,7 @@ export class IITranslateManager extends IIAbstractTransformManager {
     // IISynchronizerManager's write-idle gate polls to avoid contending with an in-progress
     // gesture. Ended synchronously in `end()`.
     this.canvas.startOperation("Translating")
+    this.reportLockedSelection()
     this.interactElementsGroup = this.resolveInteractGroup(target)
     this.transformOrigin = origin
   }
@@ -126,15 +127,15 @@ export class IITranslateManager extends IIAbstractTransformManager {
     const matrix = MatrixTransform.identity().translate(tx, ty)
 
     this.previewElementTransform(this.interactElementsGroup.id as string, matrix)
-    this.model.symbolsSelected.forEach((s) => {
+    this.transformables.forEach((s) => {
       this.previewTransform(s, matrix)
     })
-    this.previewDecorators(this.model.symbolsSelected, matrix)
-    this.getGhostStrokeIdsForSelectedMath(this.model.symbolsSelected).forEach((id) => {
+    this.previewDecorators(this.transformables, matrix)
+    this.getGhostStrokeIdsForSelectedMath(this.transformables).forEach((id) => {
       this.previewElementTransform(id, matrix)
     })
     this.canvas.connector.drawAnchoredEdgesForMatrix(
-      this.model.symbolsSelected.map((s) => s.id),
+      this.transformables.map((s) => s.id),
       matrix
     )
     return { tx, ty }
@@ -148,7 +149,7 @@ export class IITranslateManager extends IIAbstractTransformManager {
     this.canvas.endOperation("Translating")
     const { tx, ty } = this.continue(point)
     this.canvas.snaps.clearSnapToElementLines()
-    await this.translate(this.model.symbolsSelected, tx, ty)
+    await this.translate(this.transformables, tx, ty)
     this.finalizeTransform()
   }
 }

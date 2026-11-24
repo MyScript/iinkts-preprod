@@ -1,5 +1,6 @@
 import type { TInteractiveInkCanvas } from "@/canvas"
 import { DOMFactory, RafCoalescer } from "@/dom"
+import { SvgElementRole } from "@/renderer"
 /**
  * @group Components
  */
@@ -140,7 +141,9 @@ export class Minimap {
   #syncContent(): void {
     const mainLayer = this.#canvas.renderer.getRenderingContext()
     const clones = Array.from(mainLayer.children)
-      .filter((el) => el.tagName.toLowerCase() !== "defs")
+      // A refused-change padlock is gone from the canvas within a second, while this copy would keep
+      // it until the next change
+      .filter((el) => el.tagName.toLowerCase() !== "defs" && el.getAttribute("role") !== SvgElementRole.Lock)
       .map((el) => {
         const clone = el.cloneNode(true)
         this.#stripIds(clone)

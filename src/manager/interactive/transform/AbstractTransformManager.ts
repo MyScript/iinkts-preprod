@@ -54,6 +54,19 @@ export abstract class IIAbstractTransformManager extends IIAbstractManager {
     return target.closest(`[role=${SvgElementRole.InteractElementsGroup}]`) as unknown as SVGGElement
   }
 
+  /** The selected symbols a transform may change: locked ones stay where they are */
+  protected get transformables(): TSymbol[] {
+    return this.model.symbolsSelected.filter((s) => !s.locked)
+  }
+
+  /** Reports the locked symbols of the selection, which the transform about to start leaves alone */
+  protected reportLockedSelection(): void {
+    const locked = this.model.symbolsSelected.filter((s) => s.locked)
+    if (locked.length) {
+      this.canvas.event.emitLockedRefused(locked)
+    }
+  }
+
   /**
    * Applies a matrix transform locally (model + redraw) without touching the backend or
    * history. Used by InteractiveInkCanvas's undo/redo replay dispatcher, which sends its own

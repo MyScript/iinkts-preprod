@@ -1,7 +1,7 @@
 import { arcJIIX, circleJIIX, ellipseJIIX, hTextJIIX, lineJIIX, parallelogramJIIX, polygonJIIX, rectangleJIIX, rhombusJIIX, triangleJIIX } from "../../__dataset__/jiix.dataset"
-import { buildIIStroke } from "../../helpers"
+import { buildIIDecorator, buildIIStroke } from "../../helpers"
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { EdgeUtil, IIConversionManager, JIIXEdgeKind, JIIXElementType, JIIXNodeKind, ShapeUtil, TEdgeLine, TJIIXEdgeElement, TJIIXMathElement, TJIIXNodeElement, TJIIXTextElement, TSymbol, TextUtil } from "@/iink"
+import { DecoratorKind, EdgeUtil, IIConversionManager, JIIXEdgeKind, JIIXElementType, JIIXNodeKind, ShapeUtil, TEdgeLine, TJIIXEdgeElement, TJIIXMathElement, TJIIXNodeElement, TJIIXTextElement, TStroke, TSymbol, TextUtil } from "@/iink"
 
 describe("IIConversionManager.ts", () => {
   test("should create", () => {
@@ -362,6 +362,69 @@ describe("IIConversionManager.ts", () => {
       }
       const math = manager.buildMath(mathElement, [buildIIStroke()], 16)
       expect(math.elements[0].label).toBe("x=1/2")
+    })
+  })
+  describe("apply - locked strokes", () => {
+    const nodeOf = (id: string, strokeIds: string[]) =>
+      ({
+        type: JIIXElementType.Node,
+        id,
+        kind: JIIXNodeKind.Rectangle,
+        x: 0,
+        y: 0,
+        width: 20,
+        height: 20,
+        items: strokeIds.map((sid, i) => ({ type: "stroke", id: `i${i}`, "full-id": sid })),
+      }) as unknown as TJIIXNodeElement
+
+    test("a block holding a locked stroke is not converted at all, the others are", async () => {
+      const canvas = createCanvasMock()
+      const locked: TSymbol = { ...buildIIStroke(), locked: true }
+      const sibling = buildIIStroke()
+      const free = buildIIStroke()
+      ;[locked, sibling, free].forEach((s) => canvas.model.addSymbol(s))
+      canvas.model.mergeExport({
+        "application/vnd.myscript.jiix": {
+          type: "Text",
+          id: "root",
+          version: "3",
+          elements: [nodeOf("node-locked", [locked.id, sibling.id]), nodeOf("node-free", [free.id])],
+        },
+      })
+
+      const added = await new IIConversionManager(asCanvas(canvas)).apply()
+
+      expect(added).toHaveLength(1)
+      const removedIds = (canvas.removeSymbols as jest.Mock).mock.calls.flatMap(([ids]) => ids)
+      expect(removedIds).toEqual([free.id])
+    })
+  })
+  describe("buildText - locked decorations", () => {
+    const word = { label: "a", "bounding-box": { x: 0, y: 0, width: 5, height: 5 } } as unknown as Parameters<IIConversionManager["buildText"]>[0]
+
+    test("a decorator on a locked stroke is not absorbed into the text", () => {
+      const canvas = createCanvasMock()
+      const locked: TSymbol = { ...buildIIStroke(), locked: true }
+      const decorator = { ...buildIIDecorator(DecoratorKind.Underline), targetIds: [locked.id] }
+      canvas.model.addSymbol(locked)
+      canvas.model.addSymbol(decorator)
+
+      const text = new IIConversionManager(asCanvas(canvas)).buildText(word, [], [locked as TStroke], 12)
+
+      expect(canvas.model.getSymbol(decorator.id)).toBeDefined()
+      expect(text.decorators).toHaveLength(0)
+    })
+
+    test("a locked decorator is not absorbed into the text", () => {
+      const canvas = createCanvasMock()
+      const stroke = buildIIStroke()
+      const decorator = { ...buildIIDecorator(DecoratorKind.Underline), targetIds: [stroke.id], locked: true }
+      canvas.model.addSymbol(stroke)
+      canvas.model.addSymbol(decorator)
+
+      new IIConversionManager(asCanvas(canvas)).buildText(word, [], [stroke], 12)
+
+      expect(canvas.model.getSymbol(decorator.id)).toBeDefined()
     })
   })
 })

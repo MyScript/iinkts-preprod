@@ -6,7 +6,7 @@ import { RafCoalescer } from "@/dom"
 import type { TPointerInfo } from "@/grabber"
 import { PointerEventGrabber } from "@/grabber"
 import { LoggerCategory } from "@/logger"
-import { SVGBuilder, SvgElementRole } from "@/renderer"
+import { createLockIcon, SVGBuilder, SvgElementRole } from "@/renderer"
 import type { TDecorator, TEdge, TEdgeArc, TStroke, TSymbol } from "@/symbol"
 import {
   EdgeKind,
@@ -454,10 +454,47 @@ export class IISelectionManager extends IIAbstractManager {
       role: SvgElementRole.InteractElementsGroup,
     }
     const surroundGroup = SVGBuilder.createGroup(attrs)
+    if (symbols.every((s) => s.locked)) {
+      surroundGroup.appendChild(this.createLockedFrame(box, symbols))
+      return surroundGroup
+    }
     surroundGroup.appendChild(this.createTranslateRect(box))
     surroundGroup.appendChild(this.createResizeGroup(box))
     surroundGroup.appendChild(this.createRotateGroup(box))
     return surroundGroup
+  }
+
+  /**
+   * The frame of a selection where every symbol is locked: an outline and a padlock, no handle.
+   * Pressing it reports the refusal instead of starting a move.
+   */
+  protected createLockedFrame(box: TBox, symbols: TSymbol[]): SVGGElement {
+    const group = SVGBuilder.createGroup()
+    const frame: TBox = {
+      x: box.x - SELECTION_PADDING,
+      y: box.y - SELECTION_PADDING,
+      width: box.width + 2 * SELECTION_PADDING,
+      height: box.height + 2 * SELECTION_PADDING,
+    }
+    const outline = SVGBuilder.createRect(frame, {
+      role: SvgElementRole.Translate,
+      fill: "transparent",
+      stroke: "#3e68ff",
+      "stroke-width": "2",
+      "stroke-dasharray": "6 4",
+      "vector-effect": "non-scaling-stroke",
+      style: "cursor:not-allowed",
+    })
+    // Stopped here like the handles of an unlocked frame: let through, the press would start a
+    // rubber-band selection behind the frame and drop it
+    outline.addEventListener("pointerdown", (ev) => {
+      ev.preventDefault()
+      ev.stopPropagation()
+      this.canvas.event.emitLockedRefused(symbols)
+    })
+    group.appendChild(outline)
+    group.appendChild(createLockIcon({ x: frame.x + frame.width, y: frame.y }))
+    return group
   }
 
   /**
@@ -724,7 +761,7 @@ export class IISelectionManager extends IIAbstractManager {
       return
     }
     this.removeSelectedGroup()
-    if (symbols.length === 1 && EdgeUtil.isEdge(symbols[0])) {
+    if (symbols.length === 1 && EdgeUtil.isEdge(symbols[0]) && !symbols[0].locked) {
       this.selectedGroup = this.createInteractEdgeGroup(symbols[0])
     } else {
       this.selectedGroup = this.createInteractElementsGroup(symbols)

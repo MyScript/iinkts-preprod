@@ -51,6 +51,7 @@ export class IIResizeManager extends IIAbstractTransformManager {
     // IISynchronizerManager's write-idle gate polls to avoid contending with an in-progress
     // gesture. Ended synchronously in `end()`.
     this.canvas.startOperation("Resizing")
+    this.reportLockedSelection()
     this.interactElementsGroup = this.resolveInteractGroup(target)
     this.direction = target.getAttribute("resize-direction") as ResizeDirection
 
@@ -130,15 +131,15 @@ export class IIResizeManager extends IIAbstractTransformManager {
     const matrix = MatrixTransform.identity().scale(scaleX, scaleY, this.transformOrigin)
 
     this.previewElementTransform(this.interactElementsGroup.id, matrix)
-    this.model.symbolsSelected.forEach((s) => {
+    this.transformables.forEach((s) => {
       this.previewTransform(s, matrix)
     })
-    this.previewDecorators(this.model.symbolsSelected, matrix)
-    this.getGhostStrokeIdsForSelectedMath(this.model.symbolsSelected).forEach((id) => {
+    this.previewDecorators(this.transformables, matrix)
+    this.getGhostStrokeIdsForSelectedMath(this.transformables).forEach((id) => {
       this.previewElementTransform(id, matrix)
     })
     this.canvas.connector.drawAnchoredEdgesForMatrix(
-      this.model.symbolsSelected.map((s) => s.id),
+      this.transformables.map((s) => s.id),
       matrix
     )
     return { scaleX, scaleY }
@@ -156,19 +157,17 @@ export class IIResizeManager extends IIAbstractTransformManager {
     // this resize need a pre-transform snapshot in history, like the selection itself. Gradient-
     // followed strokes are excluded — their shift isn't a uniform scale, so they get their own
     // pre-mutation snapshot via `updated` below instead, like the anchored converted edges.
-    const followedStrokeIds = this.canvas.connector.getRigidFollowedStrokeIds(
-      this.model.symbolsSelected.map((s) => s.id)
-    )
+    const followedStrokeIds = this.canvas.connector.getRigidFollowedStrokeIds(this.transformables.map((s) => s.id))
     const oldSymbols = [
-      ...this.model.symbolsSelected,
-      ...this.resolveFollowedSymbols(followedStrokeIds, this.model.symbolsSelected),
+      ...this.transformables,
+      ...this.resolveFollowedSymbols(followedStrokeIds, this.transformables),
     ].map((s) => cloneSymbol(s))
     // Snapshotted before applyAndDraw mutates the selection below: gradient-follow needs the
     // moving target's PRE-transform center (same reference point the drag preview used), not
     // its already-resized bounds, or the committed shape would snap to a different form than
     // what was just shown while dragging.
     const preTransformBoundsById = new Map<string, TOBB>()
-    this.model.symbolsSelected.forEach((s) => {
+    this.transformables.forEach((s) => {
       // Same selectAll() gap as start()'s bounding box — an unregistered symbol has no snapshot
       // taken, so updateAnchoredEdges below leaves it untouched rather than throwing.
       if (!symbolRegistry.has(s.type)) {
@@ -178,15 +177,15 @@ export class IIResizeManager extends IIAbstractTransformManager {
       preTransformBoundsById.set(s.id, { ...bounds, center: { ...bounds.center } })
     })
     const matrix = MatrixTransform.identity().scale(scaleX, scaleY, this.transformOrigin)
-    const movedDecorators = this.applyAndDraw(this.model.symbolsSelected, matrix)
-    this.applyTransformToGhostStrokesForSelectedMath(this.model.symbolsSelected, matrix)
+    const movedDecorators = this.applyAndDraw(this.transformables, matrix)
+    this.applyTransformToGhostStrokesForSelectedMath(this.transformables, matrix)
     const { oldSymbols: anchoredOldSymbols, newSymbols: anchoredNewSymbols } =
       this.canvas.connector.updateAnchoredEdges(
-        this.model.symbolsSelected.map((s) => s.id),
+        this.transformables.map((s) => s.id),
         matrix,
         preTransformBoundsById
       )
-    const strokesFromSymbols = this.canvas.extractStrokesFromSymbols(this.model.symbolsSelected)
+    const strokesFromSymbols = this.canvas.extractStrokesFromSymbols(this.transformables)
     await Promise.all([
       this.canvas.client.transformScale(
         [...new Set([...strokesFromSymbols.map((s) => s.id), ...followedStrokeIds])],

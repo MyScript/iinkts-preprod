@@ -11,4 +11,5 @@ export enum SvgElementRole {
   Translate = "translate",
   Resize = "resize",
   Rotate = "rotate",
+  Lock = "lock",
 }

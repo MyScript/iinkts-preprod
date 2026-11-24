@@ -214,4 +214,48 @@ describe("GestureAnnotation.ts", () => {
       expect(canvas.updateSymbols).toHaveBeenCalledWith([text.id], expect.any(Function))
     })
   })
+  describe("IIGestureAnnotationProcessor.apply (locked targets)", () => {
+    const underline = (canvas: ReturnType<typeof createCanvasMock>, id: string) =>
+      new IIGestureAnnotationProcessor(asCanvas(canvas)).apply([id], {
+        kind: "decorator",
+        decoratorKind: DecoratorKind.Underline,
+      })
+
+    test("a locked text keeps its decorators as they are", async () => {
+      const canvas = createCanvasMock()
+      const text: TText = { ...buildIIText(), locked: true }
+      canvas.model.addSymbol(text)
+
+      await underline(canvas, text.id)
+
+      expect(canvas.model.getSymbol(text.id)).toBe(text)
+      expect(canvas.event.emitLockedRefused).toHaveBeenCalledWith([text])
+    })
+
+    test("a locked stroke can still be decorated: the decorator is a new symbol", async () => {
+      const canvas = createCanvasMock()
+      const stroke: TStroke = { ...buildIIStroke(), locked: true, jiixBlockType: "Text" }
+      canvas.model.addSymbol(stroke)
+      canvas.jiix.getWordGroupForStroke = jest.fn().mockReturnValue(undefined)
+
+      await underline(canvas, stroke.id)
+
+      expect(canvas.model.symbols.some((s) => s.type === "decorator")).toBe(true)
+    })
+
+    test("a locked decorator is not toggled off", async () => {
+      const canvas = createCanvasMock()
+      const stroke: TStroke = { ...buildIIStroke(), jiixBlockType: "Text" }
+      canvas.model.addSymbol(stroke)
+      canvas.jiix.getWordGroupForStroke = jest.fn().mockReturnValue(undefined)
+      await underline(canvas, stroke.id)
+      const decorator = canvas.model.symbols.find((s) => s.type === "decorator")!
+      canvas.model.updateSymbol({ ...decorator, locked: true })
+
+      await underline(canvas, stroke.id)
+
+      expect(canvas.model.getSymbol(decorator.id)).toBeDefined()
+      expect(canvas.event.emitLockedRefused).toHaveBeenCalledWith([expect.objectContaining({ id: decorator.id })])
+    })
+  })
 })

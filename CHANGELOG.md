@@ -3,6 +3,21 @@
 One line per change. The full record of a version is in `changelog/<version>.md`; step-by-step upgrade instructions are in [MIGRATION.md](./MIGRATION.md).
 
 Badges: **breaking** = code stops compiling or behaves differently · **behaviour** = same API, different result · **type** = signature change only · **subclass** = only affects a class you extend.
+# Unreleased
+
+## Features
+
+### Lock symbols (INTERACTIVE_INK)
+A locked symbol stays selectable, copyable and exportable, and is still recognized, but nothing changes it: no move, resize, rotation, erase, scratch/join/insert gesture, conversion, restyle or reorder, whether the user or the API asks. Meant for fixed content an integrator lays down, such as an exercise statement or a diagram background.
+- new: `TBaseSymbol.locked`, `canvas.lockSymbols(ids, addToHistory?)` and `canvas.unlockSymbols(ids, addToHistory?)`. Locking is one undo step
+- `updateSymbols`, `removeSymbol(s)`, `replaceSymbols` and `changeOrderSymbols` skip locked symbols and report them; a replacement touching a locked symbol is refused whole. In a mixed selection, the unlocked symbols are still changed
+- **`clear()` keeps locked symbols**: it erases the others one by one instead of resetting the server
+- a conversion block holding a locked stroke is left unconverted; a connected edge that is locked no longer follows its shape; decorating a locked text is refused, while decorating a locked stroke still works (the decorator is a symbol of its own)
+- undo/redo replay history as recorded and ignore the lock: add content the user must not undo away with `addToHistory = false` before locking it
+- new event `CanvasEventName.LOCKED_REFUSED` (`event.addLockedRefusedListener`), detail = the locked symbols a change skipped
+- rendering: a locked symbol's element carries the `ms-locked` class, toned down through `--ms-ink-locked-opacity` (default `0.55`; set it to `1` to show locked symbols as any other). A fully locked selection shows a dashed frame with a padlock and no handle; a refused change flashes a padlock at the centre of the symbols (`SVGRenderer.flashLockIcon`)
+- menu: context entry Lock / Unlock, `menu.context.lock` (default `true`); set it to `false` to keep locking to the API
+- new: `LockContextMenu`, `createLockIcon`, `LOCK_ICON_SIZE`, `SvgElementRole.Lock`, `SVGRendererConst.lockedClassName` / `lockIconClassName` / `lockIconFlashClassName` / `lockIconFlashDuration`
 
 # [v5.0.0](https://github.com/MyScript/iinkTS/tree/v5.0.0)
 

@@ -431,6 +431,9 @@ export class IIConnectorManager extends IIAbstractManager {
     }
 
     this.#getAnchoredEdges().forEach((symbol) => {
+      if (symbol.locked) {
+        return
+      }
       const startPoint = resolveMovedAnchor(symbol, symbol.startAnchor)
       const endPoint = resolveMovedAnchor(symbol, symbol.endAnchor)
       if (!startPoint && !endPoint) {
@@ -606,7 +609,7 @@ export class IIConnectorManager extends IIAbstractManager {
     this.model.symbols.forEach((committed) => {
       // Guarded on the committed record, so only the edges that can actually move get drafted —
       // drafting every edge on every pass would put back the per-frame copy this epic removes.
-      if (!EdgeUtil.isEdge(committed) || !isAnchoredToMoved(committed)) {
+      if (!EdgeUtil.isEdge(committed) || committed.locked || !isAnchoredToMoved(committed)) {
         return
       }
       const symbol = this.model.draftSymbol(committed.id) as TDraft<TEdge> | undefined
@@ -755,7 +758,7 @@ export class IIConnectorManager extends IIAbstractManager {
 
     const followed: TFollowedStroke[] = []
     this.model.symbols.forEach((symbol) => {
-      if (!isStroke(symbol) || symbol.jiixBlockType !== "Edge" || idSet.has(symbol.id)) {
+      if (!isStroke(symbol) || symbol.jiixBlockType !== "Edge" || symbol.locked || idSet.has(symbol.id)) {
         return
       }
       const anchors = [symbol.startAnchor, symbol.endAnchor].filter((a): a is TAnchor => !!a)
