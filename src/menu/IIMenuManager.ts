@@ -14,6 +14,8 @@ import type { TMenuActionConfig } from "./IIMenuAction"
 import { IIMenuAction } from "./IIMenuAction"
 import type { TMenuContextConfig } from "./IIMenuContext"
 import { IIMenuContext } from "./IIMenuContext"
+import type { TMenuSearchConfig } from "./IIMenuSearch"
+import { IIMenuSearch } from "./IIMenuSearch"
 import type { TMenuStyleConfig } from "./IIMenuStyle"
 import { IIMenuStyle } from "./IIMenuStyle"
 import type { TMenuToolConfig } from "./IIMenuTool"
@@ -34,6 +36,7 @@ export type TMenuConfigUpdate = {
   context?: TMenuContextConfig & {
     enable?: boolean
   }
+  search?: TMenuSearchConfig & { enable?: boolean }
 }
 
 /**
@@ -82,6 +85,8 @@ export class IIMenuManager {
   tool!: IIMenuTool
   context!: IIMenuContext
   style!: IIMenuStyle
+  /** The search bar, in its slot of the layout */
+  search: IIMenuSearch
 
   /** The classes the menus are built from: the overrides, else the built-in ones */
   protected menuClasses: Required<TMenuOverride>
@@ -105,6 +110,7 @@ export class IIMenuManager {
     // Declared at load: in the registry before the first render, so they show from the start
     items.forEach(({ menu, key, factory, options }) => this.register(menu, key, factory, options))
     MENU_NAMES.forEach((name) => this.createMenu(name))
+    this.search = new IIMenuSearch(canvas)
     this.canvas.layout.onOccupantMoved((occupant) => this.onOccupantMoved(occupant))
   }
 
@@ -112,6 +118,8 @@ export class IIMenuManager {
   protected onOccupantMoved(occupant: string): void {
     if (occupant === "minimap") {
       this.rebuildMenu("action")
+    } else if (occupant === "search") {
+      this.rebuildSearch()
     } else if (isMenuName(occupant)) {
       this.rebuildMenu(occupant)
     }
@@ -168,6 +176,14 @@ export class IIMenuManager {
     }
   }
 
+  /** Destroys and renders the search bar again, in the host the layout now gives it */
+  protected rebuildSearch(): void {
+    this.search.destroy()
+    if (this.layer && this.canvas.configuration.menu.enable) {
+      this.search.render(this.layer)
+    }
+  }
+
   protected isContextVisible(): boolean {
     return !!this.context.wrapper && this.context.wrapper.style.display !== "none"
   }
@@ -185,6 +201,7 @@ export class IIMenuManager {
       const styleElement = DOMFactory.style(style as string, { "ms-menu-style": "" })
       this.layer.prepend(styleElement)
       MENU_NAMES.forEach((name) => this.renderMenu(name))
+      this.search.render(this.layer)
     }
   }
 
@@ -207,6 +224,7 @@ export class IIMenuManager {
     MENU_NAMES.forEach((name) => this.createMenu(name))
     MENU_NAMES.forEach((name) => this.renderMenu(name))
     this.restoreContext(contextState)
+    this.rebuildSearch()
   }
 
   /**
@@ -264,5 +282,6 @@ export class IIMenuManager {
 
   destroy(): void {
     MENU_NAMES.forEach((name) => this.getMenu(name).destroy())
+    this.search.destroy()
   }
 }

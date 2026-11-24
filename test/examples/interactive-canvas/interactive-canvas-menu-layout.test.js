@@ -14,7 +14,7 @@ test.describe("Interactive ink canvas menu layout", { tag: "@touch" }, () => {
   const occupantsOf = (page, slot) =>
     page
       .locator(`.ms-layout-${slot} > .ms-layout-host`)
-      .evaluateAll((hosts) => hosts.map((host) => host.className.replace(/.*ms-layout-host-/, "")))
+      .evaluateAll((hosts) => hosts.map((host) => host.className.match(/ms-layout-host-(?!hidden\b)(\S+)/)[1]))
 
   test("should load with the action bar stacked right above the tools", async ({ page }) => {
     expect(await occupantsOf(page, "bottom-center")).toEqual(["action", "tool"])
@@ -50,7 +50,7 @@ test.describe("Interactive ink canvas menu layout", { tag: "@touch" }, () => {
   test("should put everything back in its default slot", async ({ page }) => {
     await page.locator('[data-preset="Tools on the side"]').click()
     await page.locator('[data-preset="Default"]').click()
-    expect(await occupantsOf(page, "top-left")).toEqual(["action"])
+    expect(await occupantsOf(page, "top-left")).toEqual(["action", "search"])
     expect(await occupantsOf(page, "bottom-center")).toEqual(["tool"])
     await expect(page.locator(".ms-menu-tool")).toHaveClass(/ms-menu-row/)
   })

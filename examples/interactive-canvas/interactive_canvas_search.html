@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="HandheldFriendly" content="true" />
+  <title>Search in Handwriting Example</title>
+
+  <link rel="stylesheet" href="../assets/style/reset.css" />
+  <link rel="stylesheet" href="../assets/style/components.css" />
+  <link rel="stylesheet" href="../assets/style/examples.css" />
+  <link rel="stylesheet" href="../assets/style/panel.css" />
+  <link rel="stylesheet" href="../components/code-viewer/code-viewer.css" />
+
+  <style>
+    #rootEl {
+      flex: 1;
+      min-width: 0;
+    }
+
+    #search-panel {
+      --ex-side-panel-width: 320px;
+      padding: 12px;
+      background: var(--ex-surface-alt);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    #search-input {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 15px;
+      border: 1px solid var(--ex-border, #ced5d9);
+      border-radius: 6px;
+    }
+
+    #search-input.unavailable {
+      border-color: #ffc107;
+      font-style: italic;
+    }
+
+    .search-bar-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .search-nav {
+      display: flex;
+      gap: 4px;
+    }
+
+    #search-count {
+      font-variant-numeric: tabular-nums;
+      opacity: 0.8;
+    }
+
+    #search-status {
+      font-size: 12px;
+      font-style: italic;
+      opacity: 0.75;
+    }
+
+    #search-results {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .search-result {
+      margin: 4px 0;
+      padding: 6px 8px;
+      background: var(--ex-surface);
+      border-left: 3px solid #ffd54f;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .search-result.active {
+      border-left-color: #ff9800;
+      box-shadow: 0 0 0 1px #ff9800 inset;
+    }
+
+    .search-result mark {
+      background: #ffd54f;
+      color: inherit;
+      border-radius: 2px;
+    }
+
+    .search-result-tag {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 0 4px;
+      font-size: 10px;
+      border-radius: 3px;
+      background: var(--ex-surface-alt);
+      opacity: 0.8;
+    }
+  </style>
+  <script src="../assets/js/theme-init.js"></script>
+</head>
+
+<body>
+  <header class="header-main">
+    <button id="panelToggleBtn" class="btn-panel-toggle" aria-expanded="false" aria-controls="info-panel">
+      💡 Info
+    </button>
+    <button id="showModalBtn" class="btn-keys">API Keys</button>
+    <h1 class="header-title">Search in Handwriting</h1>
+    <button id="sidePanelToggleBtn" class="btn-panel-toggle btn-side-panel-toggle" aria-expanded="false" aria-controls="search-panel">
+      🔎 Search
+    </button>
+  </header>
+
+  <div class="ex-page-layout">
+    <aside id="info-panel" class="ex-panel">
+      <p class="ex-panel-heading">Ctrl+F, on handwriting.</p>
+      <p class="ex-panel-intro">The handwritten opening of <em>Pride &amp; Prejudice</em> is loaded and recognized. Type a word or a phrase: every occurrence lights up in the ink, and the list takes you to each one.</p>
+      <div class="ex-panel-divider"></div>
+      <div class="ex-panel-item">
+        <div class="ex-panel-item-desc"><span class="highlight">canvas.search.find(query)</span> returns the occurrences found in the recognized text and math, handwritten or converted: case and accents ignored, phrases can span a line break, math compares without spaces (<code>3x+2</code>).</div>
+      </div>
+      <div class="ex-panel-item">
+        <div class="ex-panel-item-desc"><span class="highlight">canvas.search.highlight(matches, active)</span> marks the matched characters only, and follows the content as it changes.</div>
+      </div>
+      <div class="ex-panel-item">
+        <div class="ex-panel-item-desc"><span class="highlight">canvas.search.reveal(match)</span> brings an occurrence into view and selects it.</div>
+      </div>
+      <div class="ex-panel-divider"></div>
+      <div class="ex-panel-item">
+        <div class="ex-panel-item-desc"><strong>Try it:</strong><br>
+          1. Search <em>Bennet</em>, then click <span class="highlight">Next</span> / <span class="highlight">Prev</span> (or <kbd>Enter</kbd> / <kbd>Shift+Enter</kbd>) to jump between occurrences<br>
+          2. Search a phrase such as <em>Netherfield Park</em>
+        </div>
+      </div>
+    </aside>
+    <div class="main-layout">
+      <div id="rootEl"></div>
+      <div id="search-panel" class="ex-side-panel">
+        <input id="search-input" type="search" placeholder="Search the handwriting…" autocomplete="off" disabled />
+        <div class="search-bar-row">
+          <span id="search-count"></span>
+          <span class="search-nav">
+            <button id="prev-btn" class="classic-btn" title="Previous occurrence (Shift+Enter)" disabled>‹ Prev</button>
+            <button id="next-btn" class="classic-btn" title="Next occurrence (Enter)" disabled>Next ›</button>
+          </span>
+        </div>
+        <div id="search-status">Loading the notes…</div>
+        <ul id="search-results"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { Canvas } from '../../dist/iink.esm.js'
+    import { ModalCanvasOptions } from '../components/modal/modalCanvasOptions.js'
+
+    const panelToggleBtn = document.getElementById('panelToggleBtn')
+    const infoPanel = document.getElementById('info-panel')
+    panelToggleBtn.addEventListener('click', () => {
+      const open = infoPanel.classList.toggle('open')
+      panelToggleBtn.setAttribute('aria-expanded', open)
+    })
+
+    const sidePanelToggleBtn = document.getElementById('sidePanelToggleBtn')
+    const sidePanel = document.getElementById('search-panel')
+    sidePanelToggleBtn.addEventListener('click', () => {
+      const open = sidePanel.classList.toggle('open')
+      sidePanelToggleBtn.setAttribute('aria-expanded', open)
+    })
+
+    const rootElement = document.getElementById('rootEl')
+    const showModalBtn = document.getElementById('showModalBtn')
+    const searchInput = document.getElementById('search-input')
+    const searchCount = document.getElementById('search-count')
+    const searchStatus = document.getElementById('search-status')
+    const resultsList = document.getElementById('search-results')
+    const prevBtn = document.getElementById('prev-btn')
+    const nextBtn = document.getElementById('next-btn')
+
+    const NOTES_URL = '../assets/datas/pride&prejudice.json'
+
+    let canvas
+    let matches = []
+    let activeIndex = -1
+
+    const canvasOptions = {
+      configuration: {
+        menu: {
+          style: { enable: false },
+          tool: { shape: false, edge: false },
+          action: {
+            language: true,
+            gesture: false,
+            guide: false,
+            snap: false,
+            math: false,
+            overlay: false,
+            selection: false,
+            diagram: false,
+            export: true,
+            import: true,
+          },
+          context: {
+            decorator: false,
+            reorder: false,
+            export: false,
+            math: false,
+            group: false,
+            lock: false
+          },
+        },
+      },
+    }
+
+    function renderContext(match) {
+      const fragment = document.createDocumentFragment()
+      const at = match.context.indexOf(match.text)
+      if (at < 0) {
+        fragment.append(match.context)
+        return fragment
+      }
+      const mark = document.createElement('mark')
+      mark.textContent = match.text
+      fragment.append(match.context.slice(0, at), mark, match.context.slice(at + match.text.length))
+      return fragment
+    }
+
+    function renderResults() {
+      resultsList.replaceChildren(...matches.map((match, index) => {
+        const item = document.createElement('li')
+        item.className = 'search-result'
+        item.classList.toggle('active', index === activeIndex)
+        item.dataset.index = index
+        const tag = document.createElement('span')
+        tag.className = 'search-result-tag'
+        tag.textContent = `${match.kind} · ${match.source}`
+        item.append(renderContext(match), tag)
+        return item
+      }))
+      prevBtn.disabled = nextBtn.disabled = !matches.length
+      const query = searchInput.value.trim()
+      if (!query) {
+        searchCount.textContent = ''
+      } else if (!matches.length) {
+        searchCount.textContent = 'No result'
+      } else {
+        searchCount.textContent = `${activeIndex + 1 || '–'} / ${matches.length}`
+      }
+    }
+
+    /** Runs the query again, keeping the active result when it is still found at the same rank. */
+    function runSearch() {
+      if (!canvas) return
+      matches = canvas.search.find(searchInput.value)
+      if (activeIndex >= matches.length) activeIndex = -1
+      canvas.search.highlight(matches, matches[activeIndex])
+      renderResults()
+    }
+
+    function activate(index) {
+      if (!matches.length) return
+      activeIndex = (index + matches.length) % matches.length
+      canvas.search.highlight(matches, matches[activeIndex])
+      canvas.search.reveal(matches[activeIndex])
+      renderResults()
+    }
+
+    let debounce
+    searchInput.addEventListener('input', () => {
+      clearTimeout(debounce)
+      activeIndex = -1
+      debounce = setTimeout(runSearch, 150)
+    })
+    searchInput.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return
+      event.preventDefault()
+      activate(event.shiftKey ? activeIndex - 1 : activeIndex + 1)
+    })
+    resultsList.addEventListener('click', (event) => {
+      const item = event.target.closest('.search-result')
+      if (item) activate(Number(item.dataset.index))
+    })
+    prevBtn.addEventListener('click', () => activate(activeIndex - 1))
+    nextBtn.addEventListener('click', () => activate(activeIndex + 1))
+
+    async function loadNotes() {
+      const strokes = await (await fetch(NOTES_URL)).json()
+      searchStatus.textContent = `Recognizing ${strokes.length} strokes…`
+      await canvas.createSymbols(strokes)
+    }
+
+    function onSynchronized() {
+      const available = canvas.search.available
+      searchStatus.textContent = available ? 'Recognized. Search away.' : 'Nothing recognized yet: write something first.'
+      searchInput.classList.toggle('unavailable', !available)
+      searchInput.placeholder = available ? 'Search the handwriting…' : 'Nothing recognized yet'
+      searchInput.disabled = false
+      runSearch()
+    }
+
+    async function loadCanvas(options) {
+      await canvas?.destroy()
+      matches = []
+      activeIndex = -1
+      canvas = await Canvas.load(rootElement, 'INTERACTIVE_INK', options)
+      canvas.event.addSynchronizedListener(onSynchronized)
+      await loadNotes()
+      return canvas
+    }
+
+    showModalBtn.addEventListener('click', () => {
+      ModalCanvasOptions.show(loadCanvas, canvasOptions)
+    })
+
+    ModalCanvasOptions.initConfiguration(loadCanvas, canvasOptions)
+
+    /**
+     * We expose these objects to the window use it in test
+     */
+    window.canvasOptions = canvasOptions
+    window.loadCanvas = loadCanvas
+  </script>
+  <script type="module" src="../components/code-viewer/code-viewer.js"></script>
+  <script src="../assets/js/theme.js"></script>
+</body>
+</html>

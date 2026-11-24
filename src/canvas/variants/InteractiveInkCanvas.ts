@@ -21,6 +21,7 @@ import {
   IIMoveManager,
   IIOverlayManager,
   IIPlaybackManager,
+  IISearchManager,
   IISelectionManager,
   IISnapManager,
   IISynchronizerManager,
@@ -76,7 +77,7 @@ const TOOL_CURSOR_CLASSES: Partial<Record<CanvasTool, string>> = {
 }
 
 /** The occupants the layout of an interactive ink canvas can place */
-const INTERACTIVE_INK_LAYOUT_OCCUPANTS = ["action", "style", "tool", "state", "minimap"] as const
+const INTERACTIVE_INK_LAYOUT_OCCUPANTS = ["action", "style", "tool", "state", "minimap", "search"] as const
 
 /**
  * @group Canvas
@@ -164,6 +165,8 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   synchronizer: IISynchronizerManager
   /** Queries and maps JIIX data to local symbols for math/text label resolution. */
   jiix: IIJiixQueryManager
+  /** Searches the recognized text and math, handwritten or converted, and highlights the matches. */
+  search: IISearchManager
   /** Produces every export format and drives the file downloads. */
   exportManager: IIExportManager
   /** Manages math recognition: variables, computation, and evaluation rendering. */
@@ -227,6 +230,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.snaps = new IISnapManager(this, this.#configuration.snap)
     this.synchronizer = new IISynchronizerManager(this)
     this.jiix = new IIJiixQueryManager(this)
+    this.search = new IISearchManager(this)
     this.exportManager = new IIExportManager(this, this.pdfExport)
     this.math = new IIMathManager(this, this.#configuration.math)
     this.connector = new IIConnectorManager(this, this.#configuration.connector)
@@ -1819,6 +1823,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     this.playback.destroy()
     this.connector.destroy()
     this.math.destroy()
+    this.search.destroy()
     this.jiix.destroy()
     this.synchronizer.destroy()
     this.snaps.destroy()

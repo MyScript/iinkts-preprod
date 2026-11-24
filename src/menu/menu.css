@@ -173,3 +173,33 @@
   margin-bottom: 4px;
   border-bottom: 1px solid var(--ms-ink-input-border);
 }
+
+/* Search bar: placed by the layout, under the action bar by default */
+.ms-ink .ms-menu-search {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ms-ink .ms-menu-search input {
+  width: 220px;
+  padding: 4px 8px;
+  font-size: 14px;
+  color: var(--ms-ink-input-color);
+  background-color: var(--ms-ink-input-bg);
+  border: 1px solid var(--ms-ink-input-border);
+  border-radius: 4px;
+}
+
+.ms-ink .ms-menu-search.unavailable input {
+  border-color: var(--ms-ink-warning);
+  font-style: italic;
+}
+
+.ms-ink .ms-menu-search-count {
+  min-width: 3em;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  opacity: 0.8;
+}

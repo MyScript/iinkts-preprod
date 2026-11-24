@@ -61,6 +61,20 @@ describe("IIMenuAction.ts", () => {
     test("should render menu convert", () => {
       expect(canvas.layers.ui.root.querySelector("#ms-menu-action-convert")).not.toBeNull()
     })
+    test("should render menu search", () => {
+      expect(canvas.layers.ui.root.querySelector("#ms-menu-action-search")).not.toBeNull()
+    })
+    test("should not render menu search when action.search is false", () => {
+      const c = createCanvasMock()
+      new IIMenuAction(asCanvas(c), "ms-menu-action", { search: false }).render(c.layers.ui.root)
+      expect(c.layers.ui.root.querySelector("#ms-menu-action-search")).toBeNull()
+    })
+    test("should not render menu search when the search bar is disabled", () => {
+      const c = createCanvasMock()
+      c.configuration.menu.search.enable = false
+      new IIMenuAction(asCanvas(c)).render(c.layers.ui.root)
+      expect(c.layers.ui.root.querySelector("#ms-menu-action-search")).toBeNull()
+    })
   })
 
   describe("show/hide", () => {

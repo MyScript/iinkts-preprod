@@ -145,7 +145,7 @@ describe("IIAbstractMenu in its layout slot", () => {
     const layers = new CanvasLayer(document.createElement("div"))
     const canvas = createCanvasMock({
       layers,
-      layout: new LayoutManager(layers, ["action", "style", "tool", "state", "minimap"], layout),
+      layout: new LayoutManager(layers, ["action", "style", "tool", "state", "minimap", "search"], layout),
     })
     return asCanvas(canvas)
   }

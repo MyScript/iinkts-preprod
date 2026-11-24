@@ -16,6 +16,14 @@ export type TJIIXStrokeItem = {
 
 /**
  * @group Client/Export
+ * @summary Stroke ids referenced by a JIIX item list, preferring `full-id` over the element-local `id`
+ */
+export function strokeIdsFromJIIXItems(items?: TJIIXStrokeItem[]): string[] {
+  return (items || []).map((item) => item["full-id"] || item.id).filter((id): id is string => !!id)
+}
+
+/**
+ * @group Client/Export
  */
 export type TJIIXBase = {
   "bounding-box"?: TBox

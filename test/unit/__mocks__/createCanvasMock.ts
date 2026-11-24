@@ -191,7 +191,7 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
     event,
     layers,
     // Not rendered: menus fall back to the UI layer, as before the layout existed
-    layout: overrides.layout ?? new LayoutManager(layers, ["action", "style", "tool", "state", "minimap"]),
+    layout: overrides.layout ?? new LayoutManager(layers, ["action", "style", "tool", "state", "minimap", "search"]),
     dom: overrides.dom ?? DOMFactory,
     history: overrides.history ?? stubManager(),
     writer:
@@ -239,6 +239,7 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
         return s
       })(),
     synchronizer: overrides.synchronizer ?? stubManager(),
+    search: overrides.search ?? stubManager(),
     exportManager: overrides.exportManager ?? stubManager(),
     jiix:
       overrides.jiix ??
@@ -287,6 +288,7 @@ export function createCanvasMock(overrides: Partial<TCanvasMock> = {}): TCanvasM
           show: jest.fn(),
           update: jest.fn(),
         }
+        ;(m as unknown as Record<string, unknown>).action = { update: jest.fn() }
         ;(m as unknown as Record<string, unknown>).style = {
           update: jest.fn(),
           show: jest.fn(),

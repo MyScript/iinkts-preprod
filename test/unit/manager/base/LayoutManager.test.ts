@@ -1,6 +1,6 @@
 import { CanvasLayer, LayoutManager, LoggerCategory, LoggerManager, slotAnchor, slotOpenTowards, slotOrientation, TLayoutConfiguration, TLayoutOccupant } from "@/iink"
 
-const INTERACTIVE_OCCUPANTS = ["action", "style", "tool", "state", "minimap"]
+const INTERACTIVE_OCCUPANTS = ["action", "style", "tool", "state", "minimap", "search"]
 
 describe("LayoutManager.ts", () => {
   function build(configuration?: TLayoutConfiguration, occupants: string[] = INTERACTIVE_OCCUPANTS) {
@@ -16,6 +16,11 @@ describe("LayoutManager.ts", () => {
       expect(layout.slotOf("tool")).toBe("bottom-center")
       expect(layout.slotOf("state")).toBe("bottom-left")
       expect(layout.slotOf("minimap")).toBe("bottom-right")
+    })
+
+    test("should stack the search bar right under the action bar", () => {
+      const { layout } = build()
+      expect(layout.occupantsOf("top-left")).toEqual(["action", "search"])
     })
 
     test("should move an occupant out of its default slot, the others keeping theirs", () => {
@@ -61,6 +66,7 @@ describe("LayoutManager.ts", () => {
 
       const slots = layers.ui.root.querySelectorAll(".ms-layout-slot")
       expect(Array.from(slots).map((slot) => slot.className)).toEqual([
+        "ms-layout-slot ms-layout-top-left",
         "ms-layout-slot ms-layout-top-right",
         "ms-layout-slot ms-layout-bottom-left",
         "ms-layout-slot ms-layout-bottom-center",

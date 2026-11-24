@@ -99,19 +99,20 @@
       }
       const presets = {
         'Default': {
-          'top-left': ['action'], 'top-center': ['notebook'], 'top-right': ['style'],
+          'top-left': ['action', 'search'], 'top-center': ['notebook'], 'top-right': ['style'],
           'bottom-left': ['state'], 'bottom-center': ['tool'], 'bottom-right': ['minimap'],
         },
         'One bottom bar': {
-          'top-center': ['notebook'], 'top-right': ['style'],
+          'top-left': ['search'], 'top-center': ['notebook'], 'top-right': ['style'],
           'bottom-left': ['state'], 'bottom-center': ['action', 'tool'], 'bottom-right': ['minimap'],
         },
         'Tools on the side': {
-          'top-left': ['action'], 'top-center': ['notebook'],
+          'top-left': ['action', 'search'], 'top-center': ['notebook'],
           'middle-left': ['tool'], 'middle-right': ['style'],
           'bottom-left': ['state'], 'bottom-right': ['minimap'],
         },
         'Everything at the bottom': {
+          'top-left': [], 'top-center': ['search'], 'top-right': [],
           'middle-right': ['notebook'],
           'bottom-left': ['state'], 'bottom-center': ['style', 'action', 'tool'], 'bottom-right': ['minimap'],
         },
