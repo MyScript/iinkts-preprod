@@ -1,7 +1,7 @@
 import { arcJIIX, circleJIIX, ellipseJIIX, hTextJIIX, lineJIIX, parallelogramJIIX, polygonJIIX, rectangleJIIX, rhombusJIIX, triangleJIIX } from "../../__dataset__/jiix.dataset"
 import { buildIIDecorator, buildIIStroke } from "../../helpers"
 import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { DecoratorKind, EdgeUtil, IIConversionManager, JIIXEdgeKind, JIIXElementType, JIIXNodeKind, ShapeUtil, TEdgeLine, TJIIXEdgeElement, TJIIXMathElement, TJIIXNodeElement, TJIIXTextElement, TStroke, TSymbol, TextUtil } from "@/iink"
+import { DecoratorKind, EdgeUtil, IIConversionManager, JIIXEdgeKind, JIIXElementType, JIIXNodeKind, ShapeUtil, TEdgeLine, TJIIXEdgeElement, TJIIXMathElement, TJIIXNodeElement, TDecorator, TIIHistoryChanges, TJIIXTextElement, TStroke, TSymbol, TextUtil, isDecorator } from "@/iink"
 
 describe("IIConversionManager.ts", () => {
   test("should create", () => {
@@ -425,6 +425,93 @@ describe("IIConversionManager.ts", () => {
       new IIConversionManager(asCanvas(canvas)).buildText(word, [], [stroke], 12)
 
       expect(canvas.model.getSymbol(decorator.id)).toBeDefined()
+    })
+  })
+
+  describe("apply - decorators in history", () => {
+    const nodeOf = (id: string, strokeIds: string[]) =>
+      ({
+        type: JIIXElementType.Node,
+        id,
+        kind: JIIXNodeKind.Rectangle,
+        x: 0,
+        y: 0,
+        width: 20,
+        height: 20,
+        items: strokeIds.map((sid, i) => ({ type: "stroke", id: `i${i}`, "full-id": sid })),
+      }) as unknown as TJIIXNodeElement
+
+    // Stands in for the canvas' removal cleanup: a decorator losing every target is erased, one
+    // losing some keeps the rest
+    const removeWithCleanup = (canvas: ReturnType<typeof createCanvasMock>) => async (ids: string[]) => {
+      const removed = new Set(ids)
+      ids.forEach((id) => canvas.model.removeSymbol(id))
+      canvas.model.symbols.filter(isDecorator).forEach((dec) => {
+        const remaining = dec.targetIds.filter((id) => !removed.has(id))
+        if (!remaining.length) {
+          canvas.model.removeSymbol(dec.id)
+        } else if (remaining.length < dec.targetIds.length) {
+          const draft = canvas.model.draftSymbol(dec.id) as TDecorator
+          draft.targetIds = remaining
+          canvas.model.updateSymbol(draft)
+        }
+      })
+      return []
+    }
+
+    test("undoing the conversion can restore the decorators its removal erased or shrank", async () => {
+      const canvas = createCanvasMock()
+      const converted = buildIIStroke()
+      const kept = buildIIStroke()
+      const erasedDecorator = { ...buildIIDecorator(DecoratorKind.Highlight), targetIds: [converted.id] }
+      const shrunkDecorator = { ...buildIIDecorator(DecoratorKind.Surround), targetIds: [converted.id, kept.id] }
+      ;[converted, kept, erasedDecorator, shrunkDecorator].forEach((s) => canvas.model.addSymbol(s))
+      const shrunkBefore = canvas.model.getSymbol(shrunkDecorator.id)
+      canvas.model.mergeExport({
+        "application/vnd.myscript.jiix": { type: "Text", id: "root", version: "3", elements: [nodeOf("node", [converted.id])] },
+      })
+      ;(canvas.removeSymbols as jest.Mock).mockImplementation(removeWithCleanup(canvas))
+
+      await new IIConversionManager(asCanvas(canvas)).apply()
+
+      const changes = (canvas.history.push as jest.Mock).mock.calls[0][0] as TIIHistoryChanges
+      expect(changes.erased?.map((s) => s.id)).toEqual([converted.id, erasedDecorator.id])
+      expect(changes.updated).toEqual([{ before: shrunkBefore, after: canvas.model.getSymbol(shrunkDecorator.id) }])
+    })
+  })
+
+  describe("decorators kept through conversion", () => {
+    const word = { label: "a", "bounding-box": { x: 0, y: 0, width: 5, height: 5 } } as unknown as Parameters<IIConversionManager["buildText"]>[0]
+    const mathElement = {
+      type: JIIXElementType.Math,
+      id: "math-1",
+      label: "x+1",
+      "bounding-box": { x: 0, y: 0, width: 10, height: 5 },
+    } as unknown as TJIIXMathElement
+
+    test("a math block takes the decorators of its strokes", () => {
+      const canvas = createCanvasMock()
+      const stroke = buildIIStroke()
+      const highlight = { ...buildIIDecorator(DecoratorKind.Highlight), targetIds: [stroke.id] }
+      canvas.model.addSymbol(stroke)
+      canvas.model.addSymbol(highlight)
+
+      const math = new IIConversionManager(asCanvas(canvas)).buildMath(mathElement, [stroke], 12)
+
+      expect(math.decorators.map((d) => d.kind)).toEqual([DecoratorKind.Highlight])
+    })
+
+    test("a decorator spanning several words goes to each of them", () => {
+      const canvas = createCanvasMock()
+      const first = buildIIStroke()
+      const second = buildIIStroke()
+      const surround = { ...buildIIDecorator(DecoratorKind.Surround), targetIds: [first.id, second.id] }
+      ;[first, second, surround].forEach((s) => canvas.model.addSymbol(s))
+      const manager = new IIConversionManager(asCanvas(canvas))
+
+      const texts = [manager.buildText(word, [], [first], 12), manager.buildText(word, [], [second], 12)]
+
+      expect(texts.map((t) => t.decorators.map((d) => d.kind))).toEqual([[DecoratorKind.Surround], [DecoratorKind.Surround]])
     })
   })
 })

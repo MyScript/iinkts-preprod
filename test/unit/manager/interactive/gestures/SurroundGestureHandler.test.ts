@@ -1,6 +1,6 @@
 import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
 import { buildIIStroke, buildIIText } from "../../../helpers"
-import { GestureHelpers, StrokeUtil, SurroundAction, SurroundGestureHandler, TGesture } from "@/iink"
+import { DecoratorKind, GestureHelpers, StrokeUtil, SurroundAction, SurroundGestureHandler, TDecorator, TGesture } from "@/iink"
 
 describe("SurroundGestureHandler.ts", () => {
   let canvas: ReturnType<typeof createCanvasMock>
@@ -154,6 +154,41 @@ describe("SurroundGestureHandler.ts", () => {
 
       // Should log error and complete
       expect(true).toBe(true)
+    })
+  })
+
+  describe.each([
+    [SurroundAction.Highlight, DecoratorKind.Highlight],
+    [SurroundAction.Surround, DecoratorKind.Surround],
+  ])("%s decorates the enclosed set as a whole", (action, decoratorKind) => {
+    test("one decorator targets every enclosed word", async () => {
+      const words = [10, 60].map((x) => {
+        const stroke = buildIIStroke()
+        StrokeUtil.addPointer(stroke, { x, y: 10, p: 1, dt: 100 })
+        StrokeUtil.addPointer(stroke, { x: x + 20, y: 20, p: 1, dt: 200 })
+        stroke.jiixBlockType = "Text"
+        canvas.model.addSymbol(stroke)
+        return stroke
+      })
+      const gestureStroke = buildIIStroke()
+      StrokeUtil.addPointer(gestureStroke, { x: 0, y: 0, p: 1, dt: 300 })
+      StrokeUtil.addPointer(gestureStroke, { x: 100, y: 40, p: 1, dt: 400 })
+      const gesture: TGesture = {
+        gestureType: "SURROUND",
+        gestureStrokeId: gestureStroke.id,
+        strokeIds: [],
+        strokeBeforeIds: [],
+        strokeAfterIds: [],
+      }
+      canvas.gesture.surroundAction = action
+
+      await handler.apply(gestureStroke, gesture)
+
+      const decorators = canvas.model.symbols.filter((s): s is TDecorator => s.type === "decorator")
+      expect(decorators).toHaveLength(1)
+      expect(decorators[0].kind).toBe(decoratorKind)
+      expect(decorators[0].targetIds).toEqual(words.map((w) => w.id))
+      expect(canvas.history.push).toHaveBeenCalledTimes(1)
     })
   })
 

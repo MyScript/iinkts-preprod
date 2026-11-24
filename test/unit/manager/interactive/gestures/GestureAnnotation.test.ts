@@ -113,6 +113,119 @@ describe("GestureAnnotation.ts", () => {
     })
   })
 
+  describe("IIGestureAnnotationProcessor.apply (grouped decorator)", () => {
+    function buildRecognizedStroke(x: number) {
+      const stroke = buildIIStroke()
+      StrokeUtil.addPointer(stroke, { x, y: 10, p: 1, dt: 100 })
+      StrokeUtil.addPointer(stroke, { x: x + 10, y: 20, p: 1, dt: 200 })
+      stroke.jiixBlockType = "Text"
+      return stroke
+    }
+
+    const applyGrouped = (canvas: ReturnType<typeof createCanvasMock>, ids: string[]) =>
+      new IIGestureAnnotationProcessor(asCanvas(canvas)).apply(ids, {
+        kind: "decorator",
+        decoratorKind: DecoratorKind.Highlight,
+        group: true,
+      })
+
+    const decoratorsIn = (canvas: ReturnType<typeof createCanvasMock>) =>
+      canvas.model.symbols.filter((sym): sym is TDecorator => sym.type === "decorator")
+
+    test("draws one decorator across words in separate groups", async () => {
+      const canvas = createCanvasMock()
+      const first = buildRecognizedStroke(10)
+      const second = buildRecognizedStroke(100)
+      canvas.model.addSymbol(first)
+      canvas.model.addSymbol(second)
+
+      const changes = await applyGrouped(canvas, [first.id, second.id])
+
+      expect(changes?.added).toHaveLength(1)
+      const decorators = decoratorsIn(canvas)
+      expect(decorators).toHaveLength(1)
+      expect(decorators[0].targetIds).toEqual([first.id, second.id])
+      expect(decorators[0].targetBounds).toEqual(
+        OBBOps.createFromOBBs([SymbolGeometry.boundsOf(first), SymbolGeometry.boundsOf(second)])
+      )
+    })
+
+    test("covers a text and strokes with one standalone decorator, leaving the text's own untouched", async () => {
+      const canvas = createCanvasMock()
+      const stroke = buildRecognizedStroke(10)
+      const text = buildIIText({ boundingBox: { x: 100, y: 10, width: 20, height: 16 } })
+      canvas.model.addSymbol(stroke)
+      canvas.model.addSymbol(text)
+
+      await applyGrouped(canvas, [stroke.id, text.id])
+
+      const decorators = decoratorsIn(canvas)
+      expect(decorators).toHaveLength(1)
+      expect(decorators[0].targetIds).toEqual([stroke.id, text.id])
+      expect((canvas.model.getSymbol(text.id) as TText).decorators).toHaveLength(0)
+    })
+
+    test("decorates a lone text inside it, as without grouping", async () => {
+      const canvas = createCanvasMock()
+      const text = buildIIText({ boundingBox: { x: 100, y: 10, width: 20, height: 16 } })
+      canvas.model.addSymbol(text)
+
+      await applyGrouped(canvas, [text.id])
+
+      expect(decoratorsIn(canvas)).toHaveLength(0)
+      expect((canvas.model.getSymbol(text.id) as TText).decorators).toHaveLength(1)
+    })
+
+    test("decorates strokes recognized as math, one decorator per math block", async () => {
+      const canvas = createCanvasMock()
+      const [a, b, c] = [10, 30, 200].map((x, i) => {
+        const stroke = buildRecognizedStroke(x)
+        stroke.jiixBlockType = "Math"
+        stroke.jiixBlockId = i < 2 ? "math-1" : "math-2"
+        canvas.model.addSymbol(stroke)
+        return stroke
+      })
+
+      const changes = await new IIGestureAnnotationProcessor(asCanvas(canvas)).apply([a.id, b.id, c.id], {
+        kind: "decorator",
+        decoratorKind: DecoratorKind.Underline,
+      })
+
+      expect(changes?.added).toHaveLength(2)
+      expect(decoratorsIn(canvas).map((d) => d.targetIds)).toEqual([[a.id, b.id], [c.id]])
+    })
+
+    test("takes math strokes into the group decorator", async () => {
+      const canvas = createCanvasMock()
+      const text = buildRecognizedStroke(10)
+      const math = buildRecognizedStroke(100)
+      math.jiixBlockType = "Math"
+      math.jiixBlockId = "math-1"
+      canvas.model.addSymbol(text)
+      canvas.model.addSymbol(math)
+
+      await applyGrouped(canvas, [text.id, math.id])
+
+      const decorators = decoratorsIn(canvas)
+      expect(decorators).toHaveLength(1)
+      expect(decorators[0].targetIds).toEqual([text.id, math.id])
+    })
+
+    test("removes the group decorator when the same set is decorated again", async () => {
+      const canvas = createCanvasMock()
+      const first = buildRecognizedStroke(10)
+      const second = buildRecognizedStroke(100)
+      canvas.model.addSymbol(first)
+      canvas.model.addSymbol(second)
+
+      await applyGrouped(canvas, [first.id, second.id])
+      const changes = await applyGrouped(canvas, [second.id, first.id])
+
+      expect(changes?.erased).toHaveLength(1)
+      expect(decoratorsIn(canvas)).toHaveLength(0)
+    })
+  })
+
   describe("IIGestureAnnotationProcessor.apply (thicken)", () => {
     // The default thickness and font weight menus, "auto" left out
     const levels: TGestureAnnotation = { kind: "thicken", widths: [1, 2, 4, 8], fontWeights: ["normal", "bold"] }

@@ -44,6 +44,13 @@ Every label of the UI (menus, search bar, connection badge, info/error messages 
 - **behaviour** the context menu Edit shows for any selection made of texts only (it used to take one text, and stayed visible with a stale value otherwise); its field is a textarea holding the words in reading order, one line per row. On save each text gets its word back in that order (one undo step); the last text takes any extra words, and texts left without a word are removed (a second undo step)
 - **type** `EditContextMenu.editInput` is an `HTMLTextAreaElement`; new `EditContextMenu.isTextSelection`, `distributeWords`, `DOMFactory.textarea`, `buildTextarea`, `TTextareaElConfig`, `BoxOps.groupIntoLines(items, boxOf)`
 
+### Surround gesture decorates the enclosed set
+- **behaviour** the surround gesture in Highlight or Surround mode draws one decorator around everything it encloses (one standalone decorator targeting every word and text), instead of one per word or text; a lone text still carries the decorator inside it. Underline and strike-through still decorate word by word
+- **behaviour** decorator gestures (surround, underline, strike-through) now decorate strokes recognized as math, one decorator per math block; they were silently skipped
+- **behaviour** converting a math block keeps its decorators (`TMath.decorators`), as converting text already did; a decorator spanning several words or blocks is kept on each of them
+- **behaviour** undoing a conversion restores the standalone decorators of the converted strokes (they were lost: the conversion's history entry left them out)
+- **type** new optional `group` on the `decorator` variant of `TGestureAnnotation`; `SurroundGestureHandler.decorate(ids, decoratorKind)` (protected)
+
 ### UI translations
 - **behaviour** `MathDiagnosticMessages` now maps a code to its severity only; read the title and message with `getMathDiagnosticMessage(code, i18n?)`, which takes a `Translator` (English when absent)
 - **behaviour** the labels of `SOURCE_TYPE_LABELS`, `DEFAULT_FONT_SIZE_LIST`, `DEFAULT_FONT_WEIGHT_LIST` ("Auto", "Normal", "Bold") and `CanvasThemes.THEMES` are translation keys, shown through `canvas.i18n.t`; a label of your own that is not a key is shown as is
