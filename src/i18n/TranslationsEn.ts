@@ -55,6 +55,8 @@ export const TranslationsEn = {
   "client.error.NO_SESSION_FOUND":
     "No sessions found. Without activation for 1 hour, sessions are deleted from the server. To avoid losing your work, use the json export, then import it this will create a new session.",
   "client.error.UNKNOWN": "An unknown error has occurred.",
+  "client.error.SESSION_PACKAGE_UNSUPPORTED":
+    "This MyScript server cannot save the session (exportPackage is unknown to it), although it announces version 4.6.0 or later. The work goes on, but it will not be resumed automatically once the server session expires, and a saved .iinkts file holds the content only. Use a server that provides the session package.",
   "client.error.ABNORMAL_CLOSURE": "MyScript recognition server is not reachable.",
   "client.error.CANT_ESTABLISH":
     "Unable to establish a connection to MyScript recognition server. Check the host and your connectivity.",

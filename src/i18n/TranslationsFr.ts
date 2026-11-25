@@ -57,6 +57,8 @@ export const TranslationsFr = {
   "client.error.NO_SESSION_FOUND":
     "Aucune session trouvée. Sans activité pendant 1 heure, les sessions sont supprimées du serveur. Pour ne pas perdre votre travail, exportez-le en JSON puis importez-le : une nouvelle session sera créée.",
   "client.error.UNKNOWN": "Une erreur inconnue est survenue.",
+  "client.error.SESSION_PACKAGE_UNSUPPORTED":
+    "Ce serveur MyScript ne sait pas sauvegarder la session (exportPackage lui est inconnu), bien qu'il annonce la version 4.6.0 ou plus. Le travail continue, mais il ne sera pas repris automatiquement à l'expiration de la session serveur, et un fichier .iinkts enregistré ne contient que le contenu. Utilisez un serveur qui fournit le paquet de session.",
   "client.error.ABNORMAL_CLOSURE": "Le serveur de reconnaissance MyScript est injoignable.",
   "client.error.CANT_ESTABLISH":
     "Impossible d'établir une connexion avec le serveur de reconnaissance MyScript. Vérifiez l'hôte et votre connexion.",
