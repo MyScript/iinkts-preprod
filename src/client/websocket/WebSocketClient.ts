@@ -2,6 +2,9 @@ import PingWorker from "web-worker:../../worker/ping.worker.ts"
 
 import type { TMatrixTransform } from "@/core"
 import {
+  base64ToBytes,
+  bytesToBase64,
+  createUUID,
   DeferredPromise,
   isVersionSuperiorOrEqual,
   mergeDeep,
@@ -21,6 +24,7 @@ import { ensureServerVersion } from "../shared/infos"
 import { redactServerSecrets, serverUrl } from "../shared/ServerConfiguration"
 import type { TRecognitionStroke, TWireStroke } from "../shared/StrokeSerializer"
 import { supportsRelativeTimestamps, toWireStroke } from "../shared/StrokeSerializer"
+import { supportsSessionPackage } from "./SessionPackage"
 import type { TWebSocketClientConfiguration } from "./WebSocketClientConfiguration"
 import { WebSocketClientConfiguration } from "./WebSocketClientConfiguration"
 import type {
@@ -40,6 +44,8 @@ import type {
   TWebSocketClientMessageHMACChallenge,
   TWebSocketClientMessageMathSolverResult,
   TWebSocketClientMessageNewPart,
+  TWebSocketClientMessagePackageChunk,
+  TWebSocketClientMessagePackageInfo,
   TWebSocketClientMessagePartChange,
   TWebSocketClientMessageReceived,
   TWebSocketClientMessageReceivedMap,
@@ -51,6 +57,15 @@ const RECEIVED_MESSAGE_TYPES: ReadonlySet<unknown> = new Set(Object.values(TWebS
 // Checks the discriminant only: the payload is trusted to match its type, as the server's contract
 const isWebSocketClientMessageReceived = (value: unknown): value is TWebSocketClientMessageReceived =>
   typeof value === "object" && value !== null && "type" in value && RECEIVED_MESSAGE_TYPES.has(value.type)
+
+// Room left in a message around what is split over several: its type and other fields
+const MESSAGE_FIELDS_BYTES = 256
+
+const concatBytes = (chunks: Uint8Array[], length: number): Uint8Array<ArrayBuffer> => {
+  const bytes = new Uint8Array(length)
+  chunks.reduce((offset, chunk) => (bytes.set(chunk, offset), offset + chunk.length), 0)
+  return bytes
+}
 
 // What one item adds to a message's JSON, for `chunkBySize`.
 const wireStrokeSize = (stroke: TWireStroke): number => JSON.stringify(stroke).length
@@ -106,6 +121,10 @@ const MATH_SOLVER_NEUTRAL_RESULTS: { [A in TMathSolverAction]: () => TMathSolver
  * { type: "hmac" }                                   ==================>
  *                                                    <==================       { type: "authenticated" }
  * { type: "initSession" | "restoreSession" }         ==================>
+ *   or, to start from a session package (importPackage):
+ * { type: "importPackage", importId, size }          ==================>
+ * { type: "importPackageChunk", data, lastChunk }    ==================>   (one per chunk)
+ *                                                    <==================       { type: "importPackageChunkAck" }
  *                                                    <==================       { type: "sessionDescription" }
  * { type: "newContentPart" | "openContentPart" }     ==================>
  *                                                    <==================       { type: "newPart" | "partChanged" }
@@ -135,6 +154,9 @@ const MATH_SOLVER_NEUTRAL_RESULTS: { [A in TMathSolverAction]: () => TMathSolver
  * Requests
  * { type: "export", partId, mimeTypes }              ==================>
  *                                                    <==================       { type: "exported" }
+ * { type: "exportPackage" }                          ==================>
+ *                                                    <==================       { type: "packageInfo", size, chunkCount }
+ *                                                    <==================       { type: "packageChunk", data, lastChunk } (one per chunk)
  * { type: "waitForIdle" }                            ==================>
  *                                                    <==================       { type: "idle" }
  * { type: "mathSolver", action, blockId }            ==================>
@@ -147,6 +169,22 @@ const MATH_SOLVER_NEUTRAL_RESULTS: { [A in TMathSolverAction]: () => TMathSolver
  * At any time
  *                                                    <==================       { type: "error" }
  */
+
+/**
+ * What the client needs to resume once the server has lost the session (expired), see
+ * {@link WebSocketClient.setSessionRecovery}.
+ * @group Client
+ */
+export type TSessionRecovery = {
+  /** Package the new session starts from; none starts an empty session */
+  package(): { data: Uint8Array; partId: string } | undefined
+  /**
+   * Brings the new session up to date. The changes queued while disconnected were meant for the lost
+   * session and are dropped: this is called instead, before the requests waiting for the reconnection go.
+   * @param imported - Whether the new session started from the package
+   */
+  recover(imported: boolean): Promise<void>
+}
 
 /**
  * @group Client
@@ -203,6 +241,18 @@ export class WebSocketClient {
   // Exports run one after another: the server's answer names its mime types, not the request it
   // answers, so two exports in flight could only be told apart by their order.
   protected exportQueue: Promise<unknown> = Promise.resolve()
+  // Package exports run one after another too: a chunk names its export, but the request it answers
+  // is only known by order
+  protected packageQueue: Promise<unknown> = Promise.resolve()
+  protected sessionRecovery?: TSessionRecovery
+  /** Set once the server has lost the session, until the new one is brought up to date */
+  protected lostSession?: { packageTried: boolean }
+  /** Package the next handshake starts the session from, instead of a new or restored session */
+  protected packageImport?: Uint8Array
+  /** Set once the server answered exportPackage as an unknown message, though its version should know it */
+  protected packageRefused = false
+  /** Session package being received, chunk after chunk */
+  protected packageReception?: { exportId: string; size: number; chunks: Uint8Array<ArrayBuffer>[] }
   /** Routes each message the server sends; overriding a `manage*` method changes what its entry does. */
   protected messageHandlers: TWebSocketClientMessageHandlers = {
     [TWebSocketClientMessageType.Pong]: () => (this.pingCount = 0),
@@ -221,6 +271,10 @@ export class WebSocketClient {
     [TWebSocketClientMessageType.Idle]: () => this.manageWaitForIdle(),
     [TWebSocketClientMessageType.ConfigurationChanged]: () => this.manageConfigurationChanged(),
     [TWebSocketClientMessageType.Ack]: () => this.manageAck(),
+    [TWebSocketClientMessageType.PackageInfo]: (m) => this.managePackageInfo(m),
+    [TWebSocketClientMessageType.PackageChunk]: (m) => this.managePackageChunk(m),
+    // Each chunk of an import is acknowledged; nothing waits on it, the session description ends the import
+    [TWebSocketClientMessageType.ImportPackageChunkAck]: () => undefined,
   }
 
   configuration: WebSocketClientConfiguration
@@ -241,6 +295,11 @@ export class WebSocketClient {
     this.boundOpenCallback = this.openCallback.bind(this)
     this.boundCloseCallback = this.closeCallback.bind(this)
     this.boundMessageCallback = this.messageCallback.bind(this)
+  }
+
+  /** Part of the session the content is written in, once the session is open */
+  get partId(): string | undefined {
+    return this.currentPartId
   }
 
   get mimeTypes(): string[] {
@@ -301,14 +360,24 @@ export class WebSocketClient {
     return deferred
   }
 
-  /** Settles the oldest request waiting on `key`, or all of them, with the server's answer. */
-  protected answer(key: string, answer: unknown, all = false): void {
+  /** Removes the oldest request waiting on `key`, or all of them, to settle them. */
+  protected takeRequests(key: string, all: boolean): TPendingRequest[] {
     const requests = this.pendingRequests.get(key) ?? []
-    const answered = all ? requests.splice(0) : requests.splice(0, 1)
+    const taken = all ? requests.splice(0) : requests.splice(0, 1)
     if (!requests.length) {
       this.pendingRequests.delete(key)
     }
-    answered.forEach((request) => request.resolve(answer))
+    return taken
+  }
+
+  /** Settles the oldest request waiting on `key`, or all of them, with the server's answer. */
+  protected answer(key: string, answer: unknown, all = false): void {
+    this.takeRequests(key, all).forEach((request) => request.resolve(answer))
+  }
+
+  /** Rejects the oldest request waiting on `key`: the server answered it with something unusable. */
+  protected fail(key: string, error: Error): void {
+    this.takeRequests(key, false).forEach((request) => request.reject(error))
   }
 
   /**
@@ -324,6 +393,7 @@ export class WebSocketClient {
   protected resetAllDeferred(): void {
     this.initialized = new DeferredPromise<void>()
     this.pendingRequests.clear()
+    this.packageReception = undefined
   }
 
   protected isDisconnected(): boolean {
@@ -374,11 +444,46 @@ export class WebSocketClient {
     this.clearReconnectLoop()
     this.reconnectAttempts = 0
     this.event.emitConnectionStatusChanged("connected")
+    if (this.lostSession) {
+      await this.recoverLostSession()
+    }
     await this.drainOfflineQueue()
     if (!this.isDisconnected()) {
       this.reconnection?.resolve()
       this.reconnection = undefined
     }
+  }
+
+  /**
+   * Tries the recovery package once it reached the server; an attempt after it failed (refused,
+   * dropped) starts an empty session. One the network dropped before the handshake tries it again.
+   */
+  protected prepareSessionRecovery(lostSession: { packageTried: boolean }): void {
+    const sessionPackage = lostSession.packageTried ? undefined : this.sessionRecovery?.package()
+    this.packageImport = sessionPackage?.data
+    this.currentPartId = sessionPackage?.partId
+  }
+
+  protected async recoverLostSession(): Promise<void> {
+    const imported = !!this.packageImport
+    this.packageImport = undefined
+    this.lostSession = undefined
+    // Meant for the lost session: recover() brings the new one up to date instead
+    this.offlineQueue.forEach((item) => item.deferred.resolve())
+    this.offlineQueue = []
+    try {
+      await this.sessionRecovery?.recover(imported)
+    } catch (error) {
+      this.event.emitError(error instanceof Error ? error : new Error(String(error)))
+    }
+  }
+
+  /**
+   * How to resume once the server has lost the session, after it expired: without it, the client
+   * reports the loss as an error and opens an empty session.
+   */
+  setSessionRecovery(recovery: TSessionRecovery | undefined): void {
+    this.sessionRecovery = recovery
   }
 
   /** Resolves once the reconnect loop has reconnected and replayed the queue; rejects if it gives up. */
@@ -520,13 +625,50 @@ export class WebSocketClient {
       delete this.configuration.recognition.export.jiix.text.lines
       delete this.configuration.recognition["raw-content"].classification
     }
+    if (this.packageImport) {
+      if (this.lostSession) {
+        this.lostSession.packageTried = true
+      }
+      this.sendPackageImport(this.packageImport)
+      return
+    }
     this.sendOnSocket({
       type: this.sessionId ? "restoreSession" : "initSession",
       iinkSessionId: this.sessionId,
+      ...this.sessionStartFields(),
+    })
+  }
+
+  /** Fields of the messages starting a session; serverSideRecovery only when off, unknown to older servers */
+  protected sessionStartFields(): Record<string, unknown> {
+    return {
       scaleX: PX_TO_MM_RATIO,
       scaleY: PX_TO_MM_RATIO,
       configuration: this.configuration.recognition,
+      ...(this.configuration.server.serverSideRecovery === false && { serverSideRecovery: false }),
+    }
+  }
+
+  /** Raw bytes per importPackageChunk: base64 turns 3 bytes into 4 characters */
+  protected get packageChunkSize(): number {
+    return Math.floor((this.maxMessageBytes - MESSAGE_FIELDS_BYTES) / 4) * 3
+  }
+
+  /** Starts the session from a package: importPackage, then its bytes; the server answers with a session description */
+  protected sendPackageImport(sessionPackage: Uint8Array): void {
+    const importId = createUUID()
+    this.sendOnSocket({
+      type: "importPackage",
+      importId,
+      size: sessionPackage.length,
+      ...this.sessionStartFields(),
     })
+    const chunkSize = this.packageChunkSize
+    const chunkCount = Math.max(1, Math.ceil(sessionPackage.length / chunkSize))
+    for (let i = 0; i < chunkCount; i++) {
+      const data = bytesToBase64(sessionPackage.subarray(i * chunkSize, (i + 1) * chunkSize))
+      this.sendOnSocket({ type: "importPackageChunk", importId, data, lastChunk: i === chunkCount - 1 })
+    }
   }
 
   protected manageSessionDescriptionMessage(sessionDescriptionMessage: TInteractiveInkSessionDescriptionMessage): void {
@@ -581,10 +723,45 @@ export class WebSocketClient {
       this.rejectDeferredPending(message)
       this.event.emitConnectionClose({ code: 1000, message: ClientError.NO_ACTIVITY })
     } else {
-      message = mapErrorCodeToMessage(this.currentErrorCode) ?? message
+      // Read before the pending requests are rejected: an awaited package answered as an unknown
+      // message means the server does not have the feature, whatever its version says. Its own
+      // message ("Json mapping error") explains nothing: say what is missing, and do not ask again
+      const refusesPackage = this.currentErrorCode === "api.mapping.error" && this.pendingRequests.has("package")
+      this.packageRefused ||= refusesPackage
+      message = refusesPackage
+        ? ClientError.SESSION_PACKAGE_UNSUPPORTED
+        : (mapErrorCodeToMessage(this.currentErrorCode) ?? message)
       this.rejectDeferredPending(message)
-      this.event.emitError(new Error(message))
+      // A refused package is reported by importPackage rejecting, a lost session by the recovery:
+      // their callers recover from them
+      const recovered = this.currentErrorCode === "restore.session.not.found" && !!this.sessionRecovery
+      if (!this.packageImport && !recovered) {
+        this.event.emitError(new Error(message))
+      }
     }
+  }
+
+  protected managePackageInfo(infoMessage: TWebSocketClientMessagePackageInfo): void {
+    this.packageReception = { exportId: infoMessage.exportId, size: infoMessage.size, chunks: [] }
+  }
+
+  protected managePackageChunk(chunkMessage: TWebSocketClientMessagePackageChunk): void {
+    const reception = this.packageReception
+    if (reception?.exportId !== chunkMessage.exportId) {
+      this.logger.warn("managePackageChunk", `Chunk of an unannounced package: ${chunkMessage.exportId}`)
+      return
+    }
+    reception.chunks.push(base64ToBytes(chunkMessage.data))
+    if (!chunkMessage.lastChunk) {
+      return
+    }
+    this.packageReception = undefined
+    const received = reception.chunks.reduce((total, chunk) => total + chunk.length, 0)
+    if (received !== reception.size) {
+      this.fail("package", new Error(`Session package: received ${received} bytes, expected ${reception.size}`))
+      return
+    }
+    this.answer("package", concatBytes(reception.chunks, received))
   }
 
   protected manageAck(): void {
@@ -685,12 +862,29 @@ export class WebSocketClient {
     return this.connectingPromise
   }
 
+  /** The server session is gone: the next one starts from the recovery package if any, else empty */
+  protected forgetServerSession(): void {
+    this.sessionId = undefined
+    this.currentPartId = undefined
+    if (this.sessionRecovery) {
+      this.lostSession = { packageTried: false }
+    }
+  }
+
   protected async connect(): Promise<void> {
     this.event.emitStartInitialization()
     if (this.currentErrorCode === "restore.session.not.found") {
       this.currentErrorCode = undefined
-      this.sessionId = undefined
-      this.currentPartId = undefined
+      this.forgetServerSession()
+    } else if (this.sessionId && this.configuration.server.serverSideRecovery === false) {
+      // The server did not save it: never restoreSession, resume from the local snapshot instead
+      this.forgetServerSession()
+      if (!this.sessionRecovery) {
+        this.event.emitError(new Error(ClientError.NO_SESSION_FOUND))
+      }
+    }
+    if (this.lostSession) {
+      this.prepareSessionRecovery(this.lostSession)
     }
     await ensureServerVersion(this.configuration)
     // A fresh handshake per attempt: a late failure of a previous one must not have rejected it
@@ -787,8 +981,7 @@ export class WebSocketClient {
    * `maxCount` items. Order is kept; an item larger than the budget goes alone.
    */
   protected chunkBySize<T>(items: T[], sizeOf: (item: T) => number, maxCount = Infinity): T[][] {
-    // Room left for the message around the items: its type and other fields.
-    const budget = this.maxMessageBytes - 256
+    const budget = this.maxMessageBytes - MESSAGE_FIELDS_BYTES
     const chunks: T[][] = []
     let current: T[] = []
     let currentBytes = 0
@@ -995,6 +1188,62 @@ export class WebSocketClient {
 
   async redo(actions: TIIHistoryBackendChanges): Promise<void> {
     await this.sendHistoryStep("redo", actions)
+  }
+
+  /**
+   * The whole session as a `.iink` package, to start a new session from later with {@link importPackage}.
+   * The server waits for the recognition to be idle before taking it.
+   * @returns `undefined` when the session is closed deliberately before the package arrives
+   * @throws when the server is older than 4.6.0
+   */
+  /**
+   * Whether the server exports and imports the session package: from 4.6.0, unless it already
+   * answered exportPackage as an unknown message (a server announcing 4.6.0 before the feature)
+   */
+  get sessionPackageSupported(): boolean {
+    return supportsSessionPackage(this.configuration.server.version) && !this.packageRefused
+  }
+
+  async exportPackage(): Promise<Uint8Array<ArrayBuffer> | undefined> {
+    const version = this.configuration.server.version
+    if (!this.sessionPackageSupported) {
+      throw new Error(`Server ${version} can not export the session package`)
+    }
+    const run = this.packageQueue.then(() => this.requestPackage())
+    this.packageQueue = run.catch(() => undefined)
+    return run
+  }
+
+  /**
+   * Replaces the session with one started from a package of {@link exportPackage}, on a new connection.
+   * Stroke ids are kept. Once it resolves, a reconnection restores the imported session.
+   * @param partId - Part the package was exported from, opened once imported
+   * @throws when the server is older than 4.6.0 or refuses the package; the next connection then starts a new session
+   */
+  async importPackage(sessionPackage: Uint8Array, partId: string): Promise<void> {
+    const version = await ensureServerVersion(this.configuration)
+    if (!supportsSessionPackage(version)) {
+      throw new Error(`Server ${version} can not import the session package`)
+    }
+    if (this.socket) {
+      await this.close(1000, "import-package")
+    }
+    this.sessionId = undefined
+    this.currentPartId = partId
+    this.packageImport = sessionPackage
+    try {
+      await this.init()
+    } catch (error) {
+      this.currentPartId = undefined
+      throw error
+    } finally {
+      this.packageImport = undefined
+    }
+  }
+
+  protected async requestPackage(): Promise<Uint8Array<ArrayBuffer> | undefined> {
+    await this.send({ type: "exportPackage" })
+    return this.waitForAnswer<Uint8Array<ArrayBuffer> | undefined>("package", undefined).promise
   }
 
   async export(requestedMimeTypes?: string[]): Promise<TExport> {

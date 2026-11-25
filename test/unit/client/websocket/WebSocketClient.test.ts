@@ -1,7 +1,7 @@
 import { InteractiveInkCanvasOverrideConfiguration } from "../../__dataset__/configuration.dataset"
 import { ServerWebSocketMock, contextlessGestureMessage, gestureDetectedMessage, hTextJIIX, partChangeMessage } from "../../__mocks__/ServerWebSocketMock"
 import { buildIIStroke, delay } from "../../helpers"
-import { WebSocketClient, ClientError, TMatrixTransform, MatrixTransform, TIIHistoryBackendChanges, TWebSocketClientConfiguration, TWebSocketClientMessage, TStroke, toWireStroke, LoggerManager, LoggerCategory, TWebSocketClientMessageType } from "@/iink"
+import { WebSocketClient, ClientError, TMatrixTransform, MatrixTransform, TIIHistoryBackendChanges, TWebSocketClientConfiguration, TWebSocketClientMessage, TStroke, toWireStroke, LoggerManager, LoggerCategory, TWebSocketClientMessageType, base64ToBytes } from "@/iink"
 
 import { toResolve } from "jest-extended"
 expect.extend({ toResolve })
@@ -31,6 +31,10 @@ describe("WebSocketClient.ts", () => {
     test("should encode the application key in the url", () => {
       const wsClient = new WebSocketClient({ ...conf, server: { ...conf.server, applicationKey: "a&b=c" } })
       expect(wsClient.url).toEqual("ws://pony/api/v4.0/iink/offscreen?applicationKey=a%26b%3Dc")
+    })
+
+    test("should have no part before the session is open", () => {
+      expect(new WebSocketClient(conf).partId).toBeUndefined()
     })
 
     test(`should get mimeTypes`, () => {
@@ -650,6 +654,8 @@ describe("WebSocketClient.ts", () => {
   describe("offline queue", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "offline-queue-test"
+    // The server keeps the session: a reconnection restores it
+    conf.server.serverSideRecovery = true
     conf.server.websocket.autoReconnect = true
     conf.server.websocket.reconnectDelay = 50
     conf.server.websocket.maxReconnectAttempts = 5
@@ -1722,6 +1728,486 @@ describe("WebSocketClient.ts", () => {
       await expect(promise).rejects.toEqual(ClientError.WRONG_CREDENTIALS)
       await expect(spyEmitError).toHaveBeenCalledTimes(1)
       await expect(spyEmitError).toHaveBeenCalledWith(new Error(ClientError.WRONG_CREDENTIALS))
+    })
+  })
+
+  describe("exportPackage", () => {
+    const conf = structuredClone(configuration)
+    conf.server.host = "export-package-test"
+    conf.server.version = "4.6.0"
+    let mockServer: ServerWebSocketMock
+    let wsClient: WebSocketClient
+    const readBytes = (bytes: Uint8Array | undefined) => Array.from(bytes!)
+
+    beforeEach(async () => {
+      wsClient = new WebSocketClient(conf)
+      mockServer = new ServerWebSocketMock(wsClient.url)
+      mockServer.init()
+      await wsClient.init()
+    })
+    afterEach(async () => {
+      await wsClient.destroy()
+      mockServer.close()
+    })
+
+    test("should ask the server for the package", async () => {
+      wsClient.exportPackage()
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+
+      expect(mockServer.getMessages("exportPackage").map((m) => JSON.parse(m as string))).toEqual([{ type: "exportPackage" }])
+    })
+
+    test("should resolve with the bytes of every chunk, in order", async () => {
+      const exported = wsClient.exportPackage()
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      mockServer.sendPackage(new Uint8Array([0, 1, 2, 253, 254, 255, 7]), { chunkSize: 3 })
+
+      expect(readBytes(await exported)).toEqual([0, 1, 2, 253, 254, 255, 7])
+    })
+
+    test("should reject when the chunks do not add up to the announced size", async () => {
+      const exported = wsClient.exportPackage()
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      mockServer.sendPackage(new Uint8Array([0, 1, 2]), { size: 4 })
+
+      await expect(exported).rejects.toThrow("received 3 bytes, expected 4")
+    })
+
+    test("should ignore a chunk of another package", async () => {
+      const exported = wsClient.exportPackage()
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      mockServer.send(JSON.stringify({ type: "packageInfo", exportId: "current", size: 1, chunkCount: 1 }))
+      mockServer.send(JSON.stringify({ type: "packageChunk", exportId: "stale", chunkIdx: 0, data: "AAAA", lastChunk: true }))
+      mockServer.send(JSON.stringify({ type: "packageChunk", exportId: "current", chunkIdx: 0, data: "BQ==", lastChunk: true }))
+
+      expect(readBytes(await exported)).toEqual([5])
+    })
+
+    test("should ask for the next package only once the previous one is received", async () => {
+      const first = wsClient.exportPackage()
+      const second = wsClient.exportPackage()
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      expect(mockServer.getMessages("exportPackage")).toHaveLength(1)
+      mockServer.sendPackage(new Uint8Array([1]), { exportId: "first" })
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      expect(mockServer.getMessages("exportPackage")).toHaveLength(2)
+      mockServer.sendPackage(new Uint8Array([2]), { exportId: "second" })
+
+      expect(readBytes(await first)).toEqual([1])
+      expect(readBytes(await second)).toEqual([2])
+    })
+
+    test("should resolve with no package when the session is closed deliberately meanwhile", async () => {
+      const exported = wsClient.exportPackage()
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      await wsClient.close(1000, "new-session")
+
+      await expect(exported).resolves.toBeUndefined()
+    })
+
+    test("should explain the server can not save the session when it does not know exportPackage", async () => {
+      // A server announcing 4.6.0 without the feature answers it as an unknown message: "Json mapping error"
+      wsClient.event.emitError = jest.fn()
+      const exported = wsClient.exportPackage()
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      mockServer.send(JSON.stringify({ type: "error", code: "api.mapping.error", message: "Json mapping error: " }))
+
+      await expect(exported).rejects.toEqual(ClientError.SESSION_PACKAGE_UNSUPPORTED)
+      expect(wsClient.event.emitError).toHaveBeenCalledWith(new Error(ClientError.SESSION_PACKAGE_UNSUPPORTED))
+    })
+
+    test("should not ask again a server that did not know exportPackage", async () => {
+      wsClient.event.emitError = jest.fn()
+      expect(wsClient.sessionPackageSupported).toBe(true)
+      const exported = wsClient.exportPackage()
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      mockServer.send(JSON.stringify({ type: "error", code: "api.mapping.error", message: "Json mapping error: " }))
+      await exported.catch(() => undefined)
+
+      expect(wsClient.sessionPackageSupported).toBe(false)
+      await expect(wsClient.exportPackage()).rejects.toThrow("can not export the session package")
+      expect(mockServer.getMessages("exportPackage")).toHaveLength(1)
+    })
+
+    test("should still report another error arriving while a package is awaited", async () => {
+      wsClient.event.emitError = jest.fn()
+      const exported = wsClient.exportPackage()
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      mockServer.send(JSON.stringify({ type: "error", code: "internal.error", message: "Boom" }))
+
+      await expect(exported).rejects.toEqual("Boom")
+      expect(wsClient.event.emitError).toHaveBeenCalledWith(new Error("Boom"))
+    })
+
+    test("should reject without asking a server older than 4.6.0", async () => {
+      wsClient.configuration.server.version = "4.5.4"
+
+      await expect(wsClient.exportPackage()).rejects.toThrow("Server 4.5.4 can not export the session package")
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      expect(mockServer.getMessages("exportPackage")).toHaveLength(0)
+    })
+  })
+
+  describe("serverSideRecovery", () => {
+    const sessionPackage = new Uint8Array(10)
+    const firstMessage = (mockServer: ServerWebSocketMock, type: string) =>
+      JSON.parse(mockServer.getMessages(type)[0] as string) as Record<string, unknown>
+    let mockServer: ServerWebSocketMock
+    let wsClient: WebSocketClient
+
+    const start = (serverSideRecovery?: boolean) => {
+      const conf = structuredClone(configuration)
+      conf.server.host = "server-side-recovery-test"
+      conf.server.version = "4.6.0"
+      conf.server.serverSideRecovery = serverSideRecovery
+      wsClient = new WebSocketClient(conf)
+      mockServer = new ServerWebSocketMock(wsClient.url)
+      mockServer.init()
+    }
+    afterEach(async () => {
+      await wsClient.destroy()
+      mockServer.close()
+    })
+
+    test("should leave the field out when unset, so a server without it still accepts the session", async () => {
+      start()
+      await wsClient.init()
+      await wsClient.importPackage(sessionPackage, "part-1")
+      expect(firstMessage(mockServer, "initSession")).not.toHaveProperty("serverSideRecovery")
+      expect(firstMessage(mockServer, "importPackage")).not.toHaveProperty("serverSideRecovery")
+    })
+
+    test("should leave the field out when set to true, the server default", async () => {
+      start(true)
+      await wsClient.init()
+      expect(firstMessage(mockServer, "initSession")).not.toHaveProperty("serverSideRecovery")
+    })
+
+    test("should ask initSession and importPackage for no server side recovery when set to false", async () => {
+      start(false)
+      await wsClient.init()
+      await wsClient.importPackage(sessionPackage, "part-1")
+      expect(firstMessage(mockServer, "initSession")).toHaveProperty("serverSideRecovery", false)
+      expect(firstMessage(mockServer, "importPackage")).toHaveProperty("serverSideRecovery", false)
+    })
+  })
+
+  describe("importPackage", () => {
+    const conf = structuredClone(configuration)
+    conf.server.host = "import-package-test"
+    conf.server.version = "4.6.0"
+    conf.server.serverSideRecovery = true
+    const sessionPackage = new Uint8Array(100).map((_, i) => i)
+    const parse = (messages: unknown[]) => messages.map((m) => JSON.parse(m as string) as TWebSocketClientMessage)
+    let mockServer: ServerWebSocketMock
+    let wsClient: WebSocketClient
+
+    class SmallFrameClient extends WebSocketClient {
+      protected readonly maxMessageBytes = 256 + 40
+    }
+
+    beforeEach(async () => {
+      wsClient = new WebSocketClient(conf)
+      mockServer = new ServerWebSocketMock(wsClient.url)
+      mockServer.init()
+    })
+    afterEach(async () => {
+      await wsClient.destroy()
+      mockServer.close()
+    })
+
+    test("should start the session from the package instead of a new one", async () => {
+      await wsClient.importPackage(sessionPackage, "part-7")
+
+      expect(parse(mockServer.getMessages("importPackage"))).toEqual([
+        expect.objectContaining({
+          type: "importPackage",
+          importId: expect.any(String),
+          size: 100,
+          scaleX: expect.any(Number),
+          scaleY: expect.any(Number),
+          configuration: wsClient.configuration.recognition,
+        }),
+      ])
+      expect(mockServer.getMessages("initSession")).toHaveLength(0)
+    })
+
+    test("should open the part the package was exported from", async () => {
+      await wsClient.importPackage(sessionPackage, "part-7")
+      expect(wsClient.partId).toEqual(partChangeMessage.partId)
+
+      expect(parse(mockServer.getMessages("openContentPart"))).toEqual([{ type: "openContentPart", id: "part-7" }])
+    })
+
+    test("should send the package in chunks that fit in a frame, only the last one flagged", async () => {
+      await wsClient.destroy()
+      mockServer.close()
+      wsClient = new SmallFrameClient(conf)
+      mockServer = new ServerWebSocketMock(wsClient.url)
+      mockServer.init()
+
+      await wsClient.importPackage(sessionPackage, "part-7")
+
+      const chunks = mockServer.getMessages("importPackageChunk")
+      const importId = parse(mockServer.getMessages("importPackage"))[0].importId
+      expect(chunks.length).toBeGreaterThan(1)
+      chunks.forEach((chunk) => expect((chunk as string).length).toBeLessThanOrEqual(256 + 40))
+      expect(parse(chunks).map((chunk) => [chunk.importId, chunk.lastChunk])).toEqual(
+        chunks.map((_, i) => [importId, i === chunks.length - 1])
+      )
+      expect(parse(chunks).flatMap((chunk) => Array.from(base64ToBytes(chunk.data as string)))).toEqual(Array.from(sessionPackage))
+    })
+
+    test("should restore the imported session, not import it again, when reconnecting", async () => {
+      await wsClient.importPackage(sessionPackage, "part-7")
+      await wsClient.close(1000, "test")
+
+      await wsClient.init()
+
+      expect(mockServer.getMessages("importPackage")).toHaveLength(1)
+      expect(parse(mockServer.getMessages("restoreSession"))).toEqual([
+        expect.objectContaining({ type: "restoreSession", iinkSessionId: "imported-session" }),
+      ])
+    })
+
+    test("should reject when the server refuses the package, and start a new session on the next connection", async () => {
+      mockServer.close()
+      mockServer = new ServerWebSocketMock(wsClient.url)
+      mockServer.init({ withHMAC: true, withIdle: true, importError: { type: "error", code: "import.error", message: "Invalid package" } })
+      wsClient.event.emitError = jest.fn()
+
+      await expect(wsClient.importPackage(sessionPackage, "part-7")).rejects.toEqual("Invalid package")
+      // The rejection reports it: the caller may recover, an error event would report it twice
+      expect(wsClient.event.emitError).not.toHaveBeenCalled()
+      await wsClient.close(1000, "test")
+      await wsClient.init()
+
+      expect(mockServer.getMessages("importPackage")).toHaveLength(1)
+      expect(mockServer.getMessages("initSession")).toHaveLength(1)
+      expect(mockServer.getMessages("newContentPart")).toHaveLength(1)
+    })
+
+    test("should reject without connecting to a server older than 4.6.0", async () => {
+      wsClient.configuration.server.version = "4.5.4"
+
+      await expect(wsClient.importPackage(sessionPackage, "part-7")).rejects.toThrow("Server 4.5.4 can not import the session package")
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+      expect(mockServer.getMessages("authenticate")).toHaveLength(0)
+    })
+  })
+
+  describe("session recovery", () => {
+    const conf = structuredClone(configuration)
+    conf.server.host = "session-recovery-test"
+    conf.server.version = "4.6.0"
+    conf.server.websocket.autoReconnect = true
+    conf.server.websocket.reconnectDelay = 50
+    conf.server.websocket.maxReconnectAttempts = 5
+    const strokes = [buildIIStroke()]
+    const types = () => mockServer.messages.map((m) => (JSON.parse(m as string) as TWebSocketClientMessage).type)
+    let mockServer: ServerWebSocketMock
+    let wsClient: WebSocketClient
+
+    const recoveryWith = (sessionPackage?: { data: Uint8Array; partId: string }) => ({
+      package: jest.fn(() => sessionPackage),
+      recover: jest.fn((_imported: boolean) => Promise.resolve()),
+    })
+    const savedPackage = { data: new Uint8Array([1, 2, 3]), partId: "part-7" }
+
+    /** Connects, then drops the connection to a server that has meanwhile lost the session */
+    const loseSession = async (serverOptions: { importError?: object } = {}) => {
+      mockServer = new ServerWebSocketMock(wsClient.url)
+      mockServer.init({ withHMAC: true, withIdle: true, sessionLost: true, ...serverOptions })
+      await wsClient.init()
+      const [client] = mockServer.server.clients()
+      client.close({ code: 1006, reason: "network drop", wasClean: false })
+      await delay(10)
+      return mockServer.messages.length
+    }
+
+    beforeEach(() => {
+      wsClient = new WebSocketClient(conf)
+      wsClient.event.emitError = jest.fn()
+    })
+    afterEach(async () => {
+      await wsClient.destroy()
+      mockServer.close()
+    })
+
+    test("should start the new session from the recovery package, in the part it was saved from", async () => {
+      const recovery = recoveryWith(savedPackage)
+      wsClient.setSessionRecovery(recovery)
+      await loseSession()
+
+      await wsClient.send({ type: "probe" })
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+
+      expect(mockServer.getMessages("importPackage")).toHaveLength(1)
+      expect(JSON.parse(mockServer.getMessages("openContentPart")[0] as string)).toEqual({ type: "openContentPart", id: "part-7" })
+      expect(recovery.recover).toHaveBeenCalledWith(true)
+    })
+
+    test("should not report the lost session as an error when it can recover", async () => {
+      wsClient.setSessionRecovery(recoveryWith(savedPackage))
+      await loseSession()
+
+      await wsClient.send({ type: "probe" })
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+
+      expect(wsClient.event.emitError).not.toHaveBeenCalled()
+    })
+
+    test("should drop the changes queued for the lost session", async () => {
+      wsClient.setSessionRecovery(recoveryWith(savedPackage))
+      const sentBeforeDrop = await loseSession()
+
+      await expect(wsClient.addStrokes(strokes)).toResolve()
+      await wsClient.send({ type: "probe" })
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+
+      expect(types().slice(sentBeforeDrop)).not.toContain("addStrokes")
+    })
+
+    test("should recover in a new session when the package is refused", async () => {
+      const recovery = recoveryWith(savedPackage)
+      wsClient.setSessionRecovery(recovery)
+      const sentBeforeDrop = await loseSession({ importError: { type: "error", code: "import.error", message: "Invalid package" } })
+
+      await wsClient.send({ type: "probe" })
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+
+      const sent = types().slice(sentBeforeDrop)
+      expect(sent.indexOf("initSession")).toBeGreaterThan(sent.indexOf("importPackage"))
+      expect(sent).toContain("newContentPart")
+      expect(recovery.recover).toHaveBeenCalledWith(false)
+      expect(wsClient.event.emitError).not.toHaveBeenCalled()
+    })
+
+    test("should recover in a new session when there is no package", async () => {
+      const recovery = recoveryWith(undefined)
+      wsClient.setSessionRecovery(recovery)
+      const sentBeforeDrop = await loseSession()
+
+      await wsClient.send({ type: "probe" })
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+
+      expect(types().slice(sentBeforeDrop)).not.toContain("importPackage")
+      expect(types().slice(sentBeforeDrop)).toContain("initSession")
+      expect(recovery.recover).toHaveBeenCalledWith(false)
+    })
+
+    test("should let the requests waiting for the reconnection go once the new session is up to date", async () => {
+      const order: string[] = []
+      wsClient.setSessionRecovery({
+        package: () => savedPackage,
+        recover: async () => {
+          order.push("recover start")
+          await delay(50)
+          order.push("recover end")
+        },
+      })
+      await loseSession()
+
+      await wsClient.send({ type: "probe" }).then(() => order.push("waiting request sent"))
+
+      expect(order).toEqual(["recover start", "recover end", "waiting request sent"])
+    })
+
+    describe("without server side recovery", () => {
+      /** Connects, then drops the connection; the server still has the session, but it may not be restored */
+      const dropConnection = async () => {
+        wsClient = new WebSocketClient({ ...conf, server: { ...conf.server, serverSideRecovery: false } })
+        wsClient.event.emitError = jest.fn()
+        mockServer = new ServerWebSocketMock(wsClient.url)
+        mockServer.init({ withHMAC: true, withIdle: true })
+        await wsClient.init()
+        const [client] = mockServer.server.clients()
+        client.close({ code: 1006, reason: "network drop", wasClean: false })
+        await delay(10)
+        return mockServer.messages.length
+      }
+
+      test("should resume from the local snapshot instead of restoring the session", async () => {
+        const recovery = recoveryWith(savedPackage)
+        await wsClient.destroy()
+        const sentBeforeDrop = await dropConnection()
+        wsClient.setSessionRecovery(recovery)
+
+        await wsClient.send({ type: "probe" })
+        //¯\_(ツ)_/¯  required to wait server received message
+        await delay(100)
+
+        const sent = types().slice(sentBeforeDrop)
+        expect(sent).not.toContain("restoreSession")
+        expect(sent).toContain("importPackage")
+        expect(recovery.recover).toHaveBeenCalledWith(true)
+        expect(wsClient.event.emitError).not.toHaveBeenCalled()
+      })
+
+      test("should still resume from the local snapshot after a reconnection attempt the network dropped", async () => {
+        const recovery = recoveryWith(savedPackage)
+        await wsClient.destroy()
+        const sentBeforeDrop = await dropConnection()
+        wsClient.setSessionRecovery(recovery)
+        // The network is still down for the first attempt: it never reaches the handshake
+        let dropNext = 1
+        mockServer.on("connection", (socket) => {
+          if (dropNext > 0) {
+            dropNext--
+            socket.close({ code: 1006, reason: "network down", wasClean: false })
+          }
+        })
+
+        await wsClient.send({ type: "probe" })
+        //¯\_(ツ)_/¯  required to wait server received message
+        await delay(100)
+
+        const sent = types().slice(sentBeforeDrop)
+        expect(sent).toContain("importPackage")
+        expect(sent).not.toContain("initSession")
+        expect(recovery.recover).toHaveBeenCalledWith(true)
+      })
+
+      test("should start a new session and report the loss without recovery", async () => {
+        await wsClient.destroy()
+        const sentBeforeDrop = await dropConnection()
+
+        await wsClient.send({ type: "probe" })
+        //¯\_(ツ)_/¯  required to wait server received message
+        await delay(100)
+
+        const sent = types().slice(sentBeforeDrop)
+        expect(sent).not.toContain("restoreSession")
+        expect(sent).toContain("initSession")
+        expect(wsClient.event.emitError).toHaveBeenCalledWith(new Error(ClientError.NO_SESSION_FOUND))
+      })
+    })
+
+    test("should still report the lost session without recovery", async () => {
+      await loseSession()
+
+      await wsClient.send({ type: "probe" })
+      //¯\_(ツ)_/¯  required to wait server received message
+      await delay(100)
+
+      expect(wsClient.event.emitError).toHaveBeenCalledWith(new Error(ClientError.NO_SESSION_FOUND))
     })
   })
 

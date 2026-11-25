@@ -14,6 +14,15 @@ export type THistoryEvent = {
 
 /**
  * @group History
+ * @remarks the steps of a history and the one it stands at, to save it and pick it up again
+ */
+export type THistoryStack<TStackItem> = {
+  stack: TStackItem[]
+  stackIndex: number
+}
+
+/**
+ * @group History
  * @remarks shared stack/context bookkeeping for HistoryManager, IHistoryManager and IIHistoryManager,
  * which only differ in the shape of the stack item and of the recorded changes.
  */
@@ -46,6 +55,8 @@ export abstract class AbstractHistoryStack<TStackItem> {
 
   protected initStack(item: TStackItem): void {
     this.stack.push(item)
+    // Started on content already there (a restored session), the history is not empty
+    this.updateContext()
     this.event.emitChanged(this.context)
   }
 
@@ -84,5 +95,25 @@ export abstract class AbstractHistoryStack<TStackItem> {
   clear(): void {
     this.context = getInitialHistoryContext()
     this.stack = []
+  }
+
+  /** The steps and where the history stands, the steps that can be redone included */
+  exportStack(): THistoryStack<TStackItem> {
+    return { stack: [...this.stack], stackIndex: this.context.stackIndex }
+  }
+
+  /**
+   * Picks a history up where {@link exportStack} left it. Beyond `maxStackSize`, the oldest steps
+   * are dropped; an empty stack changes nothing.
+   */
+  importStack({ stack, stackIndex }: THistoryStack<TStackItem>): void {
+    if (!stack.length) {
+      return
+    }
+    const dropped = Math.max(0, stack.length - this.configuration.maxStackSize)
+    this.stack = stack.slice(dropped)
+    this.context.stackIndex = Math.min(Math.max(stackIndex - dropped, 0), this.stack.length - 1)
+    this.updateContext()
+    this.event.emitChanged(this.context)
   }
 }

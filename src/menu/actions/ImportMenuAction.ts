@@ -1,5 +1,6 @@
 import type { TInteractiveInkCanvas } from "@/canvas"
 import type { TPartialDeep } from "@/core"
+import { readBlobAsText } from "@/dom"
 import type { TSymbol } from "@/symbol"
 
 import type { TMenuSubMenu } from "../items/SubMenuItem"
@@ -26,7 +27,7 @@ export class ImportMenuAction extends SubMenuItem {
           buttonLabel: canvas.i18n.t("menu.action.import"),
           action: async (canvas, files) => {
             if (files.length) {
-              const fileString = await this.readFileAsText(files[0])
+              const fileString = await readBlobAsText(files[0])
               const symbols = JSON.parse(fileString) as TPartialDeep<TSymbol>[]
               await canvas.createSymbols(symbols)
             }
@@ -36,18 +37,5 @@ export class ImportMenuAction extends SubMenuItem {
     }
 
     super(config, canvas)
-  }
-
-  private async readFileAsText(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onerror = reject
-      reader.onload = () => {
-        resolve(reader.result as string)
-      }
-      if (file) {
-        reader.readAsText(file)
-      }
-    })
   }
 }

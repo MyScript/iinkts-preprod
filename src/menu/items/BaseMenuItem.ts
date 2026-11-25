@@ -17,6 +17,17 @@ export type TMenuItemBase = {
 
 /**
  * @group Menu
+ * @remarks Heading of a field item: an icon and a title, then a hint saying what it does
+ */
+export type TMenuFieldHeading = {
+  /** SVG markup shown before the title */
+  icon?: string
+  title?: string
+  hint?: string
+}
+
+/**
+ * @group Menu
  * @remarks Union type for all menu types
  */
 export type TGenericMenuItem = TMenuItemBase & {
@@ -57,6 +68,20 @@ export abstract class BaseMenuItem<T extends HTMLElement = HTMLElement> {
    * Updates the element (for reactivity)
    */
   abstract update(): void
+
+  /** The title and hint a field item shows above its field; none without them */
+  protected buildFieldHeading({ icon, title, hint }: TMenuFieldHeading): HTMLElement[] {
+    const heading: HTMLElement[] = []
+    if (title) {
+      const titleElement = this.dom.div({ className: "ms-menu-field-title", html: icon })
+      titleElement.append(title)
+      heading.push(titleElement)
+    }
+    if (hint) {
+      heading.push(this.dom.div({ className: "ms-menu-field-hint", text: hint }))
+    }
+    return heading
+  }
 
   /**
    * Returns the HTML element

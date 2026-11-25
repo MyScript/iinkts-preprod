@@ -45,6 +45,33 @@
   min-width: 0;
 }
 
+/* Heading of a field item: what the field is for, then what it does */
+.ms-ink .ms-menu-field-title {
+  display: flex;
+  align-items: center;
+  gap: var(--ms-ink-spacing-xs);
+  font-weight: bold;
+}
+
+.ms-ink .ms-menu-field-title svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.ms-ink .ms-menu-field-hint {
+  max-width: 220px;
+  white-space: normal;
+  font-size: 0.85em;
+  color: var(--ms-ink-text-muted);
+}
+
+/* A field and its button form a group: keep the next item apart from its button */
+.ms-ink .ms-menu-text-input + *,
+.ms-ink .ms-menu-file-input + * {
+  margin-top: var(--ms-ink-spacing-md);
+}
+
 .ms-ink .ms-menu-row {
   display: flex;
   flex-direction: row;

@@ -23,6 +23,7 @@ import {
   IIPlaybackManager,
   IISearchManager,
   IISelectionManager,
+  IISessionManager,
   IISnapManager,
   IISynchronizerManager,
   IITransformManager,
@@ -179,6 +180,8 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   menu: IIMenuManager
   /** Replays a recorded set of strokes with play/pause/speed control. */
   playback: IIPlaybackManager
+  /** Saves and restores the whole session, to resume it once the server session has expired */
+  session: IISessionManager
   /** Static utility class for creating DOM elements. */
   readonly dom = DOMFactory
 
@@ -244,6 +247,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     )
     this.menu = new IIMenuManager(this, options?.override?.menu, options?.extend?.menuItems)
     this.playback = new IIPlaybackManager(this)
+    this.session = new IISessionManager(this)
   }
 
   /**
@@ -483,6 +487,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
         this.client.configuration.server.version = this.info!.version
       }
       await this.client.init()
+      await this.session.start()
     } catch (error) {
       this.logger.error("initialize", error)
       this.layers.showMessageError(error as Error)
@@ -558,15 +563,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     // Reset the export to force synchronization.
     this.model.invalidateExports()
     if (needNewSession) {
-      await this.client.newSession(this.configuration)
-      const strokes = this.extractStrokesFromSymbols(this.model.symbols).filter((s) => !isStrokeSolverOutput(s))
-      if (strokes.length > 0) {
-        this.startOperation("Recognizing")
-        await this.client.addStrokes(strokes, false)
-      }
-      if (strokes.length === 0) {
-        this.clearOperation("Recognizing")
-      }
+      await this.session.replay()
     } else {
       await this.client.changeConfiguration(this.configuration)
     }
@@ -1831,6 +1828,7 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
    */
   #destroyManagers(): void {
     this.playback.destroy()
+    this.session.destroy()
     this.connector.destroy()
     this.math.destroy()
     this.search.destroy()

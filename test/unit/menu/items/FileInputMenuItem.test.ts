@@ -76,4 +76,23 @@ describe("FileInputMenuItem.ts", () => {
 
     expect(config.action).not.toHaveBeenCalled()
   })
+
+  test("should head the field with its icon, title and hint", () => {
+    const item = new FileInputMenuItem(
+      buildConfig({ icon: "<svg id='icon'></svg>", title: "Open a file", hint: "Replaces the current content" }),
+      asCanvas(createCanvasMock())
+    )
+
+    const wrapper = item.getElement()
+
+    expect(wrapper.querySelector(".ms-menu-field-title")?.textContent).toEqual("Open a file")
+    expect(wrapper.querySelector(".ms-menu-field-title #icon")).toBeTruthy()
+    expect(wrapper.querySelector(".ms-menu-field-hint")?.textContent).toEqual("Replaces the current content")
+  })
+
+  test("should have no heading without title nor hint", () => {
+    const wrapper = new FileInputMenuItem(buildConfig(), asCanvas(createCanvasMock())).getElement()
+
+    expect(wrapper.querySelector(".ms-menu-field-title, .ms-menu-field-hint")).toBeNull()
+  })
 })

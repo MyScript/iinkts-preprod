@@ -29,6 +29,7 @@ import {
   PenMenuAction,
   SearchMenuAction,
   SelectionMenuAction,
+  SessionMenuAction,
   SnapMenuAction,
   ThemeMenuAction,
   UndoRedoMenuAction,
@@ -75,6 +76,8 @@ export type TMenuActionConfig = {
   export?: TExportActionConfig
   /** Enable/disable Import submenu */
   import?: boolean
+  /** Enable/disable Session submenu: save the session as a `.iinkts` file, open one to resume it */
+  session?: boolean
   /** Enable/disable Minimap toggle button */
   minimap?: boolean
   /** Enable/disable Theme picker */
@@ -101,6 +104,7 @@ export const DefaultMenuActionConfig: Required<Omit<TMenuActionConfig, "themes">
   selection: true,
   export: true,
   import: true,
+  session: true,
   minimap: true,
   theme: true,
 }
@@ -193,6 +197,9 @@ export class IIMenuAction extends IIAbstractMenu<
     }
     if (config.export) {
       this.addItem("export", new ExportMenuAction(this.canvas, this.id, this.subConfig(config.export)))
+    }
+    if (config.session) {
+      this.addItem("session", new SessionMenuAction(this.canvas, this.id))
     }
   }
 

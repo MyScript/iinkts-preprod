@@ -1,6 +1,6 @@
 import type { TInteractiveInkCanvas } from "@/canvas"
 import type { TJIIXExport, WebSocketClient } from "@/client"
-import { ExportType } from "@/client"
+import { ExportType, JIIXElementType } from "@/client"
 import type { TBox } from "@/core"
 import { BoxOps } from "@/core"
 import { jiixToLLM, jiixToMarkdown, jiixToMermaid, jiixToPlantUML } from "@/export"
@@ -12,6 +12,9 @@ import { MathUtil, SymbolGeometry, TextUtil } from "@/symbol-utils"
 import type { TExporterMap } from "../base/ExportManager"
 import { ExportManager } from "../base/ExportManager"
 import type { PDFExportManager } from "../base/PDFExportManager"
+import type { TDownloadFormat, TPDFDownloadOptions } from "../base/TExport"
+import { EXPORT_MIME_TYPES } from "../base/TExport"
+import { serializeSession } from "./SessionEnvelope"
 
 /** JIIX stand-in used when the content has not been recognized yet, so exports stay empty instead of throwing */
 const EMPTY_JIIX: TJIIXExport = { type: "Container", id: "", version: "" }
@@ -44,6 +47,14 @@ export class IIExportManager extends ExportManager {
     return this.canvas.configuration
   }
 
+  /** A session without file name is named after the first words of the document, see `canvas.session.suggestedFileName` */
+  async download(format: TDownloadFormat, options: TPDFDownloadOptions = {}): Promise<void> {
+    if (format === "session" && !options.filename) {
+      return super.download(format, { ...options, filename: await this.canvas.session.suggestedFileName() })
+    }
+    return super.download(format, options)
+  }
+
   protected get exporters(): TExporterMap {
     return {
       ...this.localExporters,
@@ -53,6 +64,9 @@ export class IIExportManager extends ExportManager {
       mermaid: async () => jiixToMermaid(await this.exportJiix()),
       plantuml: async () => jiixToPlantUML(await this.exportJiix()),
       llm: async () => jiixToLLM(await this.exportJiix()),
+      // The whole session, whatever the export options: a part of it could not be resumed
+      session: async () =>
+        new Blob([serializeSession(await this.canvas.session.save())], { type: EXPORT_MIME_TYPES.session }),
     }
   }
 
@@ -91,7 +105,9 @@ export class IIExportManager extends ExportManager {
         }
       } else if (isStroke(s)) {
         const element = this.canvas.jiix.getElementForStroke(s.id)
-        if (element && !seenElementIds.has(element.id)) {
+        // Only text and math are read: a shape has no label, its block id would stand in for one
+        const readable = element?.type === JIIXElementType.Text || element?.type === JIIXElementType.Math
+        if (element && readable && !seenElementIds.has(element.id)) {
           seenElementIds.add(element.id)
           const label = this.canvas.jiix.getBlockLabel(element.id)
           if (label) {

@@ -1,19 +1,20 @@
 import type { TInteractiveInkCanvas } from "@/canvas"
 
-import type { TMenuItemBase } from "./BaseMenuItem"
+import type { TMenuFieldHeading, TMenuItemBase } from "./BaseMenuItem"
 import { BaseMenuItem } from "./BaseMenuItem"
 
 /**
  * @group Menu
  * @remarks Configuration for a file input with a validation button
  */
-export type TMenuFileInput = TMenuItemBase & {
-  type: "fileinput"
-  accept?: string
-  multiple?: boolean
-  buttonLabel?: string
-  action: (canvas: TInteractiveInkCanvas, files: FileList) => void | Promise<void>
-}
+export type TMenuFileInput = TMenuItemBase &
+  TMenuFieldHeading & {
+    type: "fileinput"
+    accept?: string
+    multiple?: boolean
+    buttonLabel?: string
+    action: (canvas: TInteractiveInkCanvas, files: FileList) => void | Promise<void>
+  }
 
 /**
  * @group Menu
@@ -29,6 +30,7 @@ export class FileInputMenuItem extends BaseMenuItem<HTMLDivElement> {
       id: this.config.id,
       className: "ms-menu-file-input ms-menu-column ms-gap-sm",
     })
+    wrapper.append(...this.buildFieldHeading(this.config))
 
     this.inputElement = this.dom.fileInput({
       id: `${this.config.id}-input`,

@@ -17,6 +17,7 @@ import type {
   TGestureConfiguration,
   TMathConfig,
   TOverlayConfig,
+  TPersistenceConfiguration,
   TSelectionConfig,
   TSnapConfiguration,
 } from "@/manager"
@@ -25,6 +26,7 @@ import {
   DefaultConnectorConfiguration,
   DefaultGestureConfiguration,
   DefaultOverlayConfig,
+  DefaultPersistenceConfiguration,
   DefaultSelectionConfig,
   DefaultSnapConfiguration,
   SnapConfiguration,
@@ -59,6 +61,8 @@ export type TInteractiveInkCanvasConfiguration = TCanvasConfiguration &
     selection: TSelectionConfig
     /** Math manager configuration (computation behavior and visual interactions) */
     math: TMathConfig
+    /** How the session is kept to be resumed, see {@link IISessionManager} */
+    persistence: TPersistenceConfiguration
     /** CSS custom property overrides applied to the canvas root element (e.g. `{ "--ms-ink-primary": "#ff0" }`) */
     cssVars?: Record<string, string>
   }
@@ -87,6 +91,7 @@ export const DefaultInteractiveInkCanvasConfiguration: TInteractiveInkCanvasConf
   overlays: DefaultOverlayConfig,
   selection: DefaultSelectionConfig,
   math: {},
+  persistence: DefaultPersistenceConfiguration,
   cssVars: undefined,
 }
 
@@ -113,6 +118,7 @@ export class InteractiveInkCanvasConfiguration implements TInteractiveInkCanvasC
   overlays: TOverlayConfig
   selection: TSelectionConfig
   math: TMathConfig
+  persistence: TPersistenceConfiguration
   cssVars?: Record<string, string>
 
   constructor(configuration?: TPartialDeep<TInteractiveInkCanvasConfiguration>) {
@@ -199,6 +205,11 @@ export class InteractiveInkCanvasConfiguration implements TInteractiveInkCanvasC
     )
     this.selection = mergeDeep<TSelectionConfig>({}, DefaultSelectionConfig, configuration?.selection)
     this.math = mergeDeep<TMathConfig>({}, DefaultInteractiveInkCanvasConfiguration.math, configuration?.math)
+    this.persistence = mergeDeep<TPersistenceConfiguration>(
+      {},
+      DefaultPersistenceConfiguration,
+      configuration?.persistence
+    )
     this.cssVars = configuration?.cssVars as Record<string, string> | undefined
   }
 }

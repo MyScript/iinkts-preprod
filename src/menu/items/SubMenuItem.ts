@@ -17,6 +17,8 @@ import type { TMenuRange } from "./RangeMenuItem"
 import { RangeMenuItem } from "./RangeMenuItem"
 import type { TMenuSelect } from "./SelectMenuItem"
 import { SelectMenuItem } from "./SelectMenuItem"
+import type { TMenuTextInput } from "./TextInputMenuItem"
+import { TextInputMenuItem } from "./TextInputMenuItem"
 
 /**
  * @group Menu
@@ -38,7 +40,8 @@ export type TMenuPosition =
  * @group Menu
  * @remarks Union type for submenu items (without recursive submenu to avoid circularity)
  */
-export type TSubMenuItems = TMenuButton | TMenuCheckbox | TMenuSelect | TMenuButtonList | TMenuFileInput | TMenuRange
+export type TSubMenuItems =
+  TMenuButton | TMenuCheckbox | TMenuSelect | TMenuButtonList | TMenuFileInput | TMenuRange | TMenuTextInput
 
 /**
  * @group Menu
@@ -186,6 +189,7 @@ export class SubMenuItem extends BaseMenuItem<HTMLDivElement> {
    */
   open(): void {
     this.subMenuContent?.classList.add("open")
+    this.updateItems()
     if (this.arrowSpan) {
       this.arrowSpan.style.transform = `rotate(${this.openedRotation}deg)`
     }
@@ -206,8 +210,11 @@ export class SubMenuItem extends BaseMenuItem<HTMLDivElement> {
    */
   toggle(): void {
     this.subMenuContent?.classList.toggle("open")
+    const isOpen = this.subMenuContent?.classList.contains("open")
+    if (isOpen) {
+      this.updateItems()
+    }
     if (this.arrowSpan) {
-      const isOpen = this.subMenuContent?.classList.contains("open")
       this.arrowSpan.style.transform = `rotate(${isOpen ? this.openedRotation : this.closedRotation}deg)`
     }
   }
@@ -234,10 +241,13 @@ export class SubMenuItem extends BaseMenuItem<HTMLDivElement> {
     }
   }
 
+  /** Brings the items up to date: also on opening, as what they show may have changed meanwhile */
+  protected updateItems(): void {
+    this.subMenuItems.forEach((menuItem) => menuItem.update())
+  }
+
   update(): void {
-    this.subMenuItems.forEach((menuItem) => {
-      menuItem.update()
-    })
+    this.updateItems()
 
     this.updateDisabled()
     this.updateVisible()
@@ -285,6 +295,8 @@ export function createMenuItemInstance(config: TAllMenuItems, canvas: TInteracti
       return new RangeMenuItem(config, canvas)
     case "fileinput":
       return new FileInputMenuItem(config, canvas)
+    case "textinput":
+      return new TextInputMenuItem(config, canvas)
     default:
       throw new Error(`Unknown menu item type: ${(config as TGenericMenuItem).type}`)
   }

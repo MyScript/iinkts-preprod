@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Save and Resume a Session</title>
+    <link rel="stylesheet" href="../assets/style/reset.css" />
+    <link rel="stylesheet" href="../assets/style/components.css" />
+    <link rel="stylesheet" href="../assets/style/examples.css" />
+    <link rel="stylesheet" href="../assets/style/panel.css" />
+    <link rel="stylesheet" href="../components/code-viewer/code-viewer.css" />
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        height: 100dvh;
+        overflow: hidden;
+      }
+
+      #rootEl {
+        flex: 1;
+        min-width: 0;
+        min-height: 0;
+      }
+
+      #saved-panel {
+        padding: 0.5rem 1rem;
+      }
+
+      #saved-sessions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .saved-session {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      .saved-session span {
+        flex: 1;
+        min-width: 10rem;
+      }
+
+      #session-status:empty {
+        display: none;
+      }
+    </style>
+    <script src="../assets/js/theme-init.js"></script>
+  </head>
+
+  <body>
+    <header class="header-main">
+      <button id="panelToggleBtn" class="btn-panel-toggle" aria-expanded="false" aria-controls="info-panel">
+        💡 Info
+      </button>
+      <button id="showModalBtn" class="btn-keys">API Keys</button>
+      <h1 class="header-title">Save and Resume a Session</h1>
+    </header>
+
+    <div class="ex-page-layout">
+      <aside id="info-panel" class="ex-panel">
+        <p class="ex-panel-heading">Pick the work up where it was left</p>
+        <p class="ex-panel-intro">The server drops a session after about an hour without activity. <code>canvas.session</code> keeps what is needed to resume it: the content and, from server 4.6.0, the server session itself as a <code>.iink</code> package — so the work comes back recognized as it was.</p>
+        <div class="ex-panel-divider"></div>
+
+        <div class="ex-panel-item">
+          <div class="ex-panel-item-label">As a file <code>canvas.download("session")</code></div>
+          <div class="ex-panel-item-desc">Saves a <code>.iinkts</code> file. <code>canvas.session.restore(file)</code> opens it again, on this device or another one. Also in the action menu: <strong>Session › Save / Open</strong>.</div>
+        </div>
+
+        <div class="ex-panel-item">
+          <div class="ex-panel-item-label">In the browser <code>canvas.session.saved</code></div>
+          <div class="ex-panel-item-desc">The session is saved in the browser as you write. Reload the page: the previous one is listed below, never restored on its own — <code>canvas.session.restoreSaved(id)</code> brings it back, <code>canvas.session.discard(id)</code> forgets it.</div>
+        </div>
+
+        <div class="ex-panel-item">
+          <div class="ex-panel-item-label">Automatically</div>
+          <div class="ex-panel-item-desc">A few seconds after you stop writing, the session is also kept in memory. If the server has lost it when the connection comes back, the canvas starts a new one from it and sends only what changed since — nothing to do.</div>
+        </div>
+
+        <div class="ex-panel-item">
+          <div class="ex-panel-item-label">One tab at a time</div>
+          <div class="ex-panel-item-desc">Open this page in a second tab: it gets <code>session-storage-unavailable</code> with <code>"locked"</code> and saves nothing in the browser, so the two tabs never overwrite each other.</div>
+        </div>
+        <div class="ex-panel-hint">Settings live in <code>configuration.persistence</code>: <code>storage</code>, <code>key</code>, <code>snapshotDelay</code>, <code>maxAge</code>, <code>maxSize</code>.</div>
+      </aside>
+
+      <div class="page-content">
+        <nav class="flex-container wrap gap">
+          <button id="btn-save" class="classic-btn">Download .iinkts</button>
+          <label class="classic-btn" for="input-open">Open .iinkts</label>
+          <input id="input-open" type="file" accept=".iinkts" hidden />
+          <span id="session-status" role="status"></span>
+        </nav>
+        <section id="saved-panel" hidden>
+          <p><strong>Saved in this browser</strong></p>
+          <div id="saved-sessions"></div>
+          <button id="btn-discard-all" class="classic-btn">Discard all</button>
+        </section>
+        <div id="rootEl"></div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { InteractiveInkCanvas } from "../../dist/iink.esm.js"
+      import { ModalCanvasOptions } from "../components/modal/modalCanvasOptions.js"
+
+      const rootElement = document.getElementById("rootEl")
+      const showModalBtn = document.getElementById("showModalBtn")
+      const panelToggleBtn = document.getElementById("panelToggleBtn")
+      const infoPanel = document.getElementById("info-panel")
+      const statusElement = document.getElementById("session-status")
+      const savedPanel = document.getElementById("saved-panel")
+      const savedList = document.getElementById("saved-sessions")
+
+      panelToggleBtn.addEventListener("click", () => {
+        const open = infoPanel.classList.toggle("open")
+        panelToggleBtn.setAttribute("aria-expanded", open)
+      })
+
+      let canvas
+
+      const canvasOptions = {
+        configuration: {},
+      }
+
+      const showStatus = (text) => (statusElement.textContent = text)
+
+      const restoredText = (mode) =>
+        mode === "imported" ? "Restored, recognition resumed as it was" : "Restored, strokes sent again for recognition"
+
+      function renderSaved() {
+        const saved = canvas?.session.saved ?? []
+        savedPanel.hidden = saved.length === 0
+        savedList.replaceChildren(
+          ...saved.map((session) => {
+            const row = document.createElement("div")
+            row.className = "saved-session"
+            row.dataset.id = session.id
+            const label = document.createElement("span")
+            label.textContent = `${new Date(session.updatedAt).toLocaleString()} — ${session.symbolCount} symbol(s)`
+            const restore = document.createElement("button")
+            restore.className = "classic-btn btn-restore"
+            restore.textContent = "Restore"
+            restore.addEventListener("click", async () => {
+              showStatus(restoredText(await canvas.session.restoreSaved(session.id)))
+              renderSaved()
+            })
+            const discard = document.createElement("button")
+            discard.className = "classic-btn btn-discard"
+            discard.textContent = "Discard"
+            discard.addEventListener("click", async () => {
+              await canvas.session.discard(session.id)
+              renderSaved()
+            })
+            row.append(label, restore, discard)
+            return row
+          })
+        )
+      }
+
+      async function loadCanvas(options) {
+        await canvas?.destroy()
+        // Built then initialized, rather than Canvas.load(): the storage events are sent while it
+        // initializes, so the listeners must be there before
+        canvas = new InteractiveInkCanvas(rootElement, options)
+        canvas.event.addSavedSessionsAvailableListener(renderSaved)
+        canvas.event.addSessionStorageUnavailableListener((reason) => showStatus(`Not saved in this browser: ${reason}`))
+        window.canvas = canvas
+        await canvas.initialize()
+        renderSaved()
+      }
+
+      document.getElementById("btn-save").addEventListener("click", () => canvas?.download("session"))
+      document.getElementById("input-open").addEventListener("change", async (event) => {
+        const [file] = event.target.files
+        event.target.value = ""
+        try {
+          showStatus(restoredText(await canvas.session.restore(file)))
+        } catch (error) {
+          showStatus(error.message)
+        }
+      })
+      document.getElementById("btn-discard-all").addEventListener("click", async () => {
+        await canvas?.session.discard()
+        renderSaved()
+      })
+
+      showModalBtn.addEventListener("click", () => {
+        ModalCanvasOptions.show(loadCanvas, canvasOptions)
+      })
+
+      ModalCanvasOptions.initConfiguration(loadCanvas, canvasOptions)
+
+      /**
+       * We expose these objects to the window use it in test
+       */
+      window.canvasOptions = canvasOptions
+      window.loadCanvas = loadCanvas
+    </script>
+    <script type="module" src="../components/code-viewer/code-viewer.js"></script>
+    <script src="../assets/js/theme.js"></script>
+  </body>
+
+</html>

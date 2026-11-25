@@ -1,7 +1,7 @@
 import type { TConnectionStatus, TExport, TExportV2 } from "@/client"
 import type { THistoryContext } from "@/history"
 import { LoggerCategory, LoggerManager } from "@/logger"
-import type { CanvasTool, TGestureType } from "@/manager"
+import type { CanvasTool, TGestureType, TSavedSessionInfo, TSessionStorageUnavailableReason } from "@/manager"
 import type { TBaseSymbol, TStroke, TSymbol } from "@/symbol"
 /**
  * @group Canvas
@@ -86,6 +86,16 @@ export enum CanvasEventName {
    * lists those symbols
    */
   LOCKED_REFUSED = "locked-refused",
+  /**
+   * @remarks event emitted once started when earlier pages saved sessions of this document in the
+   * browser, see `canvas.session.restoreSaved`
+   */
+  SAVED_SESSIONS_AVAILABLE = "saved-sessions-available",
+  /**
+   * @remarks event emitted when the session can not be saved in the browser, see
+   * {@link TSessionStorageUnavailableReason}
+   */
+  SESSION_STORAGE_UNAVAILABLE = "session-storage-unavailable",
 }
 
 /**
@@ -153,6 +163,30 @@ export class CanvasEvent extends EventTarget {
     this.addEventListener(
       CanvasEventName.CONNECTION_STATE_CHANGED,
       (evt: unknown) => callback((evt as CustomEvent).detail as TCanvasConnectionState),
+      { signal: this.abortController.signal }
+    )
+  }
+
+  emitSavedSessionsAvailable(sessions: TSavedSessionInfo[]): void {
+    this.#logger.info("emitSavedSessionsAvailable", { sessions })
+    this.emit(CanvasEventName.SAVED_SESSIONS_AVAILABLE, sessions)
+  }
+  addSavedSessionsAvailableListener(callback: (sessions: TSavedSessionInfo[]) => void): void {
+    this.addEventListener(
+      CanvasEventName.SAVED_SESSIONS_AVAILABLE,
+      (evt: unknown) => callback((evt as CustomEvent).detail as TSavedSessionInfo[]),
+      { signal: this.abortController.signal }
+    )
+  }
+
+  emitSessionStorageUnavailable(reason: TSessionStorageUnavailableReason): void {
+    this.#logger.info("emitSessionStorageUnavailable", { reason })
+    this.emit(CanvasEventName.SESSION_STORAGE_UNAVAILABLE, reason)
+  }
+  addSessionStorageUnavailableListener(callback: (reason: TSessionStorageUnavailableReason) => void): void {
+    this.addEventListener(
+      CanvasEventName.SESSION_STORAGE_UNAVAILABLE,
+      (evt: unknown) => callback((evt as CustomEvent).detail as TSessionStorageUnavailableReason),
       { signal: this.abortController.signal }
     )
   }

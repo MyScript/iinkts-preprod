@@ -299,6 +299,7 @@ describe("IIMenuAction zones", () => {
     selection: false,
     import: false,
     export: false,
+    session: false,
   }
 
   class ExtendedMenuAction extends IIMenuAction {

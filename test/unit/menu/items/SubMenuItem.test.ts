@@ -33,6 +33,18 @@ describe("SubMenuItem.ts", () => {
     expect(wrapper.querySelector("#child-b")).toBeTruthy()
   })
 
+  test("should refresh its items when it opens, not when it closes", () => {
+    const value = jest.fn(() => "suggested")
+    const config = buildConfig({ items: [{ type: "textinput", id: "child-name", value, action: jest.fn() }] })
+    const item = new SubMenuItem(config, asCanvas(createCanvasMock()))
+    const trigger = item.getElement().querySelector("#test-submenu-trigger") as HTMLButtonElement
+
+    trigger.dispatchEvent(new Event("pointerdown"))
+    trigger.dispatchEvent(new Event("pointerdown"))
+
+    expect(value).toHaveBeenCalledTimes(1)
+  })
+
   test("should default the arrow to a -90deg rotation for the default 'right-top' position", () => {
     const canvas = createCanvasMock()
     const config = buildConfig()

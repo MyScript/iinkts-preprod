@@ -3,66 +3,42 @@
 One line per change. The full record of a version is in `changelog/<version>.md`; step-by-step upgrade instructions are in [MIGRATION.md](./MIGRATION.md).
 
 Badges: **breaking** = code stops compiling or behaves differently · **behaviour** = same API, different result · **type** = signature change only · **subclass** = only affects a class you extend.
-# Unreleased
 
-## Features
+# [v5.1.0](https://github.com/MyScript/iinkTS/tree/v5.1.0)
 
-### Lock symbols (INTERACTIVE_INK)
-A locked symbol stays selectable, copyable and exportable, and is still recognized, but nothing changes it: no move, resize, rotation, erase, scratch/join/insert gesture, conversion, restyle or reorder, whether the user or the API asks. Meant for fixed content an integrator lays down, such as an exercise statement or a diagram background.
-- new: `TBaseSymbol.locked`, `canvas.lockSymbols(ids, addToHistory?)` and `canvas.unlockSymbols(ids, addToHistory?)`. Locking is one undo step
-- `updateSymbols`, `removeSymbol(s)`, `replaceSymbols` and `changeOrderSymbols` skip locked symbols and report them; a replacement touching a locked symbol is refused whole. In a mixed selection, the unlocked symbols are still changed
-- **`clear()` keeps locked symbols**: it erases the others one by one instead of resetting the server
-- a conversion block holding a locked stroke is left unconverted; a connected edge that is locked no longer follows its shape; decorating a locked text is refused, while decorating a locked stroke still works (the decorator is a symbol of its own)
-- undo/redo replay history as recorded and ignore the lock: add content the user must not undo away with `addToHistory = false` before locking it
-- new event `CanvasEventName.LOCKED_REFUSED` (`event.addLockedRefusedListener`), detail = the locked symbols a change skipped
-- rendering: a locked symbol's element carries the `ms-locked` class, toned down through `--ms-ink-locked-opacity` (default `0.55`; set it to `1` to show locked symbols as any other). A fully locked selection shows a dashed frame with a padlock and no handle; a refused change flashes a padlock at the centre of the symbols (`SVGRenderer.flashLockIcon`)
-- menu: context entry Lock / Unlock, `menu.context.lock` (default `true`); set it to `false` to keep locking to the API
-- new: `LockContextMenu`, `createLockIcon`, `LOCK_ICON_SIZE`, `SvgElementRole.Lock`, `SVGRendererConst.lockedClassName` / `lockIconClassName` / `lockIconFlashClassName` / `lockIconFlashDuration`
+Full record: [changelog/5.1.0.md](changelog/5.1.0.md)
 
-### Search in recognized content (INTERACTIVE_INK)
-Ctrl+F on handwriting: find a word or an expression in the recognized text and math, handwritten or converted, highlight the matched characters and bring an occurrence into view.
-- new: `canvas.search` (`IISearchManager`): `find(query)` → `TSearchMatch[]` (`text`, `context`, `kind`, `source`, `symbolIds`, `boxes`, `bounds`), `highlight(matches, active?)`, `clear()`, `reveal(match)`, `highlighted`, `available` (false until something is recognized or converted)
-- matching: case- and accent-insensitive, partial, literal; in text any whitespace run matches one space (phrases span line breaks); math compares without spaces in reading order (`3x+2`, `f'(x)`), inline math inside a text is read in place; exponents read linearly (`x2` finds `x²`)
-- the highlight follows the last query as the content changes (erase, move, convert); a converted block is found once, as typeset
-- menu: search bar `canvas.menu.search` (`IIMenuSearch`: `open()`, `close()`, `isOpen`), layout occupant `search`, stacked under the action bar by default (`"top-left": ["action", "search"]`) and folded while closed: query, `x/n` count, previous / next (Enter / Shift+Enter), Escape closes and clears the highlight; Ctrl+F (Cmd+F) opens it instead of the browser's find. `menu.search.enable` (default `true`), `menu.search.shortcut` (default `true`; set it to `false` to leave Ctrl+F to the browser), type `TMenuSearchConfig`. While nothing is recognized, the bar carries the `unavailable` class and its placeholder reads "Nothing recognized yet"
-- menu: search button (magnifier) in the action bar opens and closes the search bar, for tablets and other devices without Ctrl+F; `menu.action.search` (default `true`, shown only when `menu.search.enable`), `SearchMenuAction`
-- rendering: rects with `ms-search-highlight` / `ms-search-highlight-active`, colors `--ms-ink-search-highlight` (default `#ffd54f`) and `--ms-ink-search-highlight-active` (default `#ff9800`)
-- new: `IIJiixQueryManager.getElements()`, `strokeIdsFromJIIXItems`, `LoggerCategory.SEARCH`, types `TSearchMatch`, `TSearchKind`, `TSearchSource`, `TSearchUnit`, `TSearchUnitChar`
-- example: `interactive_canvas_search.html`
+## ✨ What's new
 
-### UI translations (INTERACTIVE_INK, INK_V2)
-Every label of the UI (menus, search bar, connection badge, info/error messages and the `ClientError` messages they show, PDF export dialog, math dialogs) is shown in the recognition language. English and French are built in; any other language falls back to English until the integrator supplies it.
-- new: `canvas.i18n` (`Translator`): `t(key, params?)`, `language`, `setLanguage(lang)`, `add(lang, labels)`, `onChange(listener)`. A label is looked up in `fr_FR`, then `fr`, then `en`, the integrator's labels over the built-in ones at each level; an unknown key is shown as is
-- new: `configuration.translations` (`TTranslationsConfiguration`), labels by language code (`fr` or `fr_FR`), to override built-in labels or add labels of one's own: `{ fr: { "menu.action.clear": "Tout effacer" } }`
-- the UI follows `recognition.lang` at load and after `updateRecognitionConfiguration({ lang })` once the server accepted it; menus, search bar and badge are rebuilt in the new language. Meanwhile a veil with a spinner covers the canvas, menus included (`.ms-ink-veil`, color `--ms-ink-veil-bg`, shown only past 300 ms), then the menus fade in (class `ms-menu-relabel` on the menu layer, none under `prefers-reduced-motion: reduce`); a refused language puts the select back on the current one
-- new: `TranslationsEn`, `TranslationsFr`, types `TTranslationKey`, `TTranslations`, `TTranslationParams`, `TMathDiagnosticSeverity`; option `i18n` on `TModalConfig` and `TChartConfig`
-- example: `interactive_canvas_menu_override.html` labels its added items in English, French and German, and overrides a built-in label
+**Saving**
+- **Save and resume a session**: `canvas.session.save()` / `restore(file)`, or `download("session")` for a `.iinkts` file — also in the action menu, Session › Save / Open — the content and, from server 4.6.0, the server session, so the work resumes as it was even once the server session has expired; on an older server the strokes are sent again · Try `interactive_canvas_session.html` · [details](changelog/5.1.0.md#save-and-resume-a-session-iinkts)
 
-## Changes
+- **Resume after the server session expired**: the session is kept in memory a while after the changes stop (`configuration.persistence.snapshotDelay`, 5 s, `0` off); once the server has lost it, the canvas starts a new one from it and sends only what changed since, instead of an error and an empty session (server 4.6.0+); **behaviour**: `configuration.server.serverSideRecovery` is `false` by default, the server no longer saves the session and a reconnection resumes from the client snapshot, never `restoreSession` · [details](changelog/5.1.0.md#resume-automatically-once-the-server-session-expired)
 
-### Edit menu on several words
-- **behaviour** the context menu Edit shows for any selection made of texts only (it used to take one text, and stayed visible with a stale value otherwise); its field is a textarea holding the words in reading order, one line per row. On save each text gets its word back in that order (one undo step); the last text takes any extra words, and texts left without a word are removed (a second undo step)
-- **type** `EditContextMenu.editInput` is an `HTMLTextAreaElement`; new `EditContextMenu.isTextSelection`, `distributeWords`, `DOMFactory.textarea`, `buildTextarea`, `TTextareaElConfig`, `BoxOps.groupIntoLines(items, boxOf)`
+- **Resume after reloading the page**: the session is saved in the browser (IndexedDB) as it is written; the next page load lists it in `canvas.session.saved` and the `saved-sessions-available` event, and `canvas.session.restoreSaved(id)` brings it back — or `discard(id)`. One canvas at a time writes a document, across tabs (`session-storage-unavailable` tells the others). On by default, `configuration.persistence.storage` · [details](changelog/5.1.0.md#resume-after-reloading-the-page-browser-storage)
 
-### Surround gesture decorates the enclosed set
-- **behaviour** the surround gesture in Highlight or Surround mode draws one decorator around everything it encloses (one standalone decorator targeting every word and text), instead of one per word or text; a lone text still carries the decorator inside it. Underline and strike-through still decorate word by word
-- **behaviour** decorator gestures (surround, underline, strike-through) now decorate strokes recognized as math, one decorator per math block; they were silently skipped
-- **behaviour** converting a math block keeps its decorators (`TMath.decorators`), as converting text already did; a decorator spanning several words or blocks is kept on each of them
-- **behaviour** undoing a conversion restores the standalone decorators of the converted strokes (they were lost: the conversion's history entry left them out)
-- **type** new optional `group` on the `decorator` variant of `TGestureAnnotation`; `SurroundGestureHandler.decorate(ids, decoratorKind)` (protected)
+**Recognition**
+- **Session package**: `WebSocketClient.exportPackage()` and `importPackage(bytes, partId)` save the server session as a `.iink` package and start a new session from it, stroke ids kept (server 4.6.0+, `supportsSessionPackage`) · [details](changelog/5.1.0.md#session-package-export-and-import)
 
-### Decorator context menu on strokes, texts and maths
-- **behaviour** the context menu Decorator sets, removes and colors a decorator on every selected stroke, text and math in one undo step (it changed texts only, and was hidden for a lone math stroke): inside each text and math, and as one standalone decorator across the selected strokes lacking it; removing it from strokes shrinks a decorator also on strokes left out of the selection. A locked text or math is refused. A click on the mixed (indeterminate) state now sets it on every symbol; it removed it when the box had been left checked
-- **type** `DecoratorContextMenu.symbolsDecorable` returns `TDecorable[]` (`TStroke | TText | TMath`, new); new `decoratorsOf(symbol, kind)`, `setDecorator(kind, enable)`, `setDecoratorColor(kind, color)`; `hasSingleMathSymbol` removed
+**Editing**
+- **Lock symbols**: a locked symbol stays selectable, copyable, exportable and recognized, but nothing changes it, neither the user nor the API. `canvas.lockSymbols(ids)` / `unlockSymbols(ids)`, `TBaseSymbol.locked`, context menu Lock / Unlock, `LOCKED_REFUSED` event; **behaviour**: `clear()` keeps locked symbols · [details](changelog/5.1.0.md#lock-symbols-interactive_ink)
+- **Search in recognized content**: Ctrl+F on handwriting, text and math, handwritten or converted; matches highlighted and brought into view. `canvas.search.find(query)`, search bar and magnifier button in the action bar · Try `interactive_canvas_search.html` · [details](changelog/5.1.0.md#search-in-recognized-content-interactive_ink)
 
-### UI translations
-- **behaviour** `MathDiagnosticMessages` now maps a code to its severity only; read the title and message with `getMathDiagnosticMessage(code, i18n?)`, which takes a `Translator` (English when absent)
-- **behaviour** the labels of `SOURCE_TYPE_LABELS`, `DEFAULT_FONT_SIZE_LIST`, `DEFAULT_FONT_WEIGHT_LIST` ("Auto", "Normal", "Bold") and `CanvasThemes.THEMES` are translation keys, shown through `canvas.i18n.t`; a label of your own that is not a key is shown as is
-- **type** `CanvasLayer` and `IIMathVariableInputList` constructors take an optional `Translator` last; new `CanvasLayer.veil`, `showVeil(delay?)`, `hideVeil()`
+**Interface**
+- **UI translations**: every label follows the recognition language, English and French built in, any other supplied by the integrator. `canvas.i18n`, `configuration.translations` · [details](changelog/5.1.0.md#ui-translations-interactive_ink-ink_v2)
 
-### Narrower action bar
-- **behaviour** the Language menu moves from the action bar into the action dropdown, as a labelled sub-menu like Theme or Guide; `LanguageMenuAction` now extends `SubMenuItem`. Its select id becomes `ms-menu-action-language-input` (`ms-menu-action-language` is now the sub-menu wrapper)
-- **behaviour** action bar order: Convert, Undo/Redo, then Clear (Clear used to come first)
+## ⚠️ Upgrading from v5.0
+
+- **behaviour** Edit context menu works on any selection of texts, words in a textarea, one line per row; **type** `EditContextMenu.editInput` is an `HTMLTextAreaElement` · [details](changelog/5.1.0.md#edit-menu-on-several-words)
+- **behaviour** surround gesture draws one decorator around the whole enclosed set; decorator gestures now decorate math; converting math keeps its decorators · [details](changelog/5.1.0.md#surround-gesture-decorates-the-enclosed-set)
+- **behaviour** Decorator context menu acts on every selected stroke, text and math in one undo step; **type** `DecoratorContextMenu.symbolsDecorable` returns `TDecorable[]`, `hasSingleMathSymbol` removed · [details](changelog/5.1.0.md#decorator-context-menu-on-strokes-texts-and-maths)
+- **behaviour** `MathDiagnosticMessages` maps a code to its severity only, read the text with `getMathDiagnosticMessage(code, i18n?)`; built-in list labels are translation keys · [details](changelog/5.1.0.md#ui-translations)
+- **behaviour** Language menu moves into the action dropdown (`LanguageMenuAction` extends `SubMenuItem`, select id `ms-menu-action-language-input`); action bar order: Convert, Undo/Redo, Clear · [details](changelog/5.1.0.md#narrower-action-bar)
+
+## 🐛 Bug fixes
+
+**Export**
+- `exportAs("text")` / `download("text")` added the id of a shape's block (`raw-content 31`) to the recognized text · [details](changelog/5.1.0.md#bug-fixes)
 
 # [v5.0.0](https://github.com/MyScript/iinkTS/tree/v5.0.0)
 
