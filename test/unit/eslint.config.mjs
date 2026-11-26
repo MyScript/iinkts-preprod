@@ -47,6 +47,8 @@ export default [
       "max-statements-per-line": ["error", { max: 1 }],
       // `__mocks__` holds shared test helpers (createCanvasMock…), not Jest automocks
       "jest/no-mocks-import": "off",
+      // expectType checks at compile time, expectConsistent wraps expect
+      "jest/expect-expect": ["warn", { assertFunctionNames: ["expect", "expectType", "expectConsistent"] }],
     },
   },
 ]

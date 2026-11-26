@@ -112,6 +112,7 @@ export class ServerWebSocketSSRMock extends Server {
         const parsedMessage: TWebSocketSSRClientMessage = JSON.parse(message as string)
         switch (parsedMessage.type) {
           case "newContentPackage":
+          case "restoreIInkSession":
             if (withHMAC) {
               socket.send(JSON.stringify(ackWithHMACMessage))
             } else {
@@ -126,6 +127,9 @@ export class ServerWebSocketSSRMock extends Server {
             break
           case "newContentPart":
             socket.send(JSON.stringify(newPartMessage))
+            break
+          case "openContentPart":
+            socket.send(JSON.stringify(partChangeMessage))
             break
           case "ping":
             if (withPong) {

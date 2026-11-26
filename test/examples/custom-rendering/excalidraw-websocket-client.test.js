@@ -88,6 +88,14 @@ const convertContentThenGesture = async (page, strokes) => {
   await writeStrokes(page, await shift(page, strokes.slice(-1)))
 }
 
+/** Below 1200px the panel is an overlay, closed until its header button opens it */
+async function openResultsPanel(page) {
+  const resultsToggle = page.locator('button[aria-controls="results-panel"]')
+  if (await resultsToggle.isVisible()) {
+    await resultsToggle.click()
+  }
+}
+
 test.describe("Excalidraw WebSocket client", { tag: "@touch" }, () => {
   test.beforeEach(async ({ page }) => {
     countContentChanged(page)
@@ -102,11 +110,7 @@ test.describe("Excalidraw WebSocket client", { tag: "@touch" }, () => {
   })
 
   test("should list what the server recognized in the recognition panel", async ({ page }) => {
-    // Below 1200px the panel is an overlay, closed until its header button opens it
-    const resultsToggle = page.locator('button[aria-controls="results-panel"]')
-    if (await resultsToggle.isVisible()) {
-      await resultsToggle.click()
-    }
+    await openResultsPanel(page)
 
     await writeStrokes(page, await shift(page, helloOneStroke.strokes))
 
@@ -115,10 +119,7 @@ test.describe("Excalidraw WebSocket client", { tag: "@touch" }, () => {
   })
 
   test("should highlight the strokes of the hovered recognized element", async ({ page }) => {
-    const resultsToggle = page.locator('button[aria-controls="results-panel"]')
-    if (await resultsToggle.isVisible()) {
-      await resultsToggle.click()
-    }
+    await openResultsPanel(page)
     await writeStrokes(page, await shift(page, helloOneStroke.strokes))
     const item = page.locator("#recognition-elements li", { hasText: "hello" })
     await expect(item).toBeVisible({ timeout: 15_000 })

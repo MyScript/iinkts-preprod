@@ -276,8 +276,7 @@ describe("WebSocketSSRClient.ts", () => {
       client.destroy()
       server.close()
     })
-    //TODO fix test
-    test.skip("should reconnect before send message", async () => {
+    test("should reconnect before send message", async () => {
       expect.assertions(1)
       await wsr.init(height, width)
       await wsr.close(1000, "CLOSE_CLIENT")
