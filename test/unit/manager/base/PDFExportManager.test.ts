@@ -1,5 +1,6 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
 import { PDFExportManager } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 
 describe("PDFExportManager.ts", () => {
   test("should create and hold a reference to its canvas", () => {
@@ -102,7 +103,12 @@ describe("PDFExportManager.ts", () => {
 
     test("should remove the page-size stylesheet when removePrintContainer is called", () => {
       const manager = new PDFExportManager(asCanvas(createCanvasMock()))
-      manager.buildSinglePagePrintContainer("<svg><rect /></svg>", { x: 0, y: 0, width: 400, height: 600 }, "A4", "portrait")
+      manager.buildSinglePagePrintContainer(
+        "<svg><rect /></svg>",
+        { x: 0, y: 0, width: 400, height: 600 },
+        "A4",
+        "portrait"
+      )
       expect(document.head.querySelector("style[data-ii-pdf-page]")).not.toBeNull()
 
       manager.removePrintContainer()
@@ -112,7 +118,12 @@ describe("PDFExportManager.ts", () => {
 
     test("should set @page size matching the requested format/orientation", () => {
       const manager = new PDFExportManager(asCanvas(createCanvasMock()))
-      manager.buildSinglePagePrintContainer("<svg><rect /></svg>", { x: 0, y: 0, width: 400, height: 600 }, "A4", "landscape")
+      manager.buildSinglePagePrintContainer(
+        "<svg><rect /></svg>",
+        { x: 0, y: 0, width: 400, height: 600 },
+        "A4",
+        "landscape"
+      )
 
       const style = document.head.querySelector("style[data-ii-pdf-page]")
       expect(style?.textContent).toContain("@page")
@@ -333,7 +344,11 @@ describe("PDFExportManager.ts", () => {
       manager.buildSinglePagePrintContainer = jest.fn()
       window.print = jest.fn()
 
-      manager.print("<svg></svg>", { x: 0, y: 0, width: 100, height: 100 }, { ...PDFExportManager.DEFAULT_OPTIONS, mode: "multi" })
+      manager.print(
+        "<svg></svg>",
+        { x: 0, y: 0, width: 100, height: 100 },
+        { ...PDFExportManager.DEFAULT_OPTIONS, mode: "multi" }
+      )
 
       expect(manager.buildMultiPagePrintContainer).toHaveBeenCalledTimes(1)
       expect(manager.buildSinglePagePrintContainer).not.toHaveBeenCalled()

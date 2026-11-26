@@ -1,5 +1,7 @@
-import { describe, test, expect } from "@jest/globals"
-import { MatrixTransform, OBBOps, PointSet2d, Polygon2d, Polyline2d, TPoint } from "@/iink"
+import { describe, expect, test } from "@jest/globals"
+
+import type { TPoint } from "@/iink"
+import { MatrixTransform, OBBOps, PointSet2d, Polygon2d, Polyline2d } from "@/iink"
 
 /** An open path: two sides of a square, without the two that would close it. */
 const PATH: TPoint[] = [

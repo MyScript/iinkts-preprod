@@ -1,5 +1,7 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { BaseMenuItem, TGenericMenuItem } from "@/iink"
+import type { TGenericMenuItem } from "@/iink"
+import { BaseMenuItem } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 
 class TestMenuItem extends BaseMenuItem<HTMLDivElement> {
   createElement(): HTMLDivElement {

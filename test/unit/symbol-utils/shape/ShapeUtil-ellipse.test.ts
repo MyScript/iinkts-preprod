@@ -1,5 +1,7 @@
+import type { TBox, TPoint, TStyle } from "@/iink"
+import { DefaultStyle, MatrixTransform, OBBOps, ShapeUtil } from "@/iink"
+
 import { ellipseGeometry } from "../../helpers"
-import { DefaultStyle, MatrixTransform, OBBOps, ShapeUtil, TBox, TPoint, TStyle } from "@/iink"
 
 describe("ShapeUtil ellipse statics", () => {
   describe("create", () => {

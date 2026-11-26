@@ -1,5 +1,7 @@
+import type { TMathElement, TPoint } from "@/iink"
+import { BoxOps, computeTypesetSnapPoints, computeTypesetVertices, MathUtil, OBBOps } from "@/iink"
+
 import { typesetGeometry } from "../../helpers"
-import { BoxOps, MathUtil, OBBOps, TMathElement, TPoint, computeTypesetSnapPoints, computeTypesetVertices } from "@/iink"
 
 describe("Math.ts", () => {
   const elements: TMathElement[] = [

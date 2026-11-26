@@ -1,6 +1,8 @@
 import Server from "jest-websocket-mock"
-import { DeserializedMessage } from "jest-websocket-mock/lib/websocket"
-import { TWebSocketClientMessage, bytesToBase64 } from "@/iink"
+import type { DeserializedMessage } from "jest-websocket-mock/lib/websocket"
+
+import type { TWebSocketClientMessage } from "@/iink"
+import { bytesToBase64 } from "@/iink"
 
 export const HMACChallengeMessage = {
   type: "hmacChallenge",
@@ -96,7 +98,17 @@ export const sessionNotFoundMessage = {
 }
 
 export class ServerWebSocketMock extends Server {
-  init({ withHMAC, withIdle, importError, sessionLost }: { withHMAC?: boolean; withIdle?: boolean; importError?: object; sessionLost?: boolean } = { withHMAC: true, withIdle: true }) {
+  init(
+    {
+      withHMAC,
+      withIdle,
+      importError,
+      sessionLost,
+    }: { withHMAC?: boolean; withIdle?: boolean; importError?: object; sessionLost?: boolean } = {
+      withHMAC: true,
+      withIdle: true,
+    }
+  ) {
     let importChunkIdx = 0
     this.on("connection", (socket) => {
       socket.on("message", (message: string | Blob | ArrayBuffer | ArrayBufferView) => {
@@ -127,9 +139,17 @@ export class ServerWebSocketMock extends Server {
             importChunkIdx = 0
             break
           case "importPackageChunk":
-            socket.send(JSON.stringify({ type: "importPackageChunkAck", importId: parsedMessage.importId, chunkIdx: importChunkIdx++ }))
+            socket.send(
+              JSON.stringify({
+                type: "importPackageChunkAck",
+                importId: parsedMessage.importId,
+                chunkIdx: importChunkIdx++,
+              })
+            )
             if (parsedMessage.lastChunk) {
-              socket.send(JSON.stringify(importError ?? { ...sessionDescriptionMessage, iinkSessionId: "imported-session" }))
+              socket.send(
+                JSON.stringify(importError ?? { ...sessionDescriptionMessage, iinkSessionId: "imported-session" })
+              )
             }
             break
           case "waitForIdle":
@@ -194,7 +214,9 @@ export class ServerWebSocketMock extends Server {
     this.send(JSON.stringify({ type: "packageInfo", exportId, size, chunkCount }))
     for (let chunkIdx = 0; chunkIdx < chunkCount; chunkIdx++) {
       const data = bytesToBase64(bytes.subarray(chunkIdx * chunkSize, (chunkIdx + 1) * chunkSize))
-      this.send(JSON.stringify({ type: "packageChunk", exportId, chunkIdx, data, lastChunk: chunkIdx === chunkCount - 1 }))
+      this.send(
+        JSON.stringify({ type: "packageChunk", exportId, chunkIdx, data, lastChunk: chunkIdx === chunkCount - 1 })
+      )
     }
   }
 

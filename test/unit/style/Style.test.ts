@@ -1,4 +1,4 @@
-import { mergeSymbolStyle, DefaultStyle } from "@/iink"
+import { DefaultStyle, mergeSymbolStyle } from "@/iink"
 
 describe("Style.ts", () => {
   describe("mergeSymbolStyle", () => {

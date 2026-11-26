@@ -1,6 +1,16 @@
-import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
+import type { TDecorator, TGestureAnnotation, TMath, TStroke, TSymbolChar, TText } from "@/iink"
+import {
+  DecoratorKind,
+  DefaultStyle,
+  IIGestureAnnotationProcessor,
+  isStroke,
+  OBBOps,
+  StrokeUtil,
+  SymbolGeometry,
+} from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../../__mocks__/createCanvasMock"
 import { buildIIMath, buildIIStroke, buildIIText } from "../../../helpers"
-import { DecoratorKind, DefaultStyle, IIGestureAnnotationProcessor, OBBOps, StrokeUtil, SymbolGeometry, TDecorator, TGestureAnnotation, TMath, TStroke, TSymbolChar, TText, isStroke } from "@/iink"
 
 describe("GestureAnnotation.ts", () => {
   describe("IIGestureAnnotationProcessor.apply (decorator)", () => {
@@ -261,15 +271,18 @@ describe("GestureAnnotation.ts", () => {
       expect(widthOf(canvas, stroke.id)).toBe(expected)
     })
 
-    test.each([8, 12])("brings a stroke of width %p, at or past the last thickness, back to the first", async (width) => {
-      const { canvas, processor } = setup()
-      const stroke = buildIIStroke({ style: { ...DefaultStyle, width } })
-      canvas.model.addSymbol(stroke)
+    test.each([8, 12])(
+      "brings a stroke of width %p, at or past the last thickness, back to the first",
+      async (width) => {
+        const { canvas, processor } = setup()
+        const stroke = buildIIStroke({ style: { ...DefaultStyle, width } })
+        canvas.model.addSymbol(stroke)
 
-      await processor.apply([stroke.id], levels)
+        await processor.apply([stroke.id], levels)
 
-      expect(widthOf(canvas, stroke.id)).toBe(1)
-    })
+        expect(widthOf(canvas, stroke.id)).toBe(1)
+      }
+    )
 
     test("steps a converted text through the font weights, back to the first past the last", async () => {
       const { canvas, processor } = setup()

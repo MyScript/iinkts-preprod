@@ -1,5 +1,7 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { TextInputMenuItem, TMenuTextInput } from "@/iink"
+import type { TMenuTextInput } from "@/iink"
+import { TextInputMenuItem } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 
 const flush = async () => {
   for (let i = 0; i < 5; i++) {

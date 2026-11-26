@@ -1,4 +1,5 @@
-import { ClientEvent, TExport, THistoryContext } from "@/iink"
+import type { TExport, THistoryContext } from "@/iink"
+import { ClientEvent } from "@/iink"
 
 describe("ClientEvent.ts", () => {
   const events = new ClientEvent()

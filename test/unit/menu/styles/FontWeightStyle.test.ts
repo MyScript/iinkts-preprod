@@ -1,6 +1,7 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { buildIIStroke, buildIIText } from "../../helpers"
 import { FontWeightStyle } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
+import { buildIIStroke, buildIIText } from "../../helpers"
 
 describe("FontWeightStyle.ts", () => {
   afterEach(() => {

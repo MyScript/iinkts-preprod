@@ -1,6 +1,7 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { LeftClickEventMock } from "../../__mocks__/EventMock"
 import { MathContextMenu } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
+import { LeftClickEventMock } from "../../__mocks__/EventMock"
 
 function clickButton(button: HTMLButtonElement) {
   button.dispatchEvent(new LeftClickEventMock("pointerup", { pointerType: "pen", clientX: 0, clientY: 0, pressure: 1 }))

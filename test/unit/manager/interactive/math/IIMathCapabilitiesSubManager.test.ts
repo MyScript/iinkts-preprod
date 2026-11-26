@@ -1,5 +1,11 @@
-import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { IIMathCapabilitiesSubManager, IIMathVariableSubManager, IIMathComputationSubManager, IIMathFunctionEvaluationSubManager } from "@/iink"
+import {
+  IIMathCapabilitiesSubManager,
+  IIMathComputationSubManager,
+  IIMathFunctionEvaluationSubManager,
+  IIMathVariableSubManager,
+} from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../../__mocks__/createCanvasMock"
 
 describe("IIMathCapabilitiesSubManager.ts", () => {
   function buildManager() {

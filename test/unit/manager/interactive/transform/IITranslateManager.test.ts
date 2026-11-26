@@ -1,6 +1,40 @@
-import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
+import type {
+  Geometry2d,
+  TBaseSymbol,
+  TDecorator,
+  TDraft,
+  TEdgeLine,
+  TMath,
+  TPartialDeep,
+  TPoint,
+  TStroke,
+  TSymbol,
+  TText,
+  TTransformContext,
+} from "@/iink"
+import {
+  applyMatrixToPoint,
+  BoxOps,
+  DecoratorKind,
+  DecoratorUtil,
+  DefaultHistoryConfiguration,
+  EdgeUtil,
+  IIConnectorManager,
+  IIHistoryManager,
+  IITranslateManager,
+  MatrixTransform,
+  OBBOps,
+  Polygon2d,
+  ShapeUtil,
+  StrokeUtil,
+  SvgElementRole,
+  SymbolGeometry,
+  symbolRegistry,
+  SymbolUtil,
+} from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../../__mocks__/createCanvasMock"
 import { buildIIMath, buildIIStroke, buildIIText } from "../../../helpers"
-import { BoxOps, DecoratorKind, DecoratorUtil, DefaultHistoryConfiguration, EdgeUtil, Geometry2d, IIConnectorManager, IIHistoryManager, IITranslateManager, MatrixTransform, OBBOps, Polygon2d, ShapeUtil, StrokeUtil, SvgElementRole, SymbolGeometry, SymbolUtil, TBaseSymbol, TDecorator, TDraft, TEdgeLine, TMath, TPartialDeep, TPoint, TStroke, TSymbol, TText, TTransformContext, applyMatrixToPoint, symbolRegistry } from "@/iink"
 
 describe("IITranslateManager.ts", () => {
   test("should create", () => {
@@ -363,7 +397,9 @@ describe("IITranslateManager.ts", () => {
 
       const drawn: TEdgeLine[] = []
       canvas.renderer.drawSymbol = jest.fn((s: TSymbol) => {
-        if (s.id === edge.id) drawn.push(s as TEdgeLine)
+        if (s.id === edge.id) {
+          drawn.push(s as TEdgeLine)
+        }
       })
       const toDocument = (e: TEdgeLine) => ({
         start: applyMatrixToPoint(e.start, e.transform),
@@ -617,9 +653,7 @@ describe("IITranslateManager.ts", () => {
 
       const canvas = createCanvasMock()
       const sticky = { id: "n1", type: "sticky-note", point: { x: 1, y: 2 } } as unknown as TSymbol
-      symbolRegistry
-        .getUtilFor(sticky)
-        .translate(sticky, { matrix: MatrixTransform.identity().translate(10, 15) })
+      symbolRegistry.getUtilFor(sticky).translate(sticky, { matrix: MatrixTransform.identity().translate(10, 15) })
 
       expect((sticky as unknown as TStickyNote).point).toEqual({ x: 11, y: 17 })
 
@@ -664,7 +698,10 @@ describe("IIC-1999, a selection of typeset symbols", () => {
   test.each([
     ["texts", () => [buildIIText({ point: { x: 0, y: 0 } }), buildIIText({ point: { x: 100, y: 0 } })]],
     ["maths", () => [buildIIMath("a=1", { point: { x: 0, y: 0 } }), buildIIMath("b=2", { point: { x: 100, y: 0 } })]],
-    ["a text then a math", () => [buildIIText({ point: { x: 0, y: 0 } }), buildIIMath("b=2", { point: { x: 100, y: 0 } })]],
+    [
+      "a text then a math",
+      () => [buildIIText({ point: { x: 0, y: 0 } }), buildIIMath("b=2", { point: { x: 100, y: 0 } })],
+    ],
   ])("should move every one of two %s, not just the first", async (_name, build) => {
     const canvas = createCanvasMock()
     realisticTypeset(canvas)
@@ -767,7 +804,9 @@ describe("IIC-1999, a selection of typeset symbols", () => {
       await manager.translate([moved], 0, 40, false)
 
       const newDeco = canvas.model.getSymbol(decorator.id) as TDecorator
-      const expected = OBBOps.createFromOBBs([moved, still].map((s) => SymbolGeometry.boundsOf(canvas.model.getSymbol(s.id)!)))
+      const expected = OBBOps.createFromOBBs(
+        [moved, still].map((s) => SymbolGeometry.boundsOf(canvas.model.getSymbol(s.id)!))
+      )
       expect(newDeco.transform).toEqual({ xx: 1, yx: 0, xy: 0, yy: 1, tx: 0, ty: 0 })
       expect(newDeco.targetBounds).toEqual(expected)
     })

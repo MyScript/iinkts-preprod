@@ -1,6 +1,7 @@
-import { circleJIIX, rectangleJIIX, rhombusJIIX } from "../__dataset__/jiix.dataset"
-import { JIIXEdgeKind, JIIXElementType, JIIXNodeKind, jiixToPlantUML } from "@/iink"
 import type { TJIIXExport } from "@/iink"
+import { JIIXEdgeKind, JIIXElementType, JIIXNodeKind, jiixToPlantUML } from "@/iink"
+
+import { circleJIIX, rectangleJIIX, rhombusJIIX } from "../__dataset__/jiix.dataset"
 
 describe("jiixToPlantUML", () => {
   test("should declare a single rectangle Node using its kind as fallback label", () => {

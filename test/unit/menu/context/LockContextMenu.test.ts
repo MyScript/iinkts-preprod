@@ -1,6 +1,8 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
+import type { TSymbol } from "@/iink"
+import { LockContextMenu } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 import { buildIIStroke } from "../../helpers"
-import { LockContextMenu, TSymbol } from "@/iink"
 
 describe("LockContextMenu.ts", () => {
   afterEach(() => {

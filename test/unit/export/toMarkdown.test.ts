@@ -1,5 +1,5 @@
-import { JIIXElementType, JIIXNodeKind, jiixToMarkdown } from "@/iink"
 import type { TJIIXExport } from "@/iink"
+import { JIIXElementType, JIIXNodeKind, jiixToMarkdown } from "@/iink"
 
 describe("jiixToMarkdown", () => {
   test("should return the root label as plain text for a simple Text export", () => {

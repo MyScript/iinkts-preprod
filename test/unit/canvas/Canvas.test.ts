@@ -2,7 +2,7 @@ jest.mock("@/canvas/variants/InkCanvasDeprecated")
 jest.mock("@/canvas/variants/InteractiveInkSSRCanvas")
 jest.mock("@/canvas/variants/InteractiveInkCanvas")
 
-import { Canvas, InteractiveInkCanvas, InkCanvasDeprecated, InteractiveInkSSRCanvas } from "@/iink"
+import { Canvas, InkCanvasDeprecated, InteractiveInkCanvas, InteractiveInkSSRCanvas } from "@/iink"
 
 describe("Canvas.ts", () => {
   const element = document.createElement("div")

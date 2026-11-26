@@ -1,5 +1,6 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { IITransformManager, IITranslateManager, IIResizeManager, IIRotationManager } from "@/iink"
+import { IIResizeManager, IIRotationManager, IITransformManager, IITranslateManager } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 
 describe("IITransformManager.ts", () => {
   test("should create", () => {

@@ -1,6 +1,8 @@
+import type { TPoint, TSegment, TSnapNudge } from "@/iink"
+import { IIModel, IISnapManager, SVGRendererConst } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../__mocks__/createCanvasMock"
 import { buildIILine, buildIIStroke } from "../helpers"
-import { createCanvasMock, asCanvas } from "../__mocks__/createCanvasMock"
-import { IISnapManager, IIModel, TSegment, TPoint, TSnapNudge, SVGRendererConst } from "@/iink"
 
 describe("IISnapManager.ts", () => {
   test("should create", () => {

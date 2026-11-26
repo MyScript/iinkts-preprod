@@ -1,7 +1,40 @@
-import { arcJIIX, circleJIIX, ellipseJIIX, hTextJIIX, lineJIIX, parallelogramJIIX, polygonJIIX, rectangleJIIX, rhombusJIIX, triangleJIIX } from "../../__dataset__/jiix.dataset"
+import type {
+  TDecorator,
+  TEdgeLine,
+  TIIHistoryChanges,
+  TJIIXEdgeElement,
+  TJIIXMathElement,
+  TJIIXNodeElement,
+  TJIIXTextElement,
+  TStroke,
+  TSymbol,
+} from "@/iink"
+import {
+  DecoratorKind,
+  EdgeUtil,
+  IIConversionManager,
+  isDecorator,
+  JIIXEdgeKind,
+  JIIXElementType,
+  JIIXNodeKind,
+  ShapeUtil,
+  TextUtil,
+} from "@/iink"
+
+import {
+  arcJIIX,
+  circleJIIX,
+  ellipseJIIX,
+  hTextJIIX,
+  lineJIIX,
+  parallelogramJIIX,
+  polygonJIIX,
+  rectangleJIIX,
+  rhombusJIIX,
+  triangleJIIX,
+} from "../../__dataset__/jiix.dataset"
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 import { buildIIDecorator, buildIIStroke } from "../../helpers"
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { DecoratorKind, EdgeUtil, IIConversionManager, JIIXEdgeKind, JIIXElementType, JIIXNodeKind, ShapeUtil, TEdgeLine, TJIIXEdgeElement, TJIIXMathElement, TJIIXNodeElement, TDecorator, TIIHistoryChanges, TJIIXTextElement, TStroke, TSymbol, TextUtil, isDecorator } from "@/iink"
 
 describe("IIConversionManager.ts", () => {
   test("should create", () => {
@@ -178,7 +211,7 @@ describe("IIConversionManager.ts", () => {
       expect(result.strokes).toEqual([stroke])
       expect(result.symbol.kind).toEqual("polygon")
     })
-    test("should return converted symbol & strokes associate when rectangle", async () => {
+    test("should return converted symbol & strokes associate when circle", async () => {
       const stroke = buildIIStroke()
       stroke.id = "stroke-e3ab0f2b-7846-4440-9e49-97ae560813ee"
       manager.model.addSymbol(stroke)
@@ -400,7 +433,9 @@ describe("IIConversionManager.ts", () => {
     })
   })
   describe("buildText - locked decorations", () => {
-    const word = { label: "a", "bounding-box": { x: 0, y: 0, width: 5, height: 5 } } as unknown as Parameters<IIConversionManager["buildText"]>[0]
+    const word = { label: "a", "bounding-box": { x: 0, y: 0, width: 5, height: 5 } } as unknown as Parameters<
+      IIConversionManager["buildText"]
+    >[0]
 
     test("a decorator on a locked stroke is not absorbed into the text", () => {
       const canvas = createCanvasMock()
@@ -468,7 +503,12 @@ describe("IIConversionManager.ts", () => {
       ;[converted, kept, erasedDecorator, shrunkDecorator].forEach((s) => canvas.model.addSymbol(s))
       const shrunkBefore = canvas.model.getSymbol(shrunkDecorator.id)
       canvas.model.mergeExport({
-        "application/vnd.myscript.jiix": { type: "Text", id: "root", version: "3", elements: [nodeOf("node", [converted.id])] },
+        "application/vnd.myscript.jiix": {
+          type: "Text",
+          id: "root",
+          version: "3",
+          elements: [nodeOf("node", [converted.id])],
+        },
       })
       ;(canvas.removeSymbols as jest.Mock).mockImplementation(removeWithCleanup(canvas))
 
@@ -481,7 +521,9 @@ describe("IIConversionManager.ts", () => {
   })
 
   describe("decorators kept through conversion", () => {
-    const word = { label: "a", "bounding-box": { x: 0, y: 0, width: 5, height: 5 } } as unknown as Parameters<IIConversionManager["buildText"]>[0]
+    const word = { label: "a", "bounding-box": { x: 0, y: 0, width: 5, height: 5 } } as unknown as Parameters<
+      IIConversionManager["buildText"]
+    >[0]
     const mathElement = {
       type: JIIXElementType.Math,
       id: "math-1",
@@ -511,7 +553,10 @@ describe("IIConversionManager.ts", () => {
 
       const texts = [manager.buildText(word, [], [first], 12), manager.buildText(word, [], [second], 12)]
 
-      expect(texts.map((t) => t.decorators.map((d) => d.kind))).toEqual([[DecoratorKind.Surround], [DecoratorKind.Surround]])
+      expect(texts.map((t) => t.decorators.map((d) => d.kind))).toEqual([
+        [DecoratorKind.Surround],
+        [DecoratorKind.Surround],
+      ])
     })
   })
 })

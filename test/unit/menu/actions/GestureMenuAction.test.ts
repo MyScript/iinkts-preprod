@@ -1,5 +1,6 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { GestureMenuAction, CanvasTool, CanvasWriteTool, JoinAction, SurroundAction } from "@/iink"
+import { CanvasTool, CanvasWriteTool, GestureMenuAction, JoinAction, SurroundAction } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 
 describe("GestureMenuAction.ts", () => {
   afterEach(() => {
@@ -120,10 +121,14 @@ describe("GestureMenuAction.ts", () => {
 
   test("should only build the join submenu when join is in the recognition gestures", () => {
     const canvas = createCanvasMock()
-    expect(new GestureMenuAction(asCanvas(canvas)).getElement().querySelector("#ms-menu-action-gesture-join-menu")).toBeNull()
+    expect(
+      new GestureMenuAction(asCanvas(canvas)).getElement().querySelector("#ms-menu-action-gesture-join-menu")
+    ).toBeNull()
 
     canvas.configuration.recognition["raw-content"].gestures = ["join"]
-    expect(new GestureMenuAction(asCanvas(canvas)).getElement().querySelector("#ms-menu-action-gesture-join-menu")).toBeTruthy()
+    expect(
+      new GestureMenuAction(asCanvas(canvas)).getElement().querySelector("#ms-menu-action-gesture-join-menu")
+    ).toBeTruthy()
   })
 
   test("should set the join action and reset to the pencil writer tool from the select", () => {

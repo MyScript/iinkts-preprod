@@ -1,9 +1,32 @@
-import { InteractiveInkCanvasOverrideConfiguration } from "../../__dataset__/configuration.dataset"
-import { ServerWebSocketMock, contextlessGestureMessage, gestureDetectedMessage, hTextJIIX, partChangeMessage } from "../../__mocks__/ServerWebSocketMock"
-import { buildIIStroke, delay } from "../../helpers"
-import { WebSocketClient, ClientError, TMatrixTransform, MatrixTransform, TIIHistoryBackendChanges, TWebSocketClientConfiguration, TWebSocketClientMessage, TStroke, toWireStroke, LoggerManager, LoggerCategory, TWebSocketClientMessageType, base64ToBytes } from "@/iink"
-
 import { toResolve } from "jest-extended"
+
+import type {
+  TIIHistoryBackendChanges,
+  TMatrixTransform,
+  TStroke,
+  TWebSocketClientConfiguration,
+  TWebSocketClientMessage,
+} from "@/iink"
+import {
+  base64ToBytes,
+  ClientError,
+  LoggerCategory,
+  LoggerManager,
+  MatrixTransform,
+  toWireStroke,
+  TWebSocketClientMessageType,
+  WebSocketClient,
+} from "@/iink"
+
+import { InteractiveInkCanvasOverrideConfiguration } from "../../__dataset__/configuration.dataset"
+import {
+  contextlessGestureMessage,
+  gestureDetectedMessage,
+  hTextJIIX,
+  partChangeMessage,
+  ServerWebSocketMock,
+} from "../../__mocks__/ServerWebSocketMock"
+import { buildIIStroke, delay } from "../../helpers"
 expect.extend({ toResolve })
 
 jest.mock("web-worker:../../worker/ping.worker.ts", () =>
@@ -23,7 +46,9 @@ describe("WebSocketClient.ts", () => {
 
   describe("Properties", () => {
     const conf = structuredClone(configuration)
-    ;((conf.server.scheme = "http"), (conf.server.host = "pony"), (conf.server.applicationKey = "applicationKey"))
+    conf.server.scheme = "http"
+    conf.server.host = "pony"
+    conf.server.applicationKey = "applicationKey"
     test("should get url", () => {
       const wsClient = new WebSocketClient(conf)
       expect(wsClient.url).toEqual("ws://pony/api/v4.0/iink/offscreen?applicationKey=applicationKey")
@@ -556,7 +581,9 @@ describe("WebSocketClient.ts", () => {
     }
 
     test("should split strokes over several messages so none outgrows the frame budget", async () => {
-      const strokes = Array.from({ length: 6 }, () => buildIIStroke({ nbPoint: 40, box: { x: 0, y: 0, width: 400, height: 400 } }))
+      const strokes = Array.from({ length: 6 }, () =>
+        buildIIStroke({ nbPoint: 40, box: { x: 0, y: 0, width: 400, height: 400 } })
+      )
       const budget = strokeBytes(strokes[0]) * 2 + 200
       const wsClient = new SmallFrameClient(onlineConf(), budget)
       const sent: TWebSocketClientMessage[] = []
@@ -574,7 +601,11 @@ describe("WebSocketClient.ts", () => {
     })
 
     test("should still send a stroke larger than the budget, alone", async () => {
-      const strokes = [buildIIStroke(), buildIIStroke({ nbPoint: 200, box: { x: 0, y: 0, width: 2000, height: 2000 } }), buildIIStroke()]
+      const strokes = [
+        buildIIStroke(),
+        buildIIStroke({ nbPoint: 200, box: { x: 0, y: 0, width: 2000, height: 2000 } }),
+        buildIIStroke(),
+      ]
       const wsClient = new SmallFrameClient(onlineConf(), strokeBytes(strokes[0]) + 200)
       const sent: TWebSocketClientMessage[] = []
       jest.spyOn(wsClient, "send").mockImplementation((message) => {
@@ -596,7 +627,8 @@ describe("WebSocketClient.ts", () => {
       return sent
     }
     const ids = Array.from({ length: 30 }, (_, i) => `stroke-${String(i).padStart(36, "0")}`)
-    const idsOf = (message: TWebSocketClientMessage): unknown[] => (Array.isArray(message.strokeIds) ? message.strokeIds : [])
+    const idsOf = (message: TWebSocketClientMessage): unknown[] =>
+      Array.isArray(message.strokeIds) ? message.strokeIds : []
 
     test.each([
       ["transformTranslate", (c: WebSocketClient) => c.transformTranslate(ids, 1, 2)],
@@ -633,7 +665,9 @@ describe("WebSocketClient.ts", () => {
     })
 
     test("replaceStrokes should send the replacement first, then the strokes left over as additions", async () => {
-      const newStrokes = Array.from({ length: 6 }, () => buildIIStroke({ nbPoint: 40, box: { x: 0, y: 0, width: 400, height: 400 } }))
+      const newStrokes = Array.from({ length: 6 }, () =>
+        buildIIStroke({ nbPoint: 40, box: { x: 0, y: 0, width: 400, height: 400 } })
+      )
       const budget = strokeBytes(newStrokes[0]) * 2 + 400
       const wsClient = new SmallFrameClient(onlineConf(), budget)
       const sent = recordSends(wsClient)
@@ -782,7 +816,9 @@ describe("WebSocketClient.ts", () => {
     const waitUntil = async (condition: () => boolean, timeout = 3000) => {
       const start = Date.now()
       while (!condition()) {
-        if (Date.now() - start > timeout) throw new Error("waitUntil: condition never met")
+        if (Date.now() - start > timeout) {
+          throw new Error("waitUntil: condition never met")
+        }
         await delay(10)
       }
     }
@@ -817,7 +853,9 @@ describe("WebSocketClient.ts", () => {
       const request = retryClient.getVariables("block-1")
       await waitUntil(() => server.getMessages("mathSolver").length > 0)
       const socket = server.server.clients().at(-1)
-      socket?.send(JSON.stringify({ type: "mathSolverResult", action: "get-variables", blockId: "block-1", result: [] }))
+      socket?.send(
+        JSON.stringify({ type: "mathSolverResult", action: "get-variables", blockId: "block-1", result: [] })
+      )
 
       await expect(request).resolves.toEqual([])
       await retryClient.destroy()
@@ -1601,9 +1639,7 @@ describe("WebSocketClient.ts", () => {
       // No transform message reaches the server on undo any more. A transform is recorded as a
       // before/after pair like every other change, and a pair travels as a stroke replacement —
       // the wire form carries the moved coordinates, since the serializer bakes the matrix in.
-      expect(
-        messageSent.changes.filter((change: { type?: string }) => change.type === "transform")
-      ).toEqual([])
+      expect(messageSent.changes.filter((change: { type?: string }) => change.type === "transform")).toEqual([])
     })
     test("should resolve undo when received contentChanged", async () => {
       expect.assertions(1)
@@ -1755,7 +1791,9 @@ describe("WebSocketClient.ts", () => {
       //¯\_(ツ)_/¯  required to wait server received message
       await delay(100)
 
-      expect(mockServer.getMessages("exportPackage").map((m) => JSON.parse(m as string))).toEqual([{ type: "exportPackage" }])
+      expect(mockServer.getMessages("exportPackage").map((m) => JSON.parse(m as string))).toEqual([
+        { type: "exportPackage" },
+      ])
     })
 
     test("should resolve with the bytes of every chunk, in order", async () => {
@@ -1781,8 +1819,12 @@ describe("WebSocketClient.ts", () => {
       //¯\_(ツ)_/¯  required to wait server received message
       await delay(100)
       mockServer.send(JSON.stringify({ type: "packageInfo", exportId: "current", size: 1, chunkCount: 1 }))
-      mockServer.send(JSON.stringify({ type: "packageChunk", exportId: "stale", chunkIdx: 0, data: "AAAA", lastChunk: true }))
-      mockServer.send(JSON.stringify({ type: "packageChunk", exportId: "current", chunkIdx: 0, data: "BQ==", lastChunk: true }))
+      mockServer.send(
+        JSON.stringify({ type: "packageChunk", exportId: "stale", chunkIdx: 0, data: "AAAA", lastChunk: true })
+      )
+      mockServer.send(
+        JSON.stringify({ type: "packageChunk", exportId: "current", chunkIdx: 0, data: "BQ==", lastChunk: true })
+      )
 
       expect(readBytes(await exported)).toEqual([5])
     })
@@ -1966,7 +2008,9 @@ describe("WebSocketClient.ts", () => {
       expect(parse(chunks).map((chunk) => [chunk.importId, chunk.lastChunk])).toEqual(
         chunks.map((_, i) => [importId, i === chunks.length - 1])
       )
-      expect(parse(chunks).flatMap((chunk) => Array.from(base64ToBytes(chunk.data as string)))).toEqual(Array.from(sessionPackage))
+      expect(parse(chunks).flatMap((chunk) => Array.from(base64ToBytes(chunk.data as string)))).toEqual(
+        Array.from(sessionPackage)
+      )
     })
 
     test("should restore the imported session, not import it again, when reconnecting", async () => {
@@ -1984,7 +2028,11 @@ describe("WebSocketClient.ts", () => {
     test("should reject when the server refuses the package, and start a new session on the next connection", async () => {
       mockServer.close()
       mockServer = new ServerWebSocketMock(wsClient.url)
-      mockServer.init({ withHMAC: true, withIdle: true, importError: { type: "error", code: "import.error", message: "Invalid package" } })
+      mockServer.init({
+        withHMAC: true,
+        withIdle: true,
+        importError: { type: "error", code: "import.error", message: "Invalid package" },
+      })
       wsClient.event.emitError = jest.fn()
 
       await expect(wsClient.importPackage(sessionPackage, "part-7")).rejects.toEqual("Invalid package")
@@ -2001,7 +2049,9 @@ describe("WebSocketClient.ts", () => {
     test("should reject without connecting to a server older than 4.6.0", async () => {
       wsClient.configuration.server.version = "4.5.4"
 
-      await expect(wsClient.importPackage(sessionPackage, "part-7")).rejects.toThrow("Server 4.5.4 can not import the session package")
+      await expect(wsClient.importPackage(sessionPackage, "part-7")).rejects.toThrow(
+        "Server 4.5.4 can not import the session package"
+      )
       //¯\_(ツ)_/¯  required to wait server received message
       await delay(100)
       expect(mockServer.getMessages("authenticate")).toHaveLength(0)
@@ -2056,7 +2106,10 @@ describe("WebSocketClient.ts", () => {
       await delay(100)
 
       expect(mockServer.getMessages("importPackage")).toHaveLength(1)
-      expect(JSON.parse(mockServer.getMessages("openContentPart")[0] as string)).toEqual({ type: "openContentPart", id: "part-7" })
+      expect(JSON.parse(mockServer.getMessages("openContentPart")[0] as string)).toEqual({
+        type: "openContentPart",
+        id: "part-7",
+      })
       expect(recovery.recover).toHaveBeenCalledWith(true)
     })
 
@@ -2086,7 +2139,9 @@ describe("WebSocketClient.ts", () => {
     test("should recover in a new session when the package is refused", async () => {
       const recovery = recoveryWith(savedPackage)
       wsClient.setSessionRecovery(recovery)
-      const sentBeforeDrop = await loseSession({ importError: { type: "error", code: "import.error", message: "Invalid package" } })
+      const sentBeforeDrop = await loseSession({
+        importError: { type: "error", code: "import.error", message: "Invalid package" },
+      })
 
       await wsClient.send({ type: "probe" })
       //¯\_(ツ)_/¯  required to wait server received message

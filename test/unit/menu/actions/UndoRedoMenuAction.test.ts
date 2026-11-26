@@ -1,5 +1,6 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
 import { UndoRedoMenuAction } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 
 const buildContext = (canUndo: boolean, canRedo: boolean) => ({
   canUndo,

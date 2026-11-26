@@ -1,5 +1,7 @@
+import type { TBox, TPoint, TSymbolChar } from "@/iink"
+import { BoxOps, computeClosedEdges, computeTypesetSnapPoints, computeTypesetVertices, OBBOps, TextUtil } from "@/iink"
+
 import { typesetGeometry } from "../../helpers"
-import { BoxOps, OBBOps, TBox, TPoint, TSymbolChar, TextUtil, computeClosedEdges, computeTypesetSnapPoints, computeTypesetVertices } from "@/iink"
 
 describe("Text.ts", () => {
   const chars: TSymbolChar[] = [
@@ -117,7 +119,14 @@ describe("Text.ts", () => {
 
 describe("Text derived fields, with the angle recorded on the bounds", () => {
   const chars: TSymbolChar[] = [
-    { id: "c1", label: "a", color: "#000", fontSize: 10, fontWeight: "normal", bounds: { x: 0, y: 0, width: 40, height: 10 } },
+    {
+      id: "c1",
+      label: "a",
+      color: "#000",
+      fontSize: 10,
+      fontWeight: "normal",
+      bounds: { x: 0, y: 0, width: 40, height: 10 },
+    },
   ]
 
   test("should keep the recorded angle, which callers read as the on-screen extent", () => {

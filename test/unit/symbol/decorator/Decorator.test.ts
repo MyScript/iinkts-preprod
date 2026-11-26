@@ -1,4 +1,5 @@
-import { DecoratorKind, DecoratorUtil, TStyle } from "@/iink"
+import type { TStyle } from "@/iink"
+import { DecoratorKind, DecoratorUtil } from "@/iink"
 
 describe("Decorator.ts", () => {
   describe("Highlight", () => {
@@ -7,7 +8,7 @@ describe("Decorator.ts", () => {
       width: 20,
     }
     const decorator = DecoratorUtil.createDecorator(DecoratorKind.Highlight, style)
-    test("should create ", () => {
+    test("should create", () => {
       expect(decorator).toBeDefined()
       expect(decorator.style.color).toEqual(style.color)
     })
@@ -24,7 +25,7 @@ describe("Decorator.ts", () => {
       width: 20,
     }
     const decorator = DecoratorUtil.createDecorator(DecoratorKind.Strikethrough, style)
-    test("should create ", () => {
+    test("should create", () => {
       expect(decorator).toBeDefined()
       expect(decorator.style.color).toEqual(style.color)
     })
@@ -41,7 +42,7 @@ describe("Decorator.ts", () => {
       width: 20,
     }
     const decorator = DecoratorUtil.createDecorator(DecoratorKind.Surround, style)
-    test("should create ", () => {
+    test("should create", () => {
       expect(decorator).toBeDefined()
       expect(decorator.style.color).toEqual(style.color)
     })
@@ -58,7 +59,7 @@ describe("Decorator.ts", () => {
       width: 20,
     }
     const decorator = DecoratorUtil.createDecorator(DecoratorKind.Underline, style)
-    test("should create ", () => {
+    test("should create", () => {
       expect(decorator).toBeDefined()
       expect(decorator.style.color).toEqual(style.color)
     })

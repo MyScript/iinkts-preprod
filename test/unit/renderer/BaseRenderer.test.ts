@@ -1,4 +1,5 @@
-import { BaseRenderer, TBaseRendererConfiguration } from "@/iink"
+import type { TBaseRendererConfiguration } from "@/iink"
+import { BaseRenderer } from "@/iink"
 
 class TestRenderer extends BaseRenderer<HTMLElement> {
   init(): void {

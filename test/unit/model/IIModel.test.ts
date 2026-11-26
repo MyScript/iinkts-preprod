@@ -1,6 +1,7 @@
-import { buildIICircle, buildIIStroke } from "../helpers"
+import type { TExport } from "@/iink"
+import { IIModel } from "@/iink"
 
-import { IIModel, TExport } from "@/iink"
+import { buildIICircle, buildIIStroke } from "../helpers"
 
 describe("IIModel.ts", () => {
   const rowHeight = 10

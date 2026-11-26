@@ -1,4 +1,12 @@
-import { TPointer, computeAngleAxeRadian, computeFinalOutlinePoints, computeLineOutlinePoints, computeLinksPointers, computeMiddlePointer, computeQuadraticOutlinePoints } from "@/iink"
+import type { TPointer } from "@/iink"
+import {
+  computeAngleAxeRadian,
+  computeFinalOutlinePoints,
+  computeLineOutlinePoints,
+  computeLinksPointers,
+  computeMiddlePointer,
+  computeQuadraticOutlinePoints,
+} from "@/iink"
 
 describe("quadratics", () => {
   const p1: TPointer = {

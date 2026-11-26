@@ -1,4 +1,5 @@
-import { CanvasFactory, InkCanvas, TInkCanvasOptions, TInkCanvasDeprecatedOptions } from "@/iink"
+import type { TInkCanvasDeprecatedOptions, TInkCanvasOptions } from "@/iink"
+import { CanvasFactory, InkCanvas } from "@/iink"
 
 describe("CanvasFactory.ts", () => {
   const inkV2Options: TInkCanvasOptions = { configuration: { server: { version: "3.0.0" } } }

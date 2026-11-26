@@ -1,6 +1,7 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { buildIIStroke } from "../../helpers"
 import { DuplicateContextMenu } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
+import { buildIIStroke } from "../../helpers"
 
 describe("DuplicateContextMenu.ts", () => {
   afterEach(() => {

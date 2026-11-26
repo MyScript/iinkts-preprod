@@ -1,4 +1,5 @@
-import { DefaultStyle, MatrixTransform, OBBOps, Polygon2d, ShapeUtil, TBox, TPoint, TStyle } from "@/iink"
+import type { TBox, TPoint, TStyle } from "@/iink"
+import { DefaultStyle, MatrixTransform, OBBOps, Polygon2d, ShapeUtil } from "@/iink"
 
 describe("ShapeUtil polygon statics", () => {
   describe("create", () => {

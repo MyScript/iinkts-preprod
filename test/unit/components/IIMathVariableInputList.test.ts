@@ -1,4 +1,5 @@
-import { IIMathVariableInputList, TVariableInputItem } from "@/iink"
+import type { TVariableInputItem } from "@/iink"
+import { IIMathVariableInputList } from "@/iink"
 
 describe("IIMathVariableInputList.ts", () => {
   afterEach(() => {

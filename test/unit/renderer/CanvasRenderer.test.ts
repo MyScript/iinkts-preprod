@@ -1,5 +1,6 @@
-import { buildStroke } from "../helpers"
 import { CanvasRenderer, DefaultRendererConfiguration } from "@/iink"
+
+import { buildStroke } from "../helpers"
 
 describe("CanvasRenderer.ts", () => {
   const height = 10,
@@ -12,10 +13,6 @@ describe("CanvasRenderer.ts", () => {
   canvasRenderer.shapeRenderer.draw = jest.fn()
   canvasRenderer.strokeRenderer.draw = jest.fn()
   canvasRenderer.textRenderer.draw = jest.fn()
-
-  test("should set configuration when instanciate", () => {
-    expect(canvasRenderer.configuration).toStrictEqual(DefaultRendererConfiguration)
-  })
 
   test("should set configuration when instanciate", () => {
     expect(canvasRenderer.configuration).toStrictEqual(DefaultRendererConfiguration)

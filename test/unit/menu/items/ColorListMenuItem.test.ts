@@ -1,5 +1,7 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { ColorListMenuItem, TMenuColorList } from "@/iink"
+import type { TMenuColorList } from "@/iink"
+import { ColorListMenuItem } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 
 describe("ColorListMenuItem.ts", () => {
   afterEach(() => {

@@ -1,4 +1,5 @@
-import { Stroke, convertPartialStrokesToStrokes, DefaultPenStyle, TPenStyle, TPartialDeep, TLegacyStroke } from "@/iink"
+import type { TLegacyStroke, TPartialDeep, TPenStyle } from "@/iink"
+import { convertPartialStrokesToStrokes, DefaultPenStyle, Stroke } from "@/iink"
 
 describe("Stroke.ts", () => {
   test("should create with default pointerType", () => {
@@ -73,7 +74,7 @@ describe("Stroke.ts", () => {
       ]
       expect(() => convertPartialStrokesToStrokes(pStrokes)).toThrow("stroke 1 has no pointer at 0")
     })
-    test("should throw an error if an x ​​is missing on pointers ", () => {
+    test("should throw an error if an x ​​is missing on pointers", () => {
       const pStrokes: TPartialDeep<TLegacyStroke>[] = [
         {
           pointers: [
@@ -84,7 +85,7 @@ describe("Stroke.ts", () => {
       ]
       expect(() => convertPartialStrokesToStrokes(pStrokes)).toThrow("stroke 1 has no x at pointer at 1")
     })
-    test("should throw an error if an y ​​is missing on pointers ", () => {
+    test("should throw an error if an y ​​is missing on pointers", () => {
       const pStrokes: TPartialDeep<TLegacyStroke>[] = [
         {
           pointers: [

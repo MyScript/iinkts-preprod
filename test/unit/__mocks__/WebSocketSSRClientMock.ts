@@ -1,11 +1,12 @@
-import { Model, TExport, WebSocketSSRClient, DefaultInteractiveInkSSRCanvasConfiguration } from "@/iink"
+import type { TExport } from "@/iink"
+import { DefaultInteractiveInkSSRCanvasConfiguration, Model, WebSocketSSRClient } from "@/iink"
 
 export class WebSocketSSRClientMock extends WebSocketSSRClient {
   constructor() {
     super(DefaultInteractiveInkSSRCanvasConfiguration)
   }
   //@ts-ignore
-  init = jest.fn((height: number, width: number) => {
+  init = jest.fn(() => {
     this.initialized.resolve()
     return this.initialized.promise
   })

@@ -1,6 +1,8 @@
-import { createCanvasMock, asCanvas } from "../__mocks__/createCanvasMock"
+import type { TMenuActionConfig, TMenuItemOptions } from "@/iink"
+import { CanvasTool, IIMenuAction, StrikeThroughAction, SurroundAction } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../__mocks__/createCanvasMock"
 import { ChangeEventMock, LeftClickEventMock } from "../__mocks__/EventMock"
-import { CanvasTool, IIMenuAction, StrikeThroughAction, SurroundAction, TMenuActionConfig, TMenuItemOptions } from "@/iink"
 import { StubMenuItem } from "../helpers"
 
 describe("IIMenuAction.ts", () => {

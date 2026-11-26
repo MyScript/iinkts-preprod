@@ -1,5 +1,7 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { DefaultIIRendererConfiguration, IIMoveManager, TPointerInfo } from "@/iink"
+import type { TPointerInfo } from "@/iink"
+import { DefaultIIRendererConfiguration, IIMoveManager } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 
 describe("IIMoveManager.ts", () => {
   test("should instanciate", () => {

@@ -1,5 +1,7 @@
+import type { TExport } from "@/iink"
+import { CanvasEvent, CanvasEventName, CanvasTool } from "@/iink"
+
 import { buildIICircle, buildIIStroke } from "../helpers"
-import { CanvasEvent, CanvasEventName, TExport, CanvasTool } from "@/iink"
 
 describe("CanvasEvent.ts", () => {
   const element = document.createElement("div")

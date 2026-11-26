@@ -1,6 +1,8 @@
+import type { THistoryConfiguration } from "@/iink"
+import { DefaultHistoryConfiguration, getInitialHistoryContext, IIHistoryManager, IIModel } from "@/iink"
+
 import { CanvasEventMock } from "../__mocks__/CanvasEventMock"
 import { buildIIStroke } from "../helpers"
-import { THistoryConfiguration, getInitialHistoryContext, IIHistoryManager, IIModel, DefaultHistoryConfiguration } from "@/iink"
 
 describe("IIHistoryManager.ts", () => {
   const event = new CanvasEventMock(document.createElement("div"))
@@ -265,7 +267,9 @@ describe("IIHistoryManager.ts", () => {
 
       restored.importStack(manager.exportStack())
 
-      expect(restored.context).toEqual(expect.objectContaining({ canUndo: true, canRedo: false, stackIndex: 2, empty: false }))
+      expect(restored.context).toEqual(
+        expect.objectContaining({ canUndo: true, canRedo: false, stackIndex: 2, empty: false })
+      )
       expect(restored.undo()).toEqual({ erased: [b] })
     })
 

@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from "@jest/globals"
 
-import { buildIIMath, buildIIText } from "../../helpers"
-
 import { MathUtil, MatrixTransform, TextUtil, TypesetUtil } from "@/iink"
+
+import { buildIIMath, buildIIText } from "../../helpers"
 
 /**
  * `TText` and `TMath` are the same shape but for the list they hold — `chars` against `elements` —
@@ -86,7 +86,22 @@ describe("TypesetUtil", () => {
     })
 
     test.each([
-      ["text", () => buildIIText({ chars: [{ id: "c", label: "a", color: "#000", fontSize: 10, fontWeight: "normal", bounds: { x: 0, y: 0, width: 1, height: 1 } }] })],
+      [
+        "text",
+        () =>
+          buildIIText({
+            chars: [
+              {
+                id: "c",
+                label: "a",
+                color: "#000",
+                fontSize: 10,
+                fontWeight: "normal",
+                bounds: { x: 0, y: 0, width: 1, height: 1 },
+              },
+            ],
+          }),
+      ],
       ["math", () => buildIIMath()],
     ])("%s resize should compose the matrix rather than rebuild bounds or scale glyphs", (name, build) => {
       const symbol = build()

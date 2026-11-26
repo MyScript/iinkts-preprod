@@ -1,5 +1,19 @@
-import { IIModel, DefaultInteractiveInkCanvasConfiguration, InteractiveInkCanvasConfiguration, DefaultStyle, CanvasTool, CanvasWriteTool, SymbolType, DOMFactory, CanvasLayer, LayoutManager, registerBuiltinSymbolUtils, Translator } from "@/iink"
-import type { TInteractiveInkCanvas, TStyle, TSymbol, TStroke, TSymbolUpdate } from "@/iink"
+import type { TInteractiveInkCanvas, TStroke, TStyle, TSymbol, TSymbolUpdate } from "@/iink"
+import {
+  CanvasLayer,
+  CanvasTool,
+  CanvasWriteTool,
+  DefaultInteractiveInkCanvasConfiguration,
+  DefaultStyle,
+  DOMFactory,
+  IIModel,
+  InteractiveInkCanvasConfiguration,
+  LayoutManager,
+  registerBuiltinSymbolUtils,
+  SymbolType,
+  Translator,
+} from "@/iink"
+
 import { CanvasEventMock } from "./CanvasEventMock"
 
 /**
@@ -12,7 +26,9 @@ function stubManager<T>(): T {
   const store: Record<string | symbol, unknown> = {}
   return new Proxy(store, {
     get: (target, prop) => {
-      if (prop === "then") return undefined
+      if (prop === "then") {
+        return undefined
+      }
       if (!(prop in target)) {
         target[prop] = jest.fn()
       }

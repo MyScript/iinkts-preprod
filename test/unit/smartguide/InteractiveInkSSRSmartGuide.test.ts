@@ -1,6 +1,8 @@
+import type { TMarginConfiguration } from "@/iink"
+import { InteractiveInkSSRSmartGuide } from "@/iink"
+
 import { LeftClickEventMock } from "../__mocks__/EventMock"
 import { InteractiveInkSSRCanvasMock } from "../__mocks__/InteractiveInkSSRCanvasMock"
-import { InteractiveInkSSRSmartGuide, TMarginConfiguration } from "@/iink"
 
 describe("InteractiveInkSSRSmartGuide.ts", () => {
   const canvasMock = new InteractiveInkSSRCanvasMock()
@@ -39,7 +41,7 @@ describe("InteractiveInkSSRSmartGuide.ts", () => {
       expect(wrapper).toBeDefined()
       expect(wrapper.id).toBe(`ellipsis-${sm.uuid}`)
     })
-    test("should init ellipsis", () => {
+    test("should init tag icon", () => {
       const wrapper = domElement.querySelector(".tag-icon") as HTMLDivElement
       expect(wrapper).toBeDefined()
       expect(wrapper.id).toBe(`tag-icon-${sm.uuid}`)

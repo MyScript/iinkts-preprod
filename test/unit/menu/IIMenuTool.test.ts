@@ -1,6 +1,8 @@
-import { createCanvasMock, asCanvas } from "../__mocks__/createCanvasMock"
+import type { TMenuItemOptions } from "@/iink"
+import { CanvasTool, CanvasWriteTool, IIMenuTool } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../__mocks__/createCanvasMock"
 import { LeftClickEventMock } from "../__mocks__/EventMock"
-import { CanvasTool, IIMenuTool, CanvasWriteTool, TMenuItemOptions } from "@/iink"
 import { StubMenuItem } from "../helpers"
 
 describe("IIMenuTool.ts", () => {
@@ -273,13 +275,13 @@ describe("IIMenuTool zones", () => {
     return { menu, layer }
   }
 
-  test("should have no \"…\" dropdown while nothing goes to the dropdown zone", () => {
+  test('should have no "…" dropdown while nothing goes to the dropdown zone', () => {
     const { layer } = render([{ key: "extra-bar" }])
     expect(layer.querySelector("#ms-menu-tool-more")).toBeNull()
     expect(layer.querySelector("#extra-bar")?.parentElement).toBe(layer.querySelector(".ms-menu-tool"))
   })
 
-  test("should open a \"…\" dropdown upwards for an item in the dropdown zone, last in the row", () => {
+  test('should open a "…" dropdown upwards for an item in the dropdown zone, last in the row', () => {
     const { menu, layer } = render([{ key: "extra-dropdown", options: { zone: "dropdown" } }, { key: "extra-bar" }])
     const more = layer.querySelector("#ms-menu-tool-more")?.parentElement
     expect(more?.querySelector("#extra-dropdown")).not.toBeNull()

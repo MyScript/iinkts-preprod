@@ -1,6 +1,8 @@
-import { describe, test, expect, beforeEach } from "@jest/globals"
-import { buildIIStroke } from "../../helpers"
+import { beforeEach, describe, expect, test } from "@jest/globals"
+
 import { MatrixTransform, OBBOps, PointSet2d, registerBuiltinSymbolUtils, StrokeUtil, SymbolType } from "@/iink"
+
+import { buildIIStroke } from "../../helpers"
 
 describe("StrokeUtil", () => {
   let util: StrokeUtil
@@ -212,9 +214,7 @@ describe("StrokeUtil", () => {
       // It used to sit on the wrapping group. `vector-effect` is not an inherited property, so there
       // it applied to a group that draws nothing and never reached the path — it was inert. On the
       // path it takes effect, and stroke width stops growing with the zoom.
-      expect(new StrokeUtil().getSVGElement(buildIIStroke()).getAttribute("vector-effect")).toBe(
-        "non-scaling-stroke"
-      )
+      expect(new StrokeUtil().getSVGElement(buildIIStroke()).getAttribute("vector-effect")).toBe("non-scaling-stroke")
     })
   })
 })

@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "@jest/globals"
 
-import { buildIICircle } from "../../helpers"
-
 import type { TPartialDeep, TShape } from "@/iink"
 import { MatrixTransform, OBBOps, registerBuiltinSymbolUtils, ShapeKind, ShapeUtil, SymbolType } from "@/iink"
+
+import { buildIICircle } from "../../helpers"
 
 /**
  * `ShapeUtil` used to resolve a kind with a `switch` in each of four methods, which meant a kind
@@ -28,7 +28,6 @@ import { MatrixTransform, OBBOps, registerBuiltinSymbolUtils, ShapeKind, ShapeUt
 // symbol's util — that is what buys them the per-symbol geometry cache, and it means a bare
 // `new ShapeUtil()` is not enough to exercise them.
 registerBuiltinSymbolUtils()
-
 
 /** Each kind's own vertex computation, the oracle now that the stored `vertices` field is gone. */
 
@@ -309,9 +308,9 @@ describe("ShapeUtil, the contract members", () => {
         const circle = buildIICircle({ center: { x: 0, y: 0 }, radius: 5 })
         circle.transform = MatrixTransform.identity().rotate(Math.PI / 4)
 
-        expect(
-          util.overlaps(circle, { x: -halfSize, y: -halfSize, width: 2 * halfSize, height: 2 * halfSize })
-        ).toBe(true)
+        expect(util.overlaps(circle, { x: -halfSize, y: -halfSize, width: 2 * halfSize, height: 2 * halfSize })).toBe(
+          true
+        )
       }
     )
   })

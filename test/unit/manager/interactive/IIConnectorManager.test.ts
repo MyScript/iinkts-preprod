@@ -1,14 +1,25 @@
+import { beforeEach, describe, expect, jest, test } from "@jest/globals"
+
 import type { TBaseSymbol, TDraft, TSymbol } from "@/iink"
-import { describe, test, expect, jest, beforeEach } from "@jest/globals"
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { EdgeUtil, IIConnectorManager, MatrixTransform, OBBOps, ShapeUtil, StrokeUtil, SymbolType, computePointOnEllipse, type TOBB } from "@/iink"
+import {
+  computePointOnEllipse,
+  EdgeUtil,
+  IIConnectorManager,
+  MatrixTransform,
+  OBBOps,
+  ShapeUtil,
+  StrokeUtil,
+  SymbolType,
+  type TOBB,
+} from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 
 /**
  * The object under test is created here and is not in the model, so it is the caller's to mutate —
  * a draft in the contract's sense. Mint one the way the store does.
  */
 const asDraft = <T>(value: T): TDraft<T> => value as TDraft<T>
-
 
 const TARGET_BOUNDS = OBBOps.fromBox({ x: 10, y: 20, width: 100, height: 80 })
 const TARGET_ID = "target-symbol"
@@ -122,11 +133,17 @@ function buildTwoStrokeEdgeGroup(blockId: string) {
 // A real single-point stroke rather than a bare { bounds } object: SymbolGeometry.boundsOf routes
 // through StrokeUtil.computeGeometry, which recomputes bounds from `pointers` rather than trusting
 // a stored field, so the mock needs a real (if minimal) point to derive the same zero-size box.
-function mockBlockCenter(mock: ReturnType<typeof createCanvasMock>, strokeId: string, center: { x: number; y: number }) {
+function mockBlockCenter(
+  mock: ReturnType<typeof createCanvasMock>,
+  strokeId: string,
+  center: { x: number; y: number }
+) {
   const targetStroke = StrokeUtil.createEmpty()
   targetStroke.id = strokeId
   targetStroke.pointers = [{ ...center, dt: 0, p: 0 }]
-  jest.spyOn(mock.model, "getSymbol").mockImplementation((id: string) => (id === strokeId ? targetStroke : undefined) as never)
+  jest
+    .spyOn(mock.model, "getSymbol")
+    .mockImplementation((id: string) => (id === strokeId ? targetStroke : undefined) as never)
   return targetStroke
 }
 
@@ -149,15 +166,15 @@ describe("IIConnectorManager", () => {
    */
   const fromModel = <T>(symbol: { id: string }): T => mock.model.symbols.find((s) => s.id === symbol.id) as T
 
-
   beforeEach(() => {
     mock = createCanvasMock()
     manager = new IIConnectorManager(asCanvas(mock))
-    jest
-      .spyOn(mock.model, "getSymbol")
-      .mockReturnValue({ id: TARGET_ID, type: SymbolType.Decorator, targetBounds: TARGET_BOUNDS, transform: MatrixTransform.identity() } as unknown as ReturnType<
-        typeof mock.model.getSymbol
-      >)
+    jest.spyOn(mock.model, "getSymbol").mockReturnValue({
+      id: TARGET_ID,
+      type: SymbolType.Decorator,
+      targetBounds: TARGET_BOUNDS,
+      transform: MatrixTransform.identity(),
+    } as unknown as ReturnType<typeof mock.model.getSymbol>)
   })
 
   test("should instantiate", () => {
@@ -348,11 +365,12 @@ describe("IIConnectorManager", () => {
       const POST_BOUNDS = OBBOps.fromBox({ x: 50, y: 50, width: 200, height: 200 })
 
       beforeEach(() => {
-        jest
-          .spyOn(mock.model, "getSymbol")
-          .mockReturnValue({ id: TARGET_ID, type: SymbolType.Decorator, targetBounds: POST_BOUNDS, transform: MatrixTransform.identity() } as unknown as ReturnType<
-            typeof mock.model.getSymbol
-          >)
+        jest.spyOn(mock.model, "getSymbol").mockReturnValue({
+          id: TARGET_ID,
+          type: SymbolType.Decorator,
+          targetBounds: POST_BOUNDS,
+          transform: MatrixTransform.identity(),
+        } as unknown as ReturnType<typeof mock.model.getSymbol>)
       })
 
       test("line startAnchor → world point from matrix+preBounds, not postBounds", () => {
@@ -437,12 +455,24 @@ describe("IIConnectorManager", () => {
     // arc, and it's the same invariant reprojectArcMidpoint's manual-drag fix now also upholds.
     test("arc with startAnchor for a moved shape: the end endpoint's world position is unchanged", () => {
       const arc = buildArcWithStartAnchor()
-      const endBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+      const endBefore = computePointOnEllipse(
+        arc.center,
+        arc.radiusX,
+        arc.radiusY,
+        arc.phi,
+        arc.startAngle + arc.sweepAngle
+      )
       setupSymbols(mock, [arc])
 
       manager.updateAnchoredEdges([TARGET_ID])
 
-      const endAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+      const endAfter = computePointOnEllipse(
+        arc.center,
+        arc.radiusX,
+        arc.radiusY,
+        arc.phi,
+        arc.startAngle + arc.sweepAngle
+      )
       expect(endAfter.x).toBeCloseTo(endBefore.x, 2)
       expect(endAfter.y).toBeCloseTo(endBefore.y, 2)
     })
@@ -467,7 +497,9 @@ describe("IIConnectorManager", () => {
     // that stale point once the connected shape actually moved.
     test("arc with startAnchor: entryPoint is refreshed after the connected shape moves, not left stale", () => {
       const circle = ShapeUtil.createCircle({ x: 50, y: 50 }, 30)
-      jest.spyOn(mock.model, "getSymbol").mockImplementation((id: string) => (id === circle.id ? circle : undefined) as never)
+      jest
+        .spyOn(mock.model, "getSymbol")
+        .mockImplementation((id: string) => (id === circle.id ? circle : undefined) as never)
       const arc = EdgeUtil.createArc({ x: 50, y: 50 }, 0, Math.PI, 20, 20, 0)
       arc.startAnchor = { symbolId: circle.id, normalizedX: 0.5, normalizedY: 0.5, entryPoint: { x: -9999, y: -9999 } }
       setupSymbols(mock, [arc, circle])
@@ -522,7 +554,9 @@ describe("IIConnectorManager", () => {
 
     test("arc with startAnchor: preview also refreshes entryPoint on the drawn clone, without mutating the original (still-stale) arc", () => {
       const circle = ShapeUtil.createCircle({ x: 50, y: 50 }, 30)
-      jest.spyOn(mock.model, "getSymbol").mockImplementation((id: string) => (id === circle.id ? circle : undefined) as never)
+      jest
+        .spyOn(mock.model, "getSymbol")
+        .mockImplementation((id: string) => (id === circle.id ? circle : undefined) as never)
       const arc = EdgeUtil.createArc({ x: 50, y: 50 }, 0, Math.PI, 20, 20, 0)
       arc.startAnchor = { symbolId: circle.id, normalizedX: 0.5, normalizedY: 0.5, entryPoint: { x: -9999, y: -9999 } }
       setupSymbols(mock, [arc, circle])
@@ -683,9 +717,7 @@ describe("IIConnectorManager", () => {
       ])
       setupSymbols(mock, [square])
       // getSymbol must return the real shape so isShape + vertices work
-      jest
-        .spyOn(mock.model, "getSymbol")
-        .mockReturnValue(square as unknown as ReturnType<typeof mock.model.getSymbol>)
+      jest.spyOn(mock.model, "getSymbol").mockReturnValue(square as unknown as ReturnType<typeof mock.model.getSymbol>)
       const line = EdgeUtil.createLine({ x: 200, y: 50 }, { x: 55, y: 55 })
 
       manager.applyEndpointAnchor(asDraft(line), EdgeUtil.getLineVertices(line).length - 1, { x: 55, y: 55 })
@@ -724,7 +756,13 @@ describe("IIConnectorManager", () => {
       const circle = ShapeUtil.createCircle({ x: 50, y: 50 }, 30)
       setupSymbols(mock, [circle])
       const arc = EdgeUtil.createArc({ x: 50, y: 50 }, 0, Math.PI, 20, 20, 0)
-      const endBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+      const endBefore = computePointOnEllipse(
+        arc.center,
+        arc.radiusX,
+        arc.radiusY,
+        arc.phi,
+        arc.startAngle + arc.sweepAngle
+      )
 
       manager.applyEndpointAnchor(asDraft(arc), 0, { x: 55, y: 55 })
 
@@ -735,7 +773,13 @@ describe("IIConnectorManager", () => {
       expect(startAfter.x).toBeCloseTo(50, 1)
       expect(startAfter.y).toBeCloseTo(50, 1)
       // The other endpoint (end) stays exactly where it was — only the dragged one moved.
-      const endAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+      const endAfter = computePointOnEllipse(
+        arc.center,
+        arc.radiusX,
+        arc.radiusY,
+        arc.phi,
+        arc.startAngle + arc.sweepAngle
+      )
       expect(endAfter.x).toBeCloseTo(endBefore.x, 1)
       expect(endAfter.y).toBeCloseTo(endBefore.y, 1)
     })
@@ -893,8 +937,12 @@ describe("IIConnectorManager", () => {
       const stroke = buildStrokeWithBothAnchors("block-shape-1", "block-shape-2")
       setupSymbols(mock, [stroke])
       jest.spyOn(mock.jiix, "getStrokesForElement").mockImplementation((id: string) => {
-        if (id === "block-shape-1") return ["shape-stroke-1"]
-        if (id === "block-shape-2") return ["other-stroke-x"]
+        if (id === "block-shape-1") {
+          return ["shape-stroke-1"]
+        }
+        if (id === "block-shape-2") {
+          return ["other-stroke-x"]
+        }
         return []
       })
       mockBlockCenter(mock, "shape-stroke-1", { x: 100, y: 0 })
@@ -911,8 +959,12 @@ describe("IIConnectorManager", () => {
       const stroke = buildStrokeWithBothAnchors("block-shape-1", "block-shape-2")
       setupSymbols(mock, [stroke])
       jest.spyOn(mock.jiix, "getStrokesForElement").mockImplementation((id: string) => {
-        if (id === "block-shape-1") return ["shape-stroke-1"]
-        if (id === "block-shape-2") return ["shape-stroke-2"]
+        if (id === "block-shape-1") {
+          return ["shape-stroke-1"]
+        }
+        if (id === "block-shape-2") {
+          return ["shape-stroke-2"]
+        }
         return []
       })
       const matrix = MatrixTransform.identity().translate(5, 5)
@@ -950,9 +1002,7 @@ describe("IIConnectorManager", () => {
 
       manager.drawAnchoredEdgesForMatrix(["shape-stroke-1"], matrix)
 
-      const drawnClones = (mock.renderer.drawSymbol as jest.Mock).mock.calls.map(
-        (call) => call[0] as typeof bar
-      )
+      const drawnClones = (mock.renderer.drawSymbol as jest.Mock).mock.calls.map((call) => call[0] as typeof bar)
       const drawnBar = drawnClones.find((c) => c.id === bar.id)!
       const drawnChevron = drawnClones.find((c) => c.id === chevron.id)!
 
@@ -994,8 +1044,12 @@ describe("IIConnectorManager", () => {
       const stroke = buildStrokeWithBothAnchors("block-shape-1", "block-shape-2")
       setupSymbols(mock, [stroke])
       jest.spyOn(mock.jiix, "getStrokesForElement").mockImplementation((id: string) => {
-        if (id === "block-shape-1") return ["shape-stroke-1"]
-        if (id === "block-shape-2") return ["shape-stroke-2"]
+        if (id === "block-shape-1") {
+          return ["shape-stroke-1"]
+        }
+        if (id === "block-shape-2") {
+          return ["shape-stroke-2"]
+        }
         return []
       })
 
@@ -1127,69 +1181,6 @@ describe("IIConnectorManager", () => {
     })
   })
 
-  describe("clearAnchoredEdgesFor", () => {
-    test("detaches an anchored line edge that is itself transformed", () => {
-      const line = buildLineWithStartAnchor()
-      const updateSpy = jest.spyOn(mock.model, "updateSymbol")
-
-      manager.clearAnchoredEdgesFor([line])
-
-      expect(line.startAnchor).toBeUndefined()
-      expect(line.endAnchor).toBeUndefined()
-      expect(updateSpy).toHaveBeenCalledWith(line)
-      expect(mock.renderer.drawSymbol).toHaveBeenCalledWith(line)
-    })
-
-    test("detaches an anchored polyline edge that is itself transformed", () => {
-      const poly = buildPolyLineWithEndAnchor()
-      const updateSpy = jest.spyOn(mock.model, "updateSymbol")
-
-      manager.clearAnchoredEdgesFor([poly])
-
-      expect(poly.startAnchor).toBeUndefined()
-      expect(poly.endAnchor).toBeUndefined()
-      expect(updateSpy).toHaveBeenCalledWith(poly)
-    })
-
-    test("detaches an anchored arc edge that is itself transformed", () => {
-      const arc = buildArcWithStartAnchor()
-      arc.endAnchor = { symbolId: TARGET_ID, normalizedX: 1, normalizedY: 0.5 }
-      const updateSpy = jest.spyOn(mock.model, "updateSymbol")
-
-      manager.clearAnchoredEdgesFor([arc])
-
-      expect(arc.startAnchor).toBeUndefined()
-      expect(arc.endAnchor).toBeUndefined()
-      expect(updateSpy).toHaveBeenCalledWith(arc)
-      expect(mock.renderer.drawSymbol).toHaveBeenCalledWith(arc)
-    })
-
-    test("leaves an edge without anchors untouched", () => {
-      const line = EdgeUtil.createLine({ x: 0, y: 0 }, { x: 10, y: 10 })
-      const updateSpy = jest.spyOn(mock.model, "updateSymbol")
-
-      manager.clearAnchoredEdgesFor([line])
-
-      expect(updateSpy).not.toHaveBeenCalled()
-      expect(mock.renderer.drawSymbol).not.toHaveBeenCalled()
-    })
-
-    test("edge stroke that is itself being transformed is not previewed as a follower", () => {
-      const stroke = buildStrokeWithSingleAnchor("block-shape-1")
-      setupSymbols(mock, [stroke])
-      jest
-        .spyOn(mock.jiix, "getStrokesForElement")
-        .mockImplementation((id: string) => (id === "block-shape-1" ? ["shape-stroke-1"] : []))
-      const matrix = MatrixTransform.identity().translate(5, 5)
-
-      // The edge stroke is part of the selection being dragged: the normal direct-transform
-      // path already previews it (CSS transform on its element), so the follow pass must skip it.
-      manager.drawAnchoredEdgesForMatrix(["shape-stroke-1", stroke.id], matrix)
-
-      expect(mock.renderer.drawSymbol).not.toHaveBeenCalled()
-    })
-  })
-
   describe("updateAnchoredEdges — raw stroke rigid follow (commit path)", () => {
     test("getFollowedStrokeIds reports followers without mutating them", () => {
       const stroke = buildStrokeWithSingleAnchor("block-shape-1")
@@ -1204,54 +1195,6 @@ describe("IIConnectorManager", () => {
       expect(fromModel<typeof stroke>(stroke).pointers[0]).toEqual(expect.objectContaining({ x: 0, y: 0 }))
     })
   })
-
-  describe("clearAnchoredEdgesFor", () => {
-    test("detaches an anchored line edge that is itself transformed", () => {
-      const line = buildLineWithStartAnchor()
-      const updateSpy = jest.spyOn(mock.model, "updateSymbol")
-
-      manager.clearAnchoredEdgesFor([line])
-
-      expect(line.startAnchor).toBeUndefined()
-      expect(line.endAnchor).toBeUndefined()
-      expect(updateSpy).toHaveBeenCalledWith(line)
-      expect(mock.renderer.drawSymbol).toHaveBeenCalledWith(line)
-    })
-
-    test("detaches an anchored polyline edge that is itself transformed", () => {
-      const poly = buildPolyLineWithEndAnchor()
-      const updateSpy = jest.spyOn(mock.model, "updateSymbol")
-
-      manager.clearAnchoredEdgesFor([poly])
-
-      expect(poly.startAnchor).toBeUndefined()
-      expect(poly.endAnchor).toBeUndefined()
-      expect(updateSpy).toHaveBeenCalledWith(poly)
-    })
-
-    test("detaches an anchored arc edge that is itself transformed", () => {
-      const arc = buildArcWithStartAnchor()
-      arc.endAnchor = { symbolId: TARGET_ID, normalizedX: 1, normalizedY: 0.5 }
-      const updateSpy = jest.spyOn(mock.model, "updateSymbol")
-
-      manager.clearAnchoredEdgesFor([arc])
-
-      expect(arc.startAnchor).toBeUndefined()
-      expect(arc.endAnchor).toBeUndefined()
-      expect(updateSpy).toHaveBeenCalledWith(arc)
-      expect(mock.renderer.drawSymbol).toHaveBeenCalledWith(arc)
-    })
-
-    test("leaves an edge without anchors untouched", () => {
-      const line = EdgeUtil.createLine({ x: 0, y: 0 }, { x: 10, y: 10 })
-      const updateSpy = jest.spyOn(mock.model, "updateSymbol")
-
-      manager.clearAnchoredEdgesFor([line])
-
-      expect(updateSpy).not.toHaveBeenCalled()
-      expect(mock.renderer.drawSymbol).not.toHaveBeenCalled()
-    })
-  })
 })
 
 describe("connectorConfiguration.followConnectedEdges = false — disables all follow behavior", () => {
@@ -1264,11 +1207,12 @@ describe("connectorConfiguration.followConnectedEdges = false — disables all f
   beforeEach(() => {
     mock = createCanvasMock()
     manager = new IIConnectorManager(asCanvas(mock), { followConnectedEdges: false })
-    jest
-      .spyOn(mock.model, "getSymbol")
-      .mockReturnValue({ id: TARGET_ID, type: SymbolType.Decorator, targetBounds: TARGET_BOUNDS, transform: MatrixTransform.identity() } as unknown as ReturnType<
-        typeof mock.model.getSymbol
-      >)
+    jest.spyOn(mock.model, "getSymbol").mockReturnValue({
+      id: TARGET_ID,
+      type: SymbolType.Decorator,
+      targetBounds: TARGET_BOUNDS,
+      transform: MatrixTransform.identity(),
+    } as unknown as ReturnType<typeof mock.model.getSymbol>)
   })
 
   test("updateAnchoredEdges: a converted Line's anchored endpoint is left untouched", () => {

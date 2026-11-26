@@ -1,5 +1,7 @@
-import { createCanvasMock, asCanvas } from "../__mocks__/createCanvasMock"
-import { IIMenuSearch, IISearchManager, TSearchMatch } from "@/iink"
+import type { IISearchManager, TSearchMatch } from "@/iink"
+import { IIMenuSearch } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../__mocks__/createCanvasMock"
 
 const match = (text: string, y: number): TSearchMatch => ({
   text,

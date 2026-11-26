@@ -1,6 +1,8 @@
-import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
+import type { TGesture, TText } from "@/iink"
+import { GestureHelpers, UnderlineAction, UnderlineGestureHandler } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../../__mocks__/createCanvasMock"
 import { buildIIStroke, buildIIText } from "../../../helpers"
-import { UnderlineGestureHandler, GestureHelpers, TGesture, TText, UnderlineAction } from "@/iink"
 
 describe("UnderlineGestureHandler.ts", () => {
   let canvas: ReturnType<typeof createCanvasMock>

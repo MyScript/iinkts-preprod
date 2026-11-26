@@ -1,4 +1,4 @@
-import { StyleManager, DefaultPenStyle, DefaultTheme } from "@/iink"
+import { DefaultPenStyle, DefaultTheme, StyleManager } from "@/iink"
 
 describe("StyleManager.ts", () => {
   describe("constructor", () => {

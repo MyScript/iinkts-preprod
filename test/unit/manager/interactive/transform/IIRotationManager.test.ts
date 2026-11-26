@@ -1,6 +1,25 @@
-import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
+import type { TBaseSymbol, TDecorator, TPoint, TStroke, TSymbol } from "@/iink"
+import {
+  BoxOps,
+  computeRotatedPoint,
+  convertDegreeToRadian,
+  DecoratorKind,
+  DecoratorUtil,
+  EdgeUtil,
+  IIConnectorManager,
+  IIRotationManager,
+  MathUtil,
+  MatrixTransform,
+  OBBOps,
+  ShapeUtil,
+  StrokeUtil,
+  SvgElementRole,
+  SymbolGeometry,
+  TextUtil,
+} from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../../__mocks__/createCanvasMock"
 import { buildIIMath, buildIIStroke, buildIIText } from "../../../helpers"
-import { BoxOps, DecoratorKind, DecoratorUtil, EdgeUtil, IIConnectorManager, IIRotationManager, MathUtil, MatrixTransform, OBBOps, ShapeUtil, StrokeUtil, SvgElementRole, SymbolGeometry, TBaseSymbol, TDecorator, TPoint, TStroke, TSymbol, TextUtil, computeRotatedPoint, convertDegreeToRadian } from "@/iink"
 
 describe("IIRotationManager.ts", () => {
   test("should create", () => {
@@ -169,9 +188,7 @@ describe("IIRotationManager.ts", () => {
         // matrix a symbol already carries, and a bare `rotate` would replace it. `strokeOrigin`'s own
         // matrix is the identity here, so both writes come out the same — the composition itself is
         // pinned by the "keeps the matrix a symbol already carries" test below.
-        const live = MatrixTransform.identity()
-          .rotate(convertDegreeToRadian(data.angle), rotateCenter)
-          .toCssString()
+        const live = MatrixTransform.identity().rotate(convertDegreeToRadian(data.angle), rotateCenter).toCssString()
         expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(1, group.id, "transform", live)
         expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(2, strokeOrigin.id, "transform", live)
       })
@@ -543,13 +560,16 @@ describe("surrounding a rotated typeset symbol", () => {
   test.each([
     ["text", () => buildIIText({ point: { x: 10, y: 20 } }), () => new TextUtil()],
     ["math", () => buildIIMath("y=3x+2", { point: { x: 10, y: 20 } }), () => new MathUtil()],
-  ])("a rotated %s's raw vertices, read straight from the util, do NOT move — documenting the gap", (_name, build, buildUtil) => {
-    const symbol = build()
-    const rawVerticesBefore = structuredClone(buildUtil().getGeometry(symbol as never).vertices)
-    rotateQuarterTurn(symbol)
+  ])(
+    "a rotated %s's raw vertices, read straight from the util, do NOT move — documenting the gap",
+    (_name, build, buildUtil) => {
+      const symbol = build()
+      const rawVerticesBefore = structuredClone(buildUtil().getGeometry(symbol as never).vertices)
+      rotateQuarterTurn(symbol)
 
-    expect(buildUtil().getGeometry(symbol as never).vertices).toEqual(rawVerticesBefore)
-  })
+      expect(buildUtil().getGeometry(symbol as never).vertices).toEqual(rawVerticesBefore)
+    }
+  )
 })
 
 describe("start() — selection containing an unregistered symbol type", () => {

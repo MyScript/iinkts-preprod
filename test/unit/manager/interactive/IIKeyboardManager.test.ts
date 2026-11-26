@@ -1,34 +1,40 @@
-import { IIKeyboardManager, InteractiveInkCanvas, CanvasTool } from "@/iink"
+import type { InteractiveInkCanvas } from "@/iink"
+import { CanvasTool, IIKeyboardManager } from "@/iink"
+
+function buildMockCanvas() {
+  const symbolsSelected: { id: string }[] = []
+  return {
+    tool: CanvasTool.Write,
+    model: { symbolsSelected },
+    copy: jest.fn(),
+    paste: jest.fn(() => Promise.resolve()),
+    cut: jest.fn(() => Promise.resolve()),
+    undo: jest.fn(() => Promise.resolve()),
+    redo: jest.fn(() => Promise.resolve()),
+    removeSymbols: jest.fn(() => Promise.resolve()),
+    zoomToFit: jest.fn(),
+    renderer: {
+      getZoom: jest.fn(() => 1),
+      setZoom: jest.fn(),
+      pan: jest.fn(),
+      parent: { clientWidth: 800, clientHeight: 600 },
+    },
+    configuration: { menu: { enable: true, search: { enable: true, shortcut: true } } },
+    menu: {
+      action: { update: jest.fn() },
+      search: { open: jest.fn() },
+    },
+  }
+}
 
 describe("IIKeyboardManager", () => {
   let manager: IIKeyboardManager
-  let mockCanvas: any
+  let mockCanvas: ReturnType<typeof buildMockCanvas>
 
   beforeEach(() => {
-    mockCanvas = {
-      tool: CanvasTool.Write,
-      model: { symbolsSelected: [] },
-      copy: jest.fn(),
-      paste: jest.fn(() => Promise.resolve()),
-      cut: jest.fn(() => Promise.resolve()),
-      undo: jest.fn(() => Promise.resolve()),
-      redo: jest.fn(() => Promise.resolve()),
-      removeSymbols: jest.fn(() => Promise.resolve()),
-      zoomToFit: jest.fn(),
-      renderer: {
-        getZoom: jest.fn(() => 1),
-        setZoom: jest.fn(),
-        pan: jest.fn(),
-        parent: { clientWidth: 800, clientHeight: 600 },
-      },
-      configuration: { menu: { enable: true, search: { enable: true, shortcut: true } } },
-      menu: {
-        action: { update: jest.fn() },
-        search: { open: jest.fn() },
-      },
-    }
+    mockCanvas = buildMockCanvas()
 
-    manager = new IIKeyboardManager(mockCanvas as InteractiveInkCanvas)
+    manager = new IIKeyboardManager(mockCanvas as unknown as InteractiveInkCanvas)
   })
 
   afterEach(() => {

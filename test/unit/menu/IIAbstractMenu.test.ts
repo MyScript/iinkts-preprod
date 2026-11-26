@@ -1,6 +1,16 @@
+import type { BaseMenuItem, TLayoutConfiguration, TMenuItemOptions, TMenuLayoutConfig, TMenuZone } from "@/iink"
+import {
+  CanvasLayer,
+  IIAbstractMenu,
+  IIMenuAction,
+  IIMenuContext,
+  IIMenuStyle,
+  IIMenuTool,
+  LayoutManager,
+} from "@/iink"
+
 import { asCanvas, createCanvasMock } from "../__mocks__/createCanvasMock"
 import { StubMenuItem } from "../helpers"
-import { BaseMenuItem, CanvasLayer, IIAbstractMenu, IIMenuAction, IIMenuContext, IIMenuStyle, IIMenuTool, LayoutManager, TLayoutConfiguration, TMenuItemOptions, TMenuLayoutConfig, TMenuZone } from "@/iink"
 
 class TestMenu extends IIAbstractMenu<{ items: { key: string; options?: TMenuItemOptions }[] } & TMenuLayoutConfig> {
   readonly defaultZone: TMenuZone = "dropdown"
@@ -8,9 +18,7 @@ class TestMenu extends IIAbstractMenu<{ items: { key: string; options?: TMenuIte
 
   render(layer: HTMLElement): void {
     this.wrapper = document.createElement("div")
-    this.config.items.forEach(({ key, options }) =>
-      this.addItem(key, new StubMenuItem(key, this.canvas), options)
-    )
+    this.config.items.forEach(({ key, options }) => this.addItem(key, new StubMenuItem(key, this.canvas), options))
     layer.appendChild(this.wrapper)
   }
 
@@ -139,7 +147,18 @@ describe("IIAbstractMenu.ts", () => {
 
 describe("IIAbstractMenu in its layout slot", () => {
   global.fetch = jest.fn(() => Promise.resolve({ json: () => Promise.resolve({ result: {} }) })) as jest.Mock
-  const POSITIONS = ["top", "top-left", "top-right", "left", "left-top", "right", "right-top", "bottom", "bottom-left", "bottom-right"]
+  const POSITIONS = [
+    "top",
+    "top-left",
+    "top-right",
+    "left",
+    "left-top",
+    "right",
+    "right-top",
+    "bottom",
+    "bottom-left",
+    "bottom-right",
+  ]
 
   function canvasIn(layout?: TLayoutConfiguration) {
     const layers = new CanvasLayer(document.createElement("div"))
@@ -204,7 +223,9 @@ describe("IIAbstractMenu in its layout slot", () => {
     Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, value: 1200 })
     const alone = new IIMenuStyle(canvasIn())
     const shared = new IIMenuStyle(canvasIn({ "bottom-center": ["style", "tool"] }))
-    const forced = new IIMenuStyle(canvasIn({ "bottom-center": ["style", "tool"] }), "ms-menu-style", { collapsed: false })
+    const forced = new IIMenuStyle(canvasIn({ "bottom-center": ["style", "tool"] }), "ms-menu-style", {
+      collapsed: false,
+    })
     expect(alone.collapsed).toBe(false)
     expect(shared.collapsed).toBe(true)
     expect(forced.collapsed).toBe(false)

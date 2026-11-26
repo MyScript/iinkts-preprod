@@ -1,5 +1,7 @@
+import type { TInkCanvasOptions } from "@/iink"
+import { CanvasTool, DefaultInkCanvasConfiguration, HTTPClientV2, InkCanvas } from "@/iink"
+
 import { buildIIStroke } from "../helpers"
-import { CanvasTool, InkCanvas, TInkCanvasOptions, HTTPClientV2, DefaultInkCanvasConfiguration } from "@/iink"
 
 describe("InkCanvas.ts", () => {
   const DefaultInkCanvasRestClientOptions: TInkCanvasOptions = {

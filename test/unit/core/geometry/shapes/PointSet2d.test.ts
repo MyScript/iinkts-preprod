@@ -1,5 +1,7 @@
-import { describe, test, expect } from "@jest/globals"
-import { MatrixTransform, OBBOps, PointSet2d, StrokeUtil, TBox, TPoint, TStroke } from "@/iink"
+import { describe, expect, test } from "@jest/globals"
+
+import type { TBox, TPoint, TStroke } from "@/iink"
+import { MatrixTransform, OBBOps, PointSet2d, StrokeUtil } from "@/iink"
 
 /** Points far enough apart that a query box can sit between two of them without touching either. */
 const SAMPLES: TPoint[] = [

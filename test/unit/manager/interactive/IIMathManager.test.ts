@@ -1,6 +1,7 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { IIMathManager, IIModel, JIIXElementType, JIIXMathExpressionType, StrokeUtil } from "@/iink"
 import type { TJIIXMathElement, TJIIXMathNumber } from "@/iink"
+import { IIMathManager, IIModel, JIIXElementType, JIIXMathExpressionType, StrokeUtil } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 
 type TSolverOutputExpression = TJIIXMathNumber & { "solver-output": true }
 
@@ -71,16 +72,19 @@ describe("IIMathManager.ts", () => {
       { resultMode: "draw", canRedo: true, computes: false },
       { resultMode: "ghost", canRedo: false, computes: true },
       { resultMode: "ghost", canRedo: true, computes: true },
-    ] as const)("on sync in $resultMode mode with canRedo=$canRedo, computes: $computes", async ({ resultMode, canRedo, computes }) => {
-      const canvas = createAutoComputeCanvas(["numerical-computation"])
-      canvas.history.context = { canRedo } as typeof canvas.history.context
-      new IIMathManager(asCanvas(canvas), { computation: { autoCompute: true, resultMode } })
+    ] as const)(
+      "on sync in $resultMode mode with canRedo=$canRedo, computes: $computes",
+      async ({ resultMode, canRedo, computes }) => {
+        const canvas = createAutoComputeCanvas(["numerical-computation"])
+        canvas.history.context = { canRedo } as typeof canvas.history.context
+        new IIMathManager(asCanvas(canvas), { computation: { autoCompute: true, resultMode } })
 
-      canvas.event.emitSynchronized()
-      await new Promise((resolve) => setTimeout(resolve))
+        canvas.event.emitSynchronized()
+        await new Promise((resolve) => setTimeout(resolve))
 
-      expect((canvas.client.getNumericalComputation as jest.Mock).mock.calls.length > 0).toBe(computes)
-    })
+        expect((canvas.client.getNumericalComputation as jest.Mock).mock.calls.length > 0).toBe(computes)
+      }
+    )
 
     test("leaves a block alone when the server does not offer numerical computation", async () => {
       const canvas = createAutoComputeCanvas([])

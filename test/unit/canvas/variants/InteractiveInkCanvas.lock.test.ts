@@ -1,5 +1,7 @@
+import type { TInteractiveInkCanvasOptions, TStroke } from "@/iink"
+import { DefaultInteractiveInkCanvasConfiguration, InteractiveInkCanvas, OBBOps, SymbolGeometry } from "@/iink"
+
 import { buildIIStroke } from "../../helpers"
-import { DefaultInteractiveInkCanvasConfiguration, InteractiveInkCanvas, OBBOps, SymbolGeometry, TInteractiveInkCanvasOptions, TStroke } from "@/iink"
 
 describe("InteractiveInkCanvas lock", () => {
   global.fetch = jest.fn(() => Promise.resolve({ json: () => Promise.resolve({ result: {} }) })) as jest.Mock
@@ -136,7 +138,10 @@ describe("InteractiveInkCanvas lock", () => {
 
       await canvas.removeSymbols([locked.id])
 
-      expect(canvas.renderer.flashLockIcon).toHaveBeenCalledWith({ x: box.x + box.width / 2, y: box.y + box.height / 2 })
+      expect(canvas.renderer.flashLockIcon).toHaveBeenCalledWith({
+        x: box.x + box.width / 2,
+        y: box.y + box.height / 2,
+      })
     })
   })
 

@@ -1,5 +1,16 @@
+import type { TBox, TPoint, TStyle } from "@/iink"
+import {
+  computeDistance,
+  computePointOnEllipse,
+  DefaultStyle,
+  EdgeUtil,
+  OBBOps,
+  reprojectArcEndpoint,
+  reprojectArcMidpoint,
+  stretchArcEndpoint,
+} from "@/iink"
+
 import { edgeGeometry } from "../../helpers"
-import { EdgeUtil, computeDistance, computePointOnEllipse, reprojectArcEndpoint, reprojectArcMidpoint, stretchArcEndpoint, OBBOps, TPoint, DefaultStyle, TStyle, TBox } from "@/iink"
 
 describe("Arc.ts", () => {
   describe("constructor", () => {
@@ -166,10 +177,23 @@ describe("Arc.ts", () => {
 
     test("moving the end endpoint wraps around 0/2π boundary (rawSweep < 0 -> +TWO_PI)", () => {
       // Arc from 0 to 2π/3 (sweepAngle = 2π/3, positive)
-      const testArc = { center: { x: 0, y: 0 }, radiusX: 10, radiusY: 10, phi: 0, startAngle: 0, sweepAngle: (2 * Math.PI) / 3 }
+      const testArc = {
+        center: { x: 0, y: 0 },
+        radiusX: 10,
+        radiusY: 10,
+        phi: 0,
+        startAngle: 0,
+        sweepAngle: (2 * Math.PI) / 3,
+      }
       // Move end to -π/6 (before start, crosses the 0 boundary)
       const targetAngle = -Math.PI / 6
-      const targetPoint = computePointOnEllipse(testArc.center, testArc.radiusX, testArc.radiusY, testArc.phi, targetAngle)
+      const targetPoint = computePointOnEllipse(
+        testArc.center,
+        testArc.radiusX,
+        testArc.radiusY,
+        testArc.phi,
+        targetAngle
+      )
       const result = reprojectArcEndpoint(testArc, "end", targetPoint)
       expect(result.startAngle).toBeCloseTo(0, 2)
       // End angle should be -π/6, which normalizes to 11π/6 in positive range
@@ -180,11 +204,24 @@ describe("Arc.ts", () => {
 
     test("moving start endpoint with negative sweepAngle (clockwise arc) wraps (rawSweep > 0 -> -TWO_PI)", () => {
       // Arc from 3π/2 to π (sweepAngle = -π/2, clockwise/backwards)
-      const testArc = { center: { x: 0, y: 0 }, radiusX: 10, radiusY: 10, phi: 0, startAngle: (3 * Math.PI) / 2, sweepAngle: -Math.PI / 2 }
+      const testArc = {
+        center: { x: 0, y: 0 },
+        radiusX: 10,
+        radiusY: 10,
+        phi: 0,
+        startAngle: (3 * Math.PI) / 2,
+        sweepAngle: -Math.PI / 2,
+      }
       // Old end angle: 3π/2 + (-π/2) = π
       // Move start to 0, crossing the 0 boundary
       const targetAngle = 0
-      const targetPoint = computePointOnEllipse(testArc.center, testArc.radiusX, testArc.radiusY, testArc.phi, targetAngle)
+      const targetPoint = computePointOnEllipse(
+        testArc.center,
+        testArc.radiusX,
+        testArc.radiusY,
+        testArc.phi,
+        targetAngle
+      )
       const result = reprojectArcEndpoint(testArc, "start", targetPoint)
       expect(result.startAngle).toBeCloseTo(0, 2)
       // Old end was at π. With startAngle=0 and original negative sweep,
@@ -257,7 +294,14 @@ describe("Arc.ts", () => {
     })
 
     test("elliptical, rotated arc: both endpoints stay exactly fixed and the radiusX:radiusY ratio is preserved", () => {
-      const arc = { center: { x: 20, y: -10 }, radiusX: 30, radiusY: 12, phi: Math.PI / 6, startAngle: 0.3, sweepAngle: 2 }
+      const arc = {
+        center: { x: 20, y: -10 },
+        radiusX: 30,
+        radiusY: 12,
+        phi: Math.PI / 6,
+        startAngle: 0.3,
+        sweepAngle: 2,
+      }
       const originalRatio = arc.radiusX / arc.radiusY
       const startBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
       const endBefore = computePointOnEllipse(
@@ -353,7 +397,13 @@ describe("Arc.ts", () => {
 
     test("circle: dragging the start handle inward shrinks the radius, keeps end exactly fixed, lands exactly on the target", () => {
       const arc = { center: { x: 0, y: 0 }, radiusX: 5, radiusY: 5, phi: 0, startAngle: Math.PI, sweepAngle: -Math.PI }
-      const endBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+      const endBefore = computePointOnEllipse(
+        arc.center,
+        arc.radiusX,
+        arc.radiusY,
+        arc.phi,
+        arc.startAngle + arc.sweepAngle
+      )
 
       const result = stretchArcEndpoint(arc, "start", { x: -2, y: 1 })
 
@@ -365,9 +415,22 @@ describe("Arc.ts", () => {
     })
 
     test("elliptical, rotated arc: dragging start keeps end fixed and preserves the radiusX:radiusY ratio", () => {
-      const arc = { center: { x: 20, y: -10 }, radiusX: 30, radiusY: 12, phi: Math.PI / 6, startAngle: 0.3, sweepAngle: 2 }
+      const arc = {
+        center: { x: 20, y: -10 },
+        radiusX: 30,
+        radiusY: 12,
+        phi: Math.PI / 6,
+        startAngle: 0.3,
+        sweepAngle: 2,
+      }
       const originalRatio = arc.radiusX / arc.radiusY
-      const endBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+      const endBefore = computePointOnEllipse(
+        arc.center,
+        arc.radiusX,
+        arc.radiusY,
+        arc.phi,
+        arc.startAngle + arc.sweepAngle
+      )
 
       const result = stretchArcEndpoint(arc, "start", { x: 10, y: -5 })
 

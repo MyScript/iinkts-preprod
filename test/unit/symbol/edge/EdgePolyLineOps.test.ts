@@ -1,5 +1,7 @@
+import type { TBox, TPoint, TStyle } from "@/iink"
+import { DefaultStyle, EdgeDecoration, EdgeUtil, HIT_TOLERANCE, MatrixTransform, OBBOps, Polyline2d } from "@/iink"
+
 import { edgeGeometry } from "../../helpers"
-import { DefaultStyle, EdgeDecoration, EdgeUtil, MatrixTransform, OBBOps, Polyline2d, HIT_TOLERANCE, TBox, TPoint, TStyle } from "@/iink"
 
 describe("EdgePolyLineOps", () => {
   describe("create", () => {

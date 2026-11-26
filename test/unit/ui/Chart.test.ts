@@ -1,4 +1,5 @@
-import { Chart, TChartConfig } from "@/iink"
+import type { TChartConfig } from "@/iink"
+import { Chart } from "@/iink"
 
 describe("Chart.ts", () => {
   let container: HTMLDivElement

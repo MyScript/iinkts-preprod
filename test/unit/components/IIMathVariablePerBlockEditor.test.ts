@@ -1,5 +1,7 @@
-import { createCanvasMock, asCanvas } from "../__mocks__/createCanvasMock"
-import { type IIJiixQueryManager, IIMathVariablePerBlockCanvas, TMathVariable, TMathVariableDefinition } from "@/iink"
+import type { TMathVariable, TMathVariableDefinition } from "@/iink"
+import { type IIJiixQueryManager, IIMathVariablePerBlockCanvas } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../__mocks__/createCanvasMock"
 
 function makeVariable(overrides: Partial<TMathVariable> = {}): TMathVariable {
   return { name: "x", value: 5, sourceType: "API", ...overrides }
@@ -24,7 +26,7 @@ describe("IIMathVariablePerBlockCanvas.ts", () => {
     canvas.math.getVariables = jest.fn().mockResolvedValue([makeVariable()])
     canvas.math.setListVariableValue = jest.fn().mockResolvedValue(undefined)
     canvas.math.removeVariable = jest.fn().mockResolvedValue(undefined)
-    canvas.menu.context = { update: jest.fn() } as any
+    canvas.menu.context = { update: jest.fn() } as unknown as typeof canvas.menu.context
   })
 
   afterEach(() => {

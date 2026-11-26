@@ -1,5 +1,6 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { MoveTool, CanvasTool } from "@/iink"
+import { CanvasTool, MoveTool } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 
 describe("MoveTool.ts", () => {
   afterEach(() => {

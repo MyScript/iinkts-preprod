@@ -1,4 +1,5 @@
-import { parseExportedJIIX, TExportWire } from "@/iink"
+import type { TExportWire } from "@/iink"
+import { parseExportedJIIX } from "@/iink"
 
 describe("Export.ts", () => {
   describe("parseExportedJIIX", () => {

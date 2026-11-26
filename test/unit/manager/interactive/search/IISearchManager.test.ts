@@ -1,5 +1,12 @@
-import { buildIIMath, buildIIStroke, buildIIText } from "../../../helpers"
-import { asCanvas, createCanvasMock, TCanvasMock } from "../../../__mocks__/createCanvasMock"
+import type {
+  TJIIXChar,
+  TJIIXElement,
+  TJIIXMathElement,
+  TJIIXMathExpression,
+  TJIIXTextElement,
+  TJIIXWord,
+  TSymbolChar,
+} from "@/iink"
 import {
   BoxOps,
   convertBoundingBoxMillimeterToPixel,
@@ -7,14 +14,11 @@ import {
   IISearchManager,
   JIIXElementType,
   MatrixTransform,
-  TJIIXMathElement,
-  TJIIXMathExpression,
-  TSymbolChar,
-  TJIIXChar,
-  TJIIXElement,
-  TJIIXTextElement,
-  TJIIXWord,
 } from "@/iink"
+
+import type { TCanvasMock } from "../../../__mocks__/createCanvasMock"
+import { asCanvas, createCanvasMock } from "../../../__mocks__/createCanvasMock"
+import { buildIIMath, buildIIStroke, buildIIText } from "../../../helpers"
 
 type TTextFixture = { element: TJIIXTextElement; strokeIds: string[][] }
 
@@ -94,7 +98,14 @@ function mathFixture(canvas: TCanvasMock) {
   const group = (...operands: TJIIXMathExpression[]): TJIIXMathExpression =>
     ({ id: `group-${col}`, type: "group", operands }) as TJIIXMathExpression
   const fence = (...operands: TJIIXMathExpression[]): TJIIXMathExpression =>
-    ({ id: `fence-${col}`, type: "fence", "open symbol": "(", "close symbol": ")", ...drawn(), operands }) as TJIIXMathExpression
+    ({
+      id: `fence-${col}`,
+      type: "fence",
+      "open symbol": "(",
+      "close symbol": ")",
+      ...drawn(),
+      operands,
+    }) as TJIIXMathExpression
   const element = (...expressions: TJIIXMathExpression[]): TJIIXMathElement => ({
     id: "math-1",
     type: JIIXElementType.Math,
@@ -114,7 +125,10 @@ function typesetChars(text: string, x = 0): TSymbolChar[] {
   }))
 }
 
-function setup(elements: TJIIXElement[] = [], canvas = createCanvasMock()): { canvas: TCanvasMock; search: IISearchManager } {
+function setup(
+  elements: TJIIXElement[] = [],
+  canvas = createCanvasMock()
+): { canvas: TCanvasMock; search: IISearchManager } {
   canvas.model.mergeExport({
     "application/vnd.myscript.jiix": { type: "Raw Content", id: "MainBlock", version: "3", elements },
   })
@@ -146,7 +160,9 @@ describe("IISearchManager.ts", () => {
       expect(match.source).toBe("ink")
       expect(match.boxes).toHaveLength(10)
       expect(match.symbolIds).toEqual(strokeIds[2])
-      const expectedBoxes = element.chars!.slice(4, 14).map((c) => convertBoundingBoxMillimeterToPixel(c["bounding-box"]!))
+      const expectedBoxes = element
+        .chars!.slice(4, 14)
+        .map((c) => convertBoundingBoxMillimeterToPixel(c["bounding-box"]!))
       expect(match.boxes).toEqual(expectedBoxes)
       expect(match.bounds).toEqual(BoxOps.createFromBoxes(expectedBoxes))
     })
@@ -291,7 +307,11 @@ describe("IISearchManager.ts", () => {
     test("should not read an implicit multiplication JIIX adds without ink", () => {
       const canvas = createCanvasMock()
       const { leaf, element } = mathFixture(canvas)
-      const implicit = { id: "implicit", type: "×", operands: [leaf("2"), leaf("x", "variable")] } as TJIIXMathExpression
+      const implicit = {
+        id: "implicit",
+        type: "×",
+        operands: [leaf("2"), leaf("x", "variable")],
+      } as TJIIXMathExpression
       const { search } = setup([element(implicit)], canvas)
       expect(search.find("2x")).toHaveLength(1)
     })

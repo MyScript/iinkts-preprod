@@ -1,5 +1,7 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { ThemeMenuAction, TCanvasTheme, CanvasThemes } from "@/iink"
+import type { TCanvasTheme } from "@/iink"
+import { CanvasThemes, ThemeMenuAction } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 
 describe("ThemeMenuAction.ts", () => {
   const themes: TCanvasTheme[] = [

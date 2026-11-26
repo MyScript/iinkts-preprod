@@ -1,6 +1,7 @@
-import { buildIIStroke } from "../../helpers"
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
 import { IIJiixQueryManager } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
+import { buildIIStroke } from "../../helpers"
 
 describe("IIJiixQueryManager.ts", () => {
   describe("getBlocksForSymbols", () => {
@@ -299,9 +300,7 @@ describe("IIJiixQueryManager.ts", () => {
                   items: [{ type: "stroke", id: "s1", "full-id": stroke.id }],
                 },
               ],
-              chars: [
-                { label: "h", word: 0, grid: [], items: [{ type: "stroke", id: "s1", "full-id": stroke.id }] },
-              ],
+              chars: [{ label: "h", word: 0, grid: [], items: [{ type: "stroke", id: "s1", "full-id": stroke.id }] }],
               lines: [
                 {
                   "first-char": 0,

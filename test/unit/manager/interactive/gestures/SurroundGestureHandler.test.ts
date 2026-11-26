@@ -1,6 +1,8 @@
-import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
+import type { TDecorator, TGesture } from "@/iink"
+import { DecoratorKind, GestureHelpers, StrokeUtil, SurroundAction, SurroundGestureHandler } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../../__mocks__/createCanvasMock"
 import { buildIIStroke, buildIIText } from "../../../helpers"
-import { DecoratorKind, GestureHelpers, StrokeUtil, SurroundAction, SurroundGestureHandler, TDecorator, TGesture } from "@/iink"
 
 describe("SurroundGestureHandler.ts", () => {
   let canvas: ReturnType<typeof createCanvasMock>
@@ -148,7 +150,7 @@ describe("SurroundGestureHandler.ts", () => {
       }
 
       // Set an invalid surround action (cast to bypass type check for testing)
-      canvas.gesture.surroundAction = "UNKNOWN" as any
+      canvas.gesture.surroundAction = "UNKNOWN" as unknown as typeof canvas.gesture.surroundAction
 
       await handler.apply(gestureStroke, gesture)
 

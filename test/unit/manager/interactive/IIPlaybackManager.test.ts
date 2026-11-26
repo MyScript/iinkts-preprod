@@ -1,8 +1,9 @@
-import { describe, test, expect, beforeEach, afterEach, jest } from "@jest/globals"
+import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals"
 
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
+import type { TPartialDeep, TStroke } from "@/iink"
 import { IIPlaybackManager } from "@/iink"
-import type { TStroke, TPartialDeep } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 
 function buildPartialStroke(startT: number, pointCount = 3): TPartialDeep<TStroke> {
   return {

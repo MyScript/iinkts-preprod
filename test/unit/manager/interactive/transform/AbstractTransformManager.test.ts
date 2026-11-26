@@ -1,10 +1,23 @@
 import { beforeAll, describe, expect, jest, test } from "@jest/globals"
 
+import type { Geometry2d, TBaseSymbol, TBox, TPartialDeep, TPoint, TSymbol, TTransformContext } from "@/iink"
+import {
+  applyMatrixToPoint,
+  BoxOps,
+  DecoratorKind,
+  DecoratorUtil,
+  IIResizeManager,
+  IIRotationManager,
+  IITranslateManager,
+  MatrixTransform,
+  Polygon2d,
+  registerBuiltinSymbolUtils,
+  symbolRegistry,
+  SymbolUtil,
+} from "@/iink"
+
 import { asCanvas, createCanvasMock } from "../../../__mocks__/createCanvasMock"
 import { buildIIDecorator, buildIIStroke } from "../../../helpers"
-
-import type { TBaseSymbol, TBox, TPartialDeep, TPoint, TTransformContext, TSymbol } from "@/iink"
-import { BoxOps, DecoratorKind, DecoratorUtil, Geometry2d, IIResizeManager, IIRotationManager, IITranslateManager, MatrixTransform, Polygon2d, SymbolUtil, applyMatrixToPoint, registerBuiltinSymbolUtils, symbolRegistry } from "@/iink"
 
 /**
  * `IIAbstractTransformManager` used to declare five `applyTo*` members so that a
@@ -70,7 +83,10 @@ describe("IIAbstractTransformManager", () => {
       const canvas = createCanvasMock()
       const manager = new IIRotationManager(asCanvas(canvas))
       manager.center = { x: 0, y: 0 }
-      manager.applyToSymbol(sticky as unknown as TSymbol, MatrixTransform.identity().rotate(Math.PI / 2, manager.center))
+      manager.applyToSymbol(
+        sticky as unknown as TSymbol,
+        MatrixTransform.identity().rotate(Math.PI / 2, manager.center)
+      )
       expect(sticky.degree).toBeCloseTo(Math.PI / 2, 10)
     })
 

@@ -1,5 +1,7 @@
+import type { TExport, TPointer } from "@/iink"
+import { DefaultPenStyle, Model, Stroke } from "@/iink"
+
 import { buildStroke, delay } from "../helpers"
-import { Model, Stroke, DefaultPenStyle, TExport, TPointer } from "@/iink"
 
 describe("Model.ts", () => {
   const width = 100,

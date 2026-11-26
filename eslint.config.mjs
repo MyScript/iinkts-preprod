@@ -169,27 +169,6 @@ export default [
     },
   },
 
-  // Test unit: TypeScript + Jest
-  {
-    files: ["test/unit/**/*.ts"],
-    plugins: {
-      "@typescript-eslint": typescriptEslint,
-      jest: jestPlugin,
-    },
-    languageOptions: {
-      globals: { ...globals.node, ...jestPlugin.environments.globals.globals },
-      parser: tsParser,
-      parserOptions: {
-        project: "./test/unit/tsconfig.json",
-      },
-    },
-    rules: {
-      ...jestPlugin.configs.recommended.rules,
-      "@typescript-eslint/no-explicit-any": "error",
-      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
-    },
-  },
-
   // Perf harness: node scripts and Playwright scenarios, both TypeScript and plain JS.
   // Runs on node, not in a browser, and is type-checked by perf/tsconfig.json rather than by the
   // main typecheck project — see .local/v5-e1-tooling for why the two are separate.

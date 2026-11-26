@@ -1,6 +1,8 @@
+import type { THistoryConfiguration } from "@/iink"
+import { DefaultHistoryConfiguration, getInitialHistoryContext, IHistoryManager } from "@/iink"
+
 import { CanvasEventMock } from "../__mocks__/CanvasEventMock"
 import { buildStrokeV2 } from "../helpers"
-import { THistoryConfiguration, getInitialHistoryContext, IHistoryManager, DefaultHistoryConfiguration } from "@/iink"
 
 describe("IHistoryManager.ts", () => {
   const event = new CanvasEventMock(document.createElement("div"))

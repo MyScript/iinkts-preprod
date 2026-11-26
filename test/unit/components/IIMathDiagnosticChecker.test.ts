@@ -1,5 +1,6 @@
-import { createCanvasMock, asCanvas } from "../__mocks__/createCanvasMock"
-import { type IIJiixQueryManager, IIMathDiagnosticChecker } from "@/iink"
+import { type IIJiixQueryManager, IIMathDiagnosticChecker, type Modal } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../__mocks__/createCanvasMock"
 
 describe("IIMathDiagnosticChecker.ts", () => {
   let canvas: ReturnType<typeof createCanvasMock>
@@ -8,8 +9,12 @@ describe("IIMathDiagnosticChecker.ts", () => {
     canvas = createCanvasMock({
       jiix: {
         getBlockLabel: jest.fn().mockImplementation((id: string) => {
-          if (id === "block-1") return "x + 1"
-          if (id === "block-2") return "2y"
+          if (id === "block-1") {
+            return "x + 1"
+          }
+          if (id === "block-2") {
+            return "2y"
+          }
           return "Unknown"
         }),
       } as unknown as IIJiixQueryManager,
@@ -52,8 +57,8 @@ describe("IIMathDiagnosticChecker.ts", () => {
       const checker = new IIMathDiagnosticChecker(asCanvas(canvas), jiixBlockIds)
 
       // Mock modal to prevent actual DOM operations
-      const showSpy = jest.spyOn(checker as any, "createModalContent")
-      showSpy.mockReturnValue(document.createElement("div"))
+      const showSpy = jest.fn(() => document.createElement("div"))
+      checker["createModalContent"] = showSpy
 
       await checker.show()
 
@@ -70,8 +75,8 @@ describe("IIMathDiagnosticChecker.ts", () => {
 
       const checker = new IIMathDiagnosticChecker(asCanvas(canvas), jiixBlockIds)
 
-      const showSpy = jest.spyOn(checker as any, "createModalContent")
-      showSpy.mockReturnValue(document.createElement("div"))
+      const showSpy = jest.fn(() => document.createElement("div"))
+      checker["createModalContent"] = showSpy
 
       await checker.show()
 
@@ -94,7 +99,7 @@ describe("IIMathDiagnosticChecker.ts", () => {
         destroy: jest.fn(),
         open: jest.fn(),
       }
-      ;(checker as any).modal = mockModal
+      checker["modal"] = mockModal as unknown as Modal
 
       checker.close()
 

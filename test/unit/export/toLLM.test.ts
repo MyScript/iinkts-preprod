@@ -1,5 +1,5 @@
-import { JIIXElementType, JIIXNodeKind, jiixToLLM } from "@/iink"
 import type { TJIIXExport } from "@/iink"
+import { JIIXElementType, JIIXNodeKind, jiixToLLM } from "@/iink"
 
 describe("jiixToLLM", () => {
   test("should return a single text block for a simple Text export", () => {

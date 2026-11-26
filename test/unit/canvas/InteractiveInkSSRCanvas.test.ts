@@ -1,6 +1,24 @@
+import type {
+  TExport,
+  TInteractiveInkSSRCanvasConfiguration,
+  TInteractiveInkSSRCanvasOptions,
+  TPenStyle,
+  TPointer,
+  TTheme,
+  TWebSocketSSRClientMessageSVGPatch,
+} from "@/iink"
+import {
+  CanvasTool,
+  DefaultInteractiveInkSSRCanvasConfiguration,
+  DefaultPenStyle,
+  InteractiveInkSSRCanvas,
+  Model,
+  PointerEventGrabber,
+  WebSocketSSRClient,
+} from "@/iink"
+
 import { WebSocketSSRClientMock } from "../__mocks__/WebSocketSSRClientMock"
 import { buildStroke, delay } from "../helpers"
-import { InteractiveInkSSRCanvas, Model, DefaultInteractiveInkSSRCanvasConfiguration, DefaultPenStyle, TInteractiveInkSSRCanvasConfiguration, TExport, TWebSocketSSRClientMessageSVGPatch, TPointer, TPenStyle, TTheme, WebSocketSSRClient, PointerEventGrabber, CanvasTool, TInteractiveInkSSRCanvasOptions } from "@/iink"
 
 describe("InteractiveInkSSRCanvas.ts", () => {
   const height = 100,
@@ -93,7 +111,7 @@ describe("InteractiveInkSSRCanvas.ts", () => {
       canvas.grabber.attach = jest.fn()
       canvas.renderer.init = jest.fn()
       //@ts-ignore
-      canvas.client.init = jest.fn((height: number, width: number) => {
+      canvas.client.init = jest.fn(() => {
         canvas.client.initialized.resolve()
         return canvas.client.initialized.promise
       })
@@ -110,7 +128,7 @@ describe("InteractiveInkSSRCanvas.ts", () => {
       canvas.grabber.attach = jest.fn()
       canvas.renderer.init = jest.fn()
       //@ts-ignore
-      canvas.client.init = jest.fn((height: number, width: number) => {
+      canvas.client.init = jest.fn(() => {
         canvas.client.initialized.reject("pouet")
         return canvas.client.initialized.promise
       })
@@ -225,7 +243,7 @@ describe("InteractiveInkSSRCanvas.ts", () => {
         expect(canvas.event.emitError).toHaveBeenNthCalledWith(1, "poney")
       })
     })
-    describe("with exportContent = 'POINTER_UP", () => {
+    describe("with exportContent = 'DEMAND", () => {
       const options: TInteractiveInkSSRCanvasOptions = JSON.parse(JSON.stringify(DefaultInteractiveInkSSRCanvasOptions))
       options.configuration!.triggers!.exportContent = "DEMAND"
       const canvas = new InteractiveInkSSRCanvas(document.createElement("div"), options)
@@ -444,7 +462,7 @@ describe("InteractiveInkSSRCanvas.ts", () => {
       await canvas.clear()
       await expect(canvas.client.clear).toHaveBeenCalledTimes(1)
     })
-    test("should call client.clear", async () => {
+    test("should emit cleared", async () => {
       canvas.event.emitCleared = jest.fn()
       await canvas.clear()
       await expect(canvas.event.emitCleared).toHaveBeenCalledTimes(1)

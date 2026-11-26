@@ -1,5 +1,7 @@
-import { describe, test, expect } from "@jest/globals"
-import { MatrixTransform, OBBOps, Polygon2d, TBox, TPoint } from "@/iink"
+import { describe, expect, test } from "@jest/globals"
+
+import type { TBox, TPoint } from "@/iink"
+import { MatrixTransform, OBBOps, Polygon2d } from "@/iink"
 
 /** A 10x10 square, corners on the axes. */
 const SQUARE: TPoint[] = [

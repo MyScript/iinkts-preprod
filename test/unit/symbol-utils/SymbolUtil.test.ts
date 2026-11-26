@@ -1,4 +1,5 @@
-import { BoxOps, MatrixTransform, Geometry2d, Polygon2d, SymbolUtil, TBaseSymbol, TBox, TPartialDeep, TPoint } from "@/iink"
+import type { Geometry2d, TBaseSymbol, TBox, TPartialDeep, TPoint } from "@/iink"
+import { BoxOps, MatrixTransform, Polygon2d, SymbolUtil } from "@/iink"
 
 /** The raw (pre-matrix) box every test double instance answers `computeGeometry` with below. */
 const RAW_BOX: TBox = { x: 0, y: 0, width: 10, height: 10 }
@@ -37,7 +38,6 @@ class TestSymbolUtil extends SymbolUtil<TBaseSymbol> {
     group.setAttribute("id", symbol.id)
     return group
   }
-
 
   /** Exposes the protected `mapPointsForward` to the tests below, unchanged. */
   testMapPointsForward(symbol: TBaseSymbol, points: TPoint[]): TPoint[] {
@@ -106,7 +106,12 @@ describe("SymbolUtil.ts mapPointsForward", () => {
     // Rotate 90° about the origin sends (x, y) to (-y, x); then translate(10, 0) adds (10, 0).
     const symbol = util.create({ transform: { xx: 0, yx: 1, xy: -1, yy: 0, tx: 10, ty: 0 } })
 
-    expect(util.testMapPointsForward(symbol, [{ x: 1, y: 0 }, { x: 0, y: 1 }])).toEqual([
+    expect(
+      util.testMapPointsForward(symbol, [
+        { x: 1, y: 0 },
+        { x: 0, y: 1 },
+      ])
+    ).toEqual([
       { x: 10, y: 1 },
       { x: 9, y: 0 },
     ])

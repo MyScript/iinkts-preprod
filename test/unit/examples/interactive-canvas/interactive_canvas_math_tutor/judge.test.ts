@@ -1,9 +1,8 @@
-import { DEMO_EXERCISES } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/demo-exercises.js"
 import type { TExpression } from "../../../../../examples/assets/js/math/evaluator.js"
+import { DEMO_EXERCISES } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/demo-exercises.js"
 import { measureExercise } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/exercises.js"
 import { judge } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/judge.js"
 import { HINTS, UNFINISHED } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/strings.js"
-
 import { add, eq, missing, mul, num, pi, twoXPlusThreeEqualsSeven, v } from "../../assets/js/math/fixtures"
 
 describe("interactive_canvas_math_tutor/judge", () => {
@@ -108,11 +107,15 @@ describe("interactive_canvas_math_tutor/judge", () => {
 
     test("should solve the exercise whatever the case of its unknown", () => {
       expect(judge(toLines(eq(v("p"), num(20))), perimeter, { finished: true }).solved).toBe(true)
-      expect(judge(toLines(eq(v("a"), mul(num(6), num(4))), eq(v("a"), num(24))), area, { finished: true })).toMatchObject({
+      expect(
+        judge(toLines(eq(v("a"), mul(num(6), num(4))), eq(v("a"), num(24))), area, { finished: true })
+      ).toMatchObject({
         solved: true,
         marks: [{ status: "correct" }, { status: "correct" }],
       })
-      expect(judge(toLines(twoXPlusThreeEqualsSeven, eq(v("X"), num(2))), exercise, { finished: true }).solved).toBe(true)
+      expect(judge(toLines(twoXPlusThreeEqualsSeven, eq(v("X"), num(2))), exercise, { finished: true }).solved).toBe(
+        true
+      )
     })
 
     test("should still check the line and spot its mistake", () => {
@@ -126,8 +129,11 @@ describe("interactive_canvas_math_tutor/judge", () => {
   })
 
   describe("typical mistakes of a shape", () => {
-    const hintOf = (shape: Parameters<typeof measureExercise>[1], quantity: "perimeter" | "area", written: TExpression) =>
-      judge(toLines(written), measureExercise("m", shape, quantity), { finished: true }).marks[0].hint
+    const hintOf = (
+      shape: Parameters<typeof measureExercise>[1],
+      quantity: "perimeter" | "area",
+      written: TExpression
+    ) => judge(toLines(written), measureExercise("m", shape, quantity), { finished: true }).marks[0].hint
     const rectangle = { type: "rectangle", width: 3, height: 4 } as const
 
     test("should spot a perimeter that counts each side once, or that is the area", () => {

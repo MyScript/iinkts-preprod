@@ -1,6 +1,8 @@
-import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
+import type { TGesture } from "@/iink"
+import { GestureHelpers, StrikeThroughAction, StrikeThroughGestureHandler } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../../__mocks__/createCanvasMock"
 import { buildIIStroke } from "../../../helpers"
-import { StrikeThroughGestureHandler, GestureHelpers, TGesture, StrikeThroughAction } from "@/iink"
 
 describe("StrikeThroughGestureHandler.ts", () => {
   let canvas: ReturnType<typeof createCanvasMock>

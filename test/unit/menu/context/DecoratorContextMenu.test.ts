@@ -1,6 +1,17 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
+import type { TDecorator, TIIHistoryChanges, TMath, TSymbol, TText } from "@/iink"
+import {
+  DecoratorContextMenu,
+  DecoratorKind,
+  DecoratorUtil,
+  DefaultStyle,
+  isDecorator,
+  OBBOps,
+  StrokeUtil,
+  SymbolGeometry,
+} from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 import { buildIIMath, buildIIStroke, buildIIText } from "../../helpers"
-import { DecoratorContextMenu, DecoratorKind, DecoratorUtil, DefaultStyle, OBBOps, StrokeUtil, SymbolGeometry, TDecorator, TIIHistoryChanges, TMath, TSymbol, TText, isDecorator } from "@/iink"
 
 describe("DecoratorContextMenu.ts", () => {
   afterEach(() => {

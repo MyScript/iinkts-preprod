@@ -1,14 +1,22 @@
-import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import type { TSymbol, TJIIXMathElement, TJIIXMathNumber, TJIIXMathOperator, TJIIXMathPower, TJIIXStrokeItem } from "@/iink"
+import type {
+  TJIIXMathElement,
+  TJIIXMathNumber,
+  TJIIXMathOperator,
+  TJIIXMathPower,
+  TJIIXStrokeItem,
+  TSymbol,
+} from "@/iink"
 import {
   IIMathComputationSubManager,
   IIModel,
+  isStroke,
   JIIXElementType,
   JIIXMathExpressionType,
   MatrixTransform,
   StrokeUtil,
-  isStroke,
 } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../../__mocks__/createCanvasMock"
 
 type TSolverOutputExpression = TJIIXMathNumber & { "solver-output": true }
 
