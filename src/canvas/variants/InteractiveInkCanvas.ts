@@ -1,9 +1,9 @@
 import type { TExport, TRecognitionWebSocketConfiguration } from "@/client"
 import { WebSocketClient } from "@/client"
 import { DUPLICATE_OFFSET, SELECTION_PADDING } from "@/constants"
-import type { TBox, TDraft, TPartialDeep } from "@/core"
+import type { TBox, TDraft, TPartialDeep, TPoint } from "@/core"
 import { BoxOps, createUUID, isIdentityMatrix, MatrixTransform, mergeDeep, OBBOps, overrideDeep } from "@/core"
-import { DOMFactory, RafCoalescer } from "@/dom"
+import { DOMFactory, RafCoalescer, readBlobAsDataURL, readImageSize } from "@/dom"
 import type { TIIHistoryBackendChanges, TIIHistoryChanges } from "@/history"
 import { appendUpdated, extractIIBackendChanges, IIHistoryManager } from "@/history"
 import type { TDownloadFormat, TExportFormat, TExportOptions, TExportResultMap, TPDFDownloadOptions } from "@/manager"
@@ -39,14 +39,16 @@ import { IIModel } from "@/model"
 import type { TIIRendererConfiguration } from "@/renderer"
 import { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
-import type { TAnchor, TBaseSymbol, TDecorator, TMath, TStroke, TSymbol, TText } from "@/symbol"
+import type { TAnchor, TBaseSymbol, TDecorator, TImage, TMath, TStroke, TSymbol, TText } from "@/symbol"
 import { cloneSymbol, extractStrokes, isDecorator, isMath, isStroke, isStrokeSolverOutput, isText } from "@/symbol"
-import type { SymbolUtil } from "@/symbol-utils"
+import type { SymbolUtil, TImageImportOptions } from "@/symbol-utils"
 import {
   createSymbolFromPartial,
   createSymbolsFromPartial,
   DecoratorUtil,
   EdgeUtil,
+  IMAGE_MIME_TYPES,
+  ImageUtil,
   registerBuiltinSymbolUtils,
   StrokeUtil,
   SymbolGeometry,
@@ -478,6 +480,8 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
 
       this.keyboard.attach()
       this.layers.root.addEventListener("wheel", this.handleWheel)
+      this.layers.root.addEventListener("dragover", this.handleDragOver)
+      this.layers.root.addEventListener("drop", this.handleDrop)
       this.startResizeObserver()
 
       this.history.init(this.model)
@@ -654,6 +658,33 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
   async addSymbol(sym: TSymbol, addToHistory = true): Promise<TSymbol> {
     await this.addSymbols([sym], addToHistory)
     return sym
+  }
+
+  /**
+   * Put a picture on the canvas, under the ink already written: it can be moved, resized, rotated
+   * and written over, and is never sent to the recognizer. One undo step.
+   * @param file - A PNG or JPEG picture
+   * @param options - Where it goes; by default centred in the view, shrunk to fit it
+   * @returns The image symbol added
+   * @throws If the file is not a PNG or JPEG picture the browser can decode
+   */
+  async importImage(file: Blob, options?: TImageImportOptions): Promise<TImage> {
+    try {
+      if (!ImageUtil.isSupportedMimeType(file.type)) {
+        throw new Error(`Unable to import ${file.type || "this file"}, only ${IMAGE_MIME_TYPES.join(", ")}`)
+      }
+      const src = await readBlobAsDataURL(file)
+      const box = ImageUtil.fitBox(await readImageSize(src), this.renderer.getViewBox(), options)
+      const image = ImageUtil.createImage(src, box)
+      await this.addSymbols([image], false)
+      this.model.changeOrderSymbol(image.id, "first")
+      this.renderer.changeOrderSymbol(image, "first")
+      this.history.push({ added: [image], order: { symbols: [image], position: "first" } })
+      this.updateLayerUI()
+      return image
+    } catch (error) {
+      this.#reportAndThrow("importImage", error)
+    }
   }
 
   /**
@@ -1369,6 +1400,30 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
     return symbols?.filter(isMath) ?? []
   }
 
+  /** Accepts a dragged file: without it, the browser opens the file in place of the page on drop. */
+  protected handleDragOver = (event: DragEvent): void => {
+    if (event.dataTransfer?.types.includes("Files")) {
+      event.preventDefault()
+    }
+  }
+
+  /** A picture dropped on the canvas is imported, centred where it was dropped. */
+  protected handleDrop = (event: DragEvent): void => {
+    const file = Array.from(event.dataTransfer?.files ?? []).find((f) => ImageUtil.isSupportedMimeType(f.type))
+    if (!file) {
+      return
+    }
+    event.preventDefault()
+    const center = this.#clientToDocument(event.clientX, event.clientY)
+    this.importImage(file, center ? { center } : undefined).catch(() => undefined)
+  }
+
+  /** A point of the page, in document coordinates: through the inverse of the layer's screen matrix */
+  #clientToDocument(clientX: number, clientY: number): TPoint | undefined {
+    const m = this.renderer.layer.getScreenCTM?.()?.inverse()
+    return m ? { x: m.a * clientX + m.c * clientY + m.e, y: m.b * clientX + m.d * clientY + m.f } : undefined
+  }
+
   protected handleWheel = (event: WheelEvent): void => {
     if (event.ctrlKey || event.metaKey) {
       event.preventDefault()
@@ -1854,6 +1909,8 @@ export class InteractiveInkCanvas extends AbstractCanvas implements TInteractive
 
     this.keyboard.detach()
     this.layers.root.removeEventListener("wheel", this.handleWheel)
+    this.layers.root.removeEventListener("dragover", this.handleDragOver)
+    this.layers.root.removeEventListener("drop", this.handleDrop)
     this.#wheelZoomCoalescer.cancel()
 
     this.layers.root.classList.remove(...this.cursorClasses)

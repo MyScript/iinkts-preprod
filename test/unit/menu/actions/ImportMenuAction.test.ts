@@ -1,6 +1,7 @@
 import { ImportMenuAction } from "@/iink"
 
 import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
+import { buildIIImage } from "../../helpers"
 
 const setInputFiles = (input: HTMLInputElement, files: File[]): void => {
   Object.defineProperty(input, "files", { value: files, configurable: true })
@@ -11,7 +12,7 @@ describe("ImportMenuAction.ts", () => {
     document.body.innerHTML = ""
   })
 
-  test("should build a submenu with a JSON file input", () => {
+  test("should build a submenu with one file input, for symbols and pictures", () => {
     const canvas = createCanvasMock()
     const item = new ImportMenuAction(asCanvas(canvas))
 
@@ -19,8 +20,10 @@ describe("ImportMenuAction.ts", () => {
 
     expect(wrapper.querySelector("#ms-menu-action-import-trigger")).toBeTruthy()
     const input = wrapper.querySelector("#ms-menu-action-import-file-input") as HTMLInputElement
-    expect(input.accept).toEqual(".json")
+    expect(input.accept).toEqual(".json,application/json,image/png,image/jpeg")
     expect(input.multiple).toBe(false)
+    expect(wrapper.querySelectorAll("input[type=file]")).toHaveLength(1)
+    expect(wrapper.textContent).toContain("Symbols (JSON) or image (PNG, JPEG)")
   })
 
   test("should parse the uploaded JSON file and call canvas.createSymbols()", async () => {
@@ -64,5 +67,24 @@ describe("ImportMenuAction.ts", () => {
     } finally {
       global.FileReader = OriginalFileReader
     }
+  })
+
+  test("should import a PNG/JPEG picture picked in the same input with canvas.importImage()", async () => {
+    const canvas = createCanvasMock()
+    canvas.importImage = jest.fn(() => Promise.resolve(buildIIImage()))
+    const item = new ImportMenuAction(asCanvas(canvas))
+    const wrapper = item.getElement()
+    document.body.appendChild(wrapper)
+    const input = wrapper.querySelector("#ms-menu-action-import-file-input") as HTMLInputElement
+    const button = input.parentElement?.querySelector("button") as HTMLButtonElement
+    const file = new File(["x"], "board.png", { type: "image/png" })
+    setInputFiles(input, [file])
+    input.dispatchEvent(new Event("change"))
+
+    button.dispatchEvent(new Event("pointerup", { bubbles: true, cancelable: true }))
+    await Promise.resolve()
+
+    expect(canvas.importImage).toHaveBeenCalledWith(file)
+    expect(canvas.createSymbols).not.toHaveBeenCalled()
   })
 })

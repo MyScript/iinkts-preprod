@@ -125,6 +125,18 @@ export class SVGBuilder {
     return rectEl
   }
 
+  static createImage(box: TBox, attrs: { [key: string]: string } = {}): SVGImageElement {
+    const imageEl = document.createElementNS(XMLNS, "image")
+    imageEl.setAttribute("x", box.x.toString())
+    imageEl.setAttribute("y", box.y.toString())
+    imageEl.setAttribute("width", box.width.toString())
+    imageEl.setAttribute("height", box.height.toString())
+    for (const k in attrs) {
+      imageEl.setAttribute(k, attrs[k])
+    }
+    return imageEl
+  }
+
   static createTSpan(text: string, attrs: { [key: string]: string } = {}): SVGTSpanElement {
     const tSpanEl = document.createElementNS(XMLNS, "tspan")
     tSpanEl.textContent = text

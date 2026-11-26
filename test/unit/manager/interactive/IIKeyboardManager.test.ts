@@ -8,6 +8,7 @@ function buildMockCanvas() {
     model: { symbolsSelected },
     copy: jest.fn(),
     paste: jest.fn(() => Promise.resolve()),
+    importImage: jest.fn(() => Promise.resolve()),
     cut: jest.fn(() => Promise.resolve()),
     undo: jest.fn(() => Promise.resolve()),
     redo: jest.fn(() => Promise.resolve()),
@@ -289,10 +290,78 @@ describe("IIKeyboardManager", () => {
       expect(mockCanvas.copy).toHaveBeenCalledTimes(1)
     })
 
+    // jsdom has no ClipboardEvent: a plain event carries the clipboard files
+    const pasteEvent = (files: File[] = []) => {
+      const event = new Event("paste", { cancelable: true })
+      Object.defineProperty(event, "clipboardData", { value: { files } })
+      return event
+    }
+    const pressCtrlV = () => window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key: "v" }))
+
     it("should call canvas.paste on Ctrl+V", () => {
-      const event = new KeyboardEvent("keydown", { ctrlKey: true, key: "v" })
-      window.dispatchEvent(event)
+      pressCtrlV()
+      window.dispatchEvent(pasteEvent())
       expect(mockCanvas.paste).toHaveBeenCalledTimes(1)
+      expect(mockCanvas.importImage).not.toHaveBeenCalled()
+    })
+
+    it("should import a picture held by the system clipboard instead of pasting the copied symbols", () => {
+      const file = new File(["x"], "board.png", { type: "image/png" })
+      pressCtrlV()
+      const event = pasteEvent([file])
+      window.dispatchEvent(event)
+      expect(event.defaultPrevented).toBe(true)
+      expect(mockCanvas.importImage).toHaveBeenCalledWith(file)
+      expect(mockCanvas.paste).not.toHaveBeenCalled()
+    })
+
+    it("should paste the copied symbols when the browser sends no paste event", () => {
+      jest.useFakeTimers()
+      try {
+        pressCtrlV()
+        jest.runAllTimers()
+        expect(mockCanvas.paste).toHaveBeenCalledTimes(1)
+      } finally {
+        jest.useRealTimers()
+      }
+    })
+
+    it("should paste once, whether the paste event or the fallback comes first", () => {
+      jest.useFakeTimers()
+      try {
+        pressCtrlV()
+        window.dispatchEvent(pasteEvent())
+        jest.runAllTimers()
+        expect(mockCanvas.paste).toHaveBeenCalledTimes(1)
+      } finally {
+        jest.useRealTimers()
+      }
+    })
+
+    it.each(["c", "x"])(
+      "should empty the system clipboard on Ctrl+%s, so a picture copied earlier is not pasted instead",
+      (key) => {
+        const writeText = jest.fn(() => Promise.resolve())
+        Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true })
+        try {
+          window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key }))
+          expect(writeText).toHaveBeenCalledWith("")
+        } finally {
+          Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true })
+        }
+      }
+    )
+
+    it("should still copy where the system clipboard is out of reach", () => {
+      Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true })
+      window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key: "c" }))
+      expect(mockCanvas.copy).toHaveBeenCalledTimes(1)
+    })
+
+    it("should leave alone a paste it did not start, such as one in a text field", () => {
+      window.dispatchEvent(pasteEvent([new File(["x"], "board.png", { type: "image/png" })]))
+      expect(mockCanvas.importImage).not.toHaveBeenCalled()
+      expect(mockCanvas.paste).not.toHaveBeenCalled()
     })
 
     it("should call canvas.cut on Ctrl+X", () => {
@@ -315,8 +384,9 @@ describe("IIKeyboardManager", () => {
       window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true }))
       expect(mockCanvas.tool).toBe(CanvasTool.Move)
 
-      // Ctrl+V → Select immediately, clears #toolBeforeCtrl
-      window.dispatchEvent(new KeyboardEvent("keydown", { ctrlKey: true, key: "v" }))
+      // Ctrl+V → Select once the symbols are pasted, clears #toolBeforeCtrl
+      pressCtrlV()
+      window.dispatchEvent(pasteEvent())
       expect(mockCanvas.tool).toBe(CanvasTool.Select)
 
       // Ctrl released → #toolBeforeCtrl is cleared → no restore

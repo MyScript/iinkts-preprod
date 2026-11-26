@@ -5,6 +5,7 @@ import type {
   TEdge,
   TEdgeLine,
   TEraser,
+  TImage,
   TInteractiveInkCanvas,
   TMath,
   TMathElement,
@@ -27,6 +28,7 @@ import {
   Ellipse2d,
   EraserOps,
   HIT_TOLERANCE,
+  ImageUtil,
   MathUtil,
   OBBOps,
   Polygon2d,
@@ -140,6 +142,17 @@ export function buildIILine({
   style = DefaultStyle,
 }: { start?: TPoint; end?: TPoint; style?: TPartialDeep<TStyle> } = {}): TEdgeLine {
   return EdgeUtil.createLine(start, end, undefined, undefined, style)
+}
+
+/** A 1×1 transparent PNG, the smallest image a test can carry */
+export const PNG_1PX_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+
+export function buildIIImage({
+  box = { x: 10, y: 20, width: 100, height: 50 },
+  src = PNG_1PX_DATA_URL,
+}: { box?: TBox; src?: string } = {}): TImage {
+  return ImageUtil.createImage(src, box)
 }
 
 export function buildIIText({

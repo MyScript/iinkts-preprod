@@ -35,8 +35,8 @@ import type { IIMenuManager } from "@/menu"
 import type { IIModel } from "@/model"
 import type { SVGRenderer, TIIRendererConfiguration } from "@/renderer"
 import type { TStyle } from "@/style"
-import type { TBaseSymbol, TStroke, TSymbol } from "@/symbol"
-import type { SymbolUtil } from "@/symbol-utils"
+import type { TBaseSymbol, TImage, TStroke, TSymbol } from "@/symbol"
+import type { SymbolUtil, TImageImportOptions } from "@/symbol-utils"
 
 import type { CanvasEvent, TCanvasConnectionState } from "./CanvasEvent"
 import type { CanvasLayer } from "./CanvasLayer"
@@ -131,6 +131,7 @@ export type TInteractiveInkCanvas = {
   lockSymbols(ids: string[], addToHistory?: boolean): Promise<TSymbol[]>
   unlockSymbols(ids: string[], addToHistory?: boolean): Promise<TSymbol[]>
   extractStrokesFromSymbols(symbols: TSymbol[] | undefined): TStroke[]
+  importImage(file: Blob, options?: TImageImportOptions): Promise<TImage>
   duplicate(symbols?: TSymbol[]): Promise<TSymbol[]>
 
   // ── Selection ──────────────────────────────────────────────────────

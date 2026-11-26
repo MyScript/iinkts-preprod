@@ -128,9 +128,9 @@ describe("symbolRegistry", () => {
     })
 
     it("should match the TSymbol union, which is what the model actually stores", () => {
-      // Guards the guard: the list above is only meaningful if it tracks the union. Six members —
-      // stroke, text, math, shape, edge, decorator.
-      expect(Object.values(SymbolType).length - NON_DOCUMENT_TYPES.length).toBe(6)
+      // Guards the guard: the list above is only meaningful if it tracks the union. Seven members —
+      // stroke, text, math, shape, edge, decorator, image.
+      expect(Object.values(SymbolType).length - NON_DOCUMENT_TYPES.length).toBe(7)
     })
   })
 })

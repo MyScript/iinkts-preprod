@@ -141,7 +141,11 @@ export class EraseManager {
             this.deletingIds.add(s.id)
             this.renderer.updateDeletingState(s, true)
           }
-        } else if (symbolRegistry.has(s.type) && this.#isHitByPoint(s, currentPoint, radius)) {
+        } else if (
+          symbolRegistry.has(s.type) &&
+          symbolRegistry.getUtilFor(s).canErase(s) &&
+          this.#isHitByPoint(s, currentPoint, radius)
+        ) {
           this.deletingIds.add(s.id)
           this.renderer.updateDeletingState(s, true)
         }

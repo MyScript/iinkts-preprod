@@ -2,7 +2,7 @@ import type { TBaseSymbol, TInkCanvas, TPointerInfo, TSymbol } from "@/iink"
 import { EraseManager, registerBuiltinSymbolUtils, symbolRegistry, SymbolType } from "@/iink"
 
 import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
-import { buildIICircle, buildIIEraser, buildIIStroke, buildIIText } from "../../helpers"
+import { buildIICircle, buildIIEraser, buildIIImage, buildIIStroke, buildIIText } from "../../helpers"
 
 describe("EraseManager.ts", () => {
   test("should create", () => {
@@ -214,6 +214,26 @@ describe("plain Ink hit-testing avoids redundant geometry recomputation", () => 
       manager.start({ pointer: { dt: 3, p: 0.5, x: 6, y: 6 } } as TPointerInfo)
       manager.continue({ pointer: { dt: 4, p: 0.5, x: 6, y: 6 } } as TPointerInfo)
       expect(canvas.event.emitLockedRefused).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  describe("images", () => {
+    test("an image under the eraser stays, the ink drawn over it goes", () => {
+      registerBuiltinSymbolUtils()
+      const canvas = createCanvasMock()
+      const manager = new EraseManager(asCanvas(canvas))
+      manager.renderer.drawSymbol = jest.fn()
+      manager.renderer.updateDeletingState = jest.fn()
+      const image = buildIIImage({ box: { x: 0, y: 0, width: 100, height: 100 } })
+      const stroke = buildIIStroke()
+      canvas.model.addSymbol(image)
+      canvas.model.addSymbol(stroke)
+      manager.start({ pointer: { dt: 1, p: 0.5, x: 6, y: 6 } } as TPointerInfo)
+      manager.continue({ pointer: { dt: 2, p: 0.5, x: 6, y: 6 } } as TPointerInfo)
+      // on the image's border too
+      manager.continue({ pointer: { dt: 3, p: 0.5, x: 0, y: 50 } } as TPointerInfo)
+      expect(manager.deletingIds.has(image.id)).toBe(false)
+      expect(manager.deletingIds.has(stroke.id)).toBe(true)
     })
   })
 })
