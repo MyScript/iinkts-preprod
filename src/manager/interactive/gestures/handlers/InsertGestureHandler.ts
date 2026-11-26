@@ -208,10 +208,13 @@ export class InsertGestureHandler extends GestureHandler {
       (s) => symbolRegistry.has(s.type) && this.isSymbolBelow(gestureStroke, s)
     )
 
+    // `textToSplit` comes from the document, frozen: `setBounds` below writes each char's bounds,
+    // so the new texts are built from a clone of its chars.
+    const { chars } = cloneSymbol(textToSplit)
     // `c.bounds` below is a typeset child's own box (`TSymbolChar`, not a `TSymbol`) — it has no
     // registered util and is out of `SymbolGeometry`'s scope, so it stays a direct field read.
-    const charsBefore = textToSplit.chars.filter((c) => c.bounds.x + c.bounds.width / 2 <= gestureBounds.center.x)
-    const charsAfter = textToSplit.chars.filter((c) => c.bounds.x + c.bounds.width / 2 > gestureBounds.center.x)
+    const charsBefore = chars.filter((c) => c.bounds.x + c.bounds.width / 2 <= gestureBounds.center.x)
+    const charsAfter = chars.filter((c) => c.bounds.x + c.bounds.width / 2 > gestureBounds.center.x)
     const newTexts: TText[] = []
     if (charsBefore.length && charsAfter.length) {
       const textBefore = TextUtil.createText(

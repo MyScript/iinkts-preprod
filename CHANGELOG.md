@@ -41,6 +41,9 @@ Full record: [changelog/5.1.0.md](changelog/5.1.0.md)
 **Export**
 - `exportAs("text")` / `download("text")` added the id of a shape's block (`raw-content 31`) to the recognized text · [details](changelog/5.1.0.md#bug-fixes)
 
+**Gestures**
+- The insert gesture on converted text did nothing: the text was not split and the gesture stroke vanished · [details](changelog/5.1.0.md#bug-fixes)
+
 # [v5.0.0](https://github.com/MyScript/iinkTS/tree/v5.0.0)
 
 Full record: [changelog/5.0.0.md](changelog/5.0.0.md)

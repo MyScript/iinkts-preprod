@@ -10,6 +10,7 @@ import {
   SymbolGeometry,
   type TGesture,
   type TStroke,
+  type TText,
 } from "@/iink"
 
 import { asCanvas, createCanvasMock } from "../../../__mocks__/createCanvasMock"
@@ -150,8 +151,8 @@ describe("InsertGestureHandler.ts", () => {
   })
 
   describe("computeChangesOnSplitText", () => {
-    test("should keep the underline/strikethrough decorators on both parts of a split word", () => {
-      const textToSplit = buildIIText({
+    const buildHelloText = (): TText =>
+      buildIIText({
         chars: [
           {
             id: "char-1",
@@ -172,6 +173,9 @@ describe("InsertGestureHandler.ts", () => {
         ],
         boundingBox: { x: 0, y: 10, width: 30, height: 16 },
       })
+
+    test("should keep the underline/strikethrough decorators on both parts of a split word", () => {
+      const textToSplit = buildHelloText()
       textToSplit.decorators.push(DecoratorUtil.createDecorator(DecoratorKind.Underline, textToSplit.style))
 
       canvas.model.addSymbol(textToSplit)
@@ -186,6 +190,25 @@ describe("InsertGestureHandler.ts", () => {
       changes.replaced?.newSymbols.forEach((newText) => {
         expect((newText as typeof textToSplit).decorators.map((d) => d.kind)).toContain(DecoratorKind.Underline)
       })
+    })
+
+    test("should split a text read from the document, whose chars are frozen", () => {
+      // The typesetter writes each char's bounds, like IITypesetManager#setCharsBounds
+      canvas.typeset.setBounds = jest.fn((text: TText) => {
+        text.chars.forEach((c) => (c.bounds = { ...c.bounds }))
+      })
+      const textToSplit = buildHelloText()
+      const frozenText = Object.freeze({
+        ...textToSplit,
+        chars: textToSplit.chars.map((c) => Object.freeze({ ...c })),
+      })
+      const gestureStroke = buildIIStroke()
+      StrokeUtil.addPointer(gestureStroke, { x: 15, y: 10, p: 1, dt: 100 })
+      StrokeUtil.addPointer(gestureStroke, { x: 15, y: 26, p: 1, dt: 200 })
+
+      const changes = handler.computeChangesOnSplitText(gestureStroke, frozenText, InsertAction.Insert)
+
+      expect(changes.replaced?.newSymbols).toHaveLength(2)
     })
   })
 
