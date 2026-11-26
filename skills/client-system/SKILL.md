@@ -55,7 +55,15 @@ Auth is a **message-field challenge/response**, not an HTTP header (that's HTTP-
 // 4. Session init (fresh) or restore (existing sessionId)
 → { type: 'initSession', ... }   // or { type: 'restoreSession', ... }
 ← { type: 'sessionDescription', ... }
+
+// 4bis. Or start from a session package (server 4.6.0+, see "Session package" below)
+→ { type: 'importPackage', importId, size, scaleX, scaleY, ... }
+→ { type: 'importPackageChunk', importId, data, lastChunk }   // one per chunk
+← { type: 'importPackageChunkAck', importId, chunkIdx }       // one per chunk
+← { type: 'sessionDescription', ... }                         // new iinkSessionId, then openContentPart
 ```
+
+`restoreSession` is sent only when `configuration.server.serverSideRecovery` is not `false`. **Default is `false`**: the field goes out as `serverSideRecovery: false` in `initSession`/`importPackage` (left out otherwise, so an older server still accepts the session), the server does not save the session, and the client never sends `restoreSession` — see "Reconnection" below.
 
 **HMAC computation**: [src/client/shared/crypto.ts](src/client/shared/crypto.ts) — `computeHmac(message, applicationKey, hmacKey)`. Concatenates `applicationKey + hmacKey` as the HMAC-SHA-512 key (via WebCrypto `crypto.subtle`), signs `message`, hex-encodes. Clients go through `resolveHmac` ([src/client/shared/HmacAuth.ts](src/client/shared/HmacAuth.ts)), which prefers `server.sign` (signature from the integrator's server, key never in the browser) over a string `hmacKey`.
 
@@ -108,7 +116,26 @@ There is **no `convert` message** on the WebSocket protocol — conversion is an
 
 There is **no `close`/`closed` JSON message**. Closing the session is a native `WebSocket.close(code, reason)` call, handled via the native `CloseEvent`, not a protocol message.
 
-**Type definitions**: [src/client/websocket/WebSocketClientMessage.ts](src/client/websocket/WebSocketClientMessage.ts) — full server→client enum `TWebSocketClientMessageType`: `hmacChallenge, authenticated, sessionDescription, newPart, partChanged, configurationChanged, contentChanged, idle, pong, exported, gestureDetected, contextlessGesture, mathSolverResult, error, ack`.
+**Type definitions**: [src/client/websocket/WebSocketClientMessage.ts](src/client/websocket/WebSocketClientMessage.ts) — full server→client enum `TWebSocketClientMessageType`: `hmacChallenge, authenticated, sessionDescription, newPart, partChanged, configurationChanged, contentChanged, idle, pong, exported, gestureDetected, contextlessGesture, mathSolverResult, error, ack, packageInfo, packageChunk, importPackageChunkAck`. Server messages are routed by the `messageHandlers` map (one `manage*` method per type, overridable).
+
+Outgoing messages are split under `maxMessageBytes` (256 KiB): the docker backend closes the socket with `1009` above ~400 KB.
+
+### 5. Session package (server 4.6.0+)
+
+The whole server session as a `.iink` package, to start a new session from later. Gate: `supportsSessionPackage(version)` ([src/client/websocket/SessionPackage.ts](src/client/websocket/SessionPackage.ts)) and the `client.sessionPackageSupported` getter.
+
+```typescript
+→ { type: 'exportPackage' }                        // server waits for idle first
+← { type: 'packageInfo', exportId, size, chunkCount }
+← { type: 'packageChunk', exportId, chunkIdx, data /* base64 */, lastChunk }   // one per chunk
+
+const bytes = await client.exportPackage()          // queued in packageQueue, undefined if closed meanwhile
+await client.importPackage(bytes, partId)           // closes the socket, re-runs init() through 4bis above
+```
+
+- Stroke ids are kept across export/import (the server stores the client↔native id map in the package).
+- A server announcing 4.6.0 without the feature answers `exportPackage` with `api.mapping.error`: the client sets `packageRefused` (so `sessionPackageSupported` turns false for good) and rejects with `ClientError.SESSION_PACKAGE_UNSUPPORTED`, without a canvas error event.
+- The `.iinkts` file (client model + this package) and its UI live above the client, in `IISessionManager` (`canvas.session`), not here.
 
 ### Event emission
 
@@ -200,6 +227,8 @@ One path, in `WebSocketClient.ts`, switched by `server.websocket.autoReconnect` 
 
 1. **Changes are queued** — `sendChange()` queues every change made while disconnected (`enqueueOfflineMessage`, max `offlineQueueMaxSize`) and `startReconnectLoop()` retries `init()` every `reconnectDelay` ms (default 3000) up to `maxReconnectAttempts` (default 10). On reconnect, `onConnected()` replays the queue in order (`drainOfflineQueue()`), then settles `reconnection`.
 2. **Requests wait** — `send()` on a closed socket awaits `waitForReconnection()`, so a request goes after the replay; when the loop gives up (`giveUpReconnecting()`), the queue and the waiting requests reject and `CONNECTION_STATUS_CHANGED: "error"` is emitted.
+
+**Lost server session** — the server answered `restore.session.not.found`, or `serverSideRecovery` is `false` (the default, so after every drop): `connect()` calls `forgetServerSession()` and never sends `restoreSession`. If a `TSessionRecovery` is set (`client.setSessionRecovery(...)`, wired by `IISessionManager` from `configuration.persistence`), the new session starts from `recovery.package()` through `importPackage` (once — if the import fails, the next attempt starts empty), then `recoverLostSession()` drops the offline queue (meant for the lost session) and calls `recovery.recover(imported)` to send what changed since the snapshot. Without a recovery, a new empty session and a `NO_SESSION_FOUND` error.
 
 Each `connect()` gets a fresh `initialized` and closes a socket a failed attempt left open; `connectingPromise` / `closingPromise` keep a reconnection from racing a deliberate `close()`/`newSession()`. `maxRetryCount` is read by `WebSocketSSRClient` only.
 

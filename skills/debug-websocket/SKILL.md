@@ -55,6 +55,10 @@ Filter the console on `from: "CLIENT."` to isolate client logs.
 ← exported
 ```
 
+Starting from a session package (session restored from a `.iinkts` file, or automatic recovery after a lost session), `initSession` is replaced by `importPackage` + N × `importPackageChunk` (each answered by `importPackageChunkAck`), then `sessionDescription` with a **new** `iinkSessionId`. Saving the session shows `exportPackage` → `packageInfo` → N × `packageChunk`. Both need server 4.6.0+.
+
+No `restoreSession` after a drop is **expected** by default: `configuration.server.serverSideRecovery` defaults to `false`, the server does not keep the session, the client resumes from its own snapshot (see Reconnection below).
+
 There is no `newContentPackage`/`configuration`/`waitForIdle`→`idle` handshake pair as a distinct step in that order — `waitForIdle()` is a client-side promise that resolves once an `idle` message arrives, callable any time, not part of the initial handshake.
 
 **Auth message shapes** (`WebSocketClientMessage.ts`):
@@ -81,19 +85,19 @@ Real codes are standard WebSocket close codes, mapped in `mapCloseCodeToMessage(
 | `1006` | `ABNORMAL_CLOSURE` | MyScript recognition server not reachable |
 | `1007` | `INVALID_FRAME_PAYLOAD` | Message contained inconsistent data (e.g. non-UTF-8) |
 | `1008` | `POLICY_VIOLATION` | Message violates server policy |
-| `1009` | `MESSAGE_TOO_BIG` | Data frame too large |
+| `1009` | `MESSAGE_TOO_BIG` | Data frame too large — the client splits every send under `maxMessageBytes` (256 KiB); the docker backend cuts at ~400 KB |
 | `1011` | `INTERNAL_ERROR` | Server encountered an unexpected condition |
 | `1012` | `SERVICE_RESTART` | Server is restarting |
 | `1013` | `TRY_AGAIN` | Server temporarily overloaded, casting off clients |
 | `1014` | `BAD_GATEWAY` | Server acting as gateway/proxy got an invalid upstream response |
 | `1015` | `TLS_HANDSHAKE` | TLS handshake failure |
 
-`ClientError` also defines session-level messages not tied to a WS close code: `NO_ACTIVITY` (auto-closed after an hour idle), `WRONG_CREDENTIALS`, `TOO_OLD` (max session duration reached), `NO_SESSION_FOUND`, `UNKNOWN`, `CANT_ESTABLISH`.
+`ClientError` also defines session-level messages not tied to a WS close code: `NO_ACTIVITY` (auto-closed after an hour idle), `WRONG_CREDENTIALS`, `TOO_OLD` (max session duration reached), `NO_SESSION_FOUND`, `UNKNOWN`, `CANT_ESTABLISH`, `SESSION_PACKAGE_UNSUPPORTED` (server answered `exportPackage` with `api.mapping.error`: it announces 4.6.0 but lacks the feature — `client.sessionPackageSupported` turns false for the rest of the session).
 
 Fix guidance:
 - `1006`/`CANT_ESTABLISH` → check network/host reachability, let the built-in reconnection run (see Reconnection below) rather than hand-rolling retry logic.
 - `WRONG_CREDENTIALS` → check `applicationKey` and `sign`/`hmacKey` in `configuration.server` (with `sign`, check what the signing server returns).
-- `NO_SESSION_FOUND`/`TOO_OLD` → re-`init()` a new session; export first if you need to preserve content (`ClientError.NO_SESSION_FOUND` message explicitly recommends export-then-reimport to avoid losing work).
+- `NO_SESSION_FOUND`/`TOO_OLD` → with a session recovery set (`configuration.persistence`, server 4.6.0+) the client recovers by itself and emits no error; otherwise re-`init()` a new session, export first if you need to preserve content.
 
 ## Trace Recognition Pipeline in Code
 
@@ -150,6 +154,7 @@ One reconnection path in `WebSocketClient.ts` — if changes seem to vanish afte
 
 - With `configuration.server.websocket.autoReconnect` true (default), every change made while disconnected (`addStrokes`, `replaceStrokes`, `eraseStrokes`, transforms, `undo`, `redo`, `clear`) is queued (max `offlineQueueMaxSize`, default `50`) and replayed in order once reconnected; requests that wait on an answer (`export`, `waitForIdle`, math solver, gestures, `sendToSupport`) wait for the reconnection and go after the replay.
 - A reconnect loop retries every `reconnectDelay` ms (default `3000`) up to `maxReconnectAttempts` (default `10`), then gives up: the queue and the waiting requests reject and a `CONNECTION_STATUS_CHANGED: "error"` event is emitted.
+- **Lost server session** (`restore.session.not.found`, or any reconnection when `serverSideRecovery` is `false`, the default): the queued changes are **dropped on purpose** — they targeted the lost session. With a `TSessionRecovery` set by `IISessionManager`, the new session imports the last snapshot package (once; a failed import falls back to an empty session) and `recover(imported)` resends what changed since. Without one: empty session + `NO_SESSION_FOUND`. If content vanishes after a drop, check `configuration.persistence` and the server version (< 4.6.0 = no package, strokes resent).
 - With `autoReconnect` false, changes and requests reject at once while disconnected. `maxRetryCount` is read by `WebSocketSSRClient` only.
 
 ## Checking Connection State
