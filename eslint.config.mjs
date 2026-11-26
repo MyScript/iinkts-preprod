@@ -13,6 +13,52 @@ import simpleImportSort from "eslint-plugin-simple-import-sort"
 import globals from "globals"
 
 import barrelImports from "./config/eslint-plugin-barrel-imports.mjs"
+import layers, { validateLayers } from "./config/eslint-plugin-layers.mjs"
+
+const iink = { rules: { ...barrelImports.rules, ...layers.rules } }
+
+// Layers of `src/`, bottom up: a folder imports only from a lower layer (config/eslint-plugin-layers.mjs).
+// `core` stays DOM-free so the library runs headless, `dom` is the only bottom layer touching the DOM.
+const LAYERS = {
+  layers: [
+    ["core", "constants", "dom", "assets", "logger", "worker"],
+    ["i18n", "style"],
+    ["ui", "style-css", "symbol"],
+    ["symbol-utils", "store", "grabber"],
+    ["client"],
+    ["model"],
+    ["history", "renderer", "export"],
+    ["manager"],
+    ["components", "smartguide"],
+    ["menu"],
+    ["canvas"],
+  ],
+  only: {
+    // translates labels for every layer showing one, so it stands on core alone
+    i18n: ["core"],
+    // generic widgets: they know nothing about a canvas, a manager, a symbol or the client — that is
+    // the whole difference between them and the interactive widgets left in `components/`
+    ui: ["dom", "core", "logger", "constants", "i18n"],
+  },
+  typeOnly: {
+    // the folders above the canvas name its contract as a type, never import a value from it: a
+    // value import is what makes the dependency real at runtime and what turned `manager` and
+    // `menu` into cycles with `canvas`
+    canvas: ["manager", "menu", "components", "history", "smartguide"],
+  },
+  // Accepted debt, may only shrink: an exception no longer needed fails the lint
+  exceptions: [
+    // the client is meant to stand alone (roadmap P3.11): it still names history and model types
+    { file: "src/client/shared/ClientEvent.ts", target: "history" },
+    { file: "src/client/websocket/WebSocketClient.ts", target: "history" },
+    { file: "src/client/websocket/WebSocketClientMessage.ts", target: "history" },
+    { file: "src/client/http/HTTPClientV1.ts", target: "model" },
+    { file: "src/client/websocket/WebSocketSSRClient.ts", target: "model" },
+    // math variable colors and labels, owned by the component that shows them
+    { file: "src/manager/interactive/math/IIMathVariableSubManager.ts", target: "components" },
+  ],
+}
+validateLayers(LAYERS)
 
 const compat = new FlatCompat({
   baseDirectory: path.dirname(fileURLToPath(import.meta.url)),
@@ -105,18 +151,20 @@ export default [
   },
 
   // Imports: across folders only through the folder barrel, relative inside a folder, `constants`
-  // is a leaf (see config/eslint-plugin-barrel-imports.mjs). And no runtime import cycle: type
-  // imports are ignored. The TypeScript settings are required — without them `no-cycle` parses no
+  // is a leaf (see config/eslint-plugin-barrel-imports.mjs), each folder only from a lower layer
+  // (LAYERS above). And no runtime import cycle: type imports are ignored. The TypeScript settings are required — without them `no-cycle` parses no
   // `.ts` dependency and stays silent even on a two-file cycle.
   {
     files: ["src/**/*.ts"],
-    plugins: { iink: barrelImports, "import-x": importX },
+    plugins: { iink, "import-x": importX },
     settings: {
       ...importX.flatConfigs.typescript.settings,
       "import-x/resolver-next": [createTypeScriptImportResolver({ project: "./tsconfig.json" })],
     },
     rules: {
       "iink/barrel-imports": "error",
+      // Layer boundaries of every src folder, see LAYERS above
+      "iink/layers": ["error", LAYERS],
       "import-x/no-cycle": "error",
     },
   },
@@ -213,83 +261,10 @@ export default [
     },
   },
 
-  // Layer boundary: renderer must not import from manager or canvas
-  {
-    files: ["src/renderer/**/*.ts"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            { group: ["*/manager*", "**/manager/**"], message: "renderer layer must not import from manager" },
-            { group: ["@/canvas", "@/canvas/**"], message: "renderer layer must not import from canvas" },
-            { group: ["*/menu*", "**/menu/**"], message: "renderer layer must not import from menu" },
-          ],
-        },
-      ],
-    },
-  },
-
-  // Layer boundary: symbol must not import from manager, renderer, canvas, or menu
-  {
-    files: ["src/symbol/**/*.ts"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            { group: ["*/manager*", "**/manager/**"], message: "symbol layer must not import from manager" },
-            { group: ["*/renderer*", "**/renderer/**"], message: "symbol layer must not import from renderer" },
-            { group: ["@/canvas", "@/canvas/**"], message: "symbol layer must not import from canvas" },
-            { group: ["*/menu*", "**/menu/**"], message: "symbol layer must not import from menu" },
-          ],
-        },
-      ],
-    },
-  },
-
-  // Layer boundary: core is the bottom layer - it may not import from anywhere else in src/
-  {
-    files: ["src/core/**/*.ts"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: ["@/*", "@/**", "!@/core", "!@/core/**"],
-              message: "core is the bottom layer and must not import from anywhere else in src/",
-            },
-          ],
-        },
-      ],
-    },
-  },
-
-  // Layer boundary: model must not import from manager, renderer, canvas, or menu
-  {
-    files: ["src/model/**/*.ts"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            { group: ["*/manager*", "**/manager/**"], message: "model layer must not import from manager" },
-            { group: ["*/renderer*", "**/renderer/**"], message: "model layer must not import from renderer" },
-            { group: ["@/canvas", "@/canvas/**"], message: "model layer must not import from canvas" },
-            { group: ["*/menu*", "**/menu/**"], message: "model layer must not import from menu" },
-          ],
-        },
-      ],
-    },
-  },
-
-  // Layer boundary: the folders above the canvas may name its contract as a TYPE, never import a
-  // value from it. A value import is what makes the dependency real at runtime and what turned
-  // `manager` and `menu` into cycles with `canvas`; the ~100 `import type` references to
-  // `TInteractiveInkCanvas` are how a manager is typed against its host and must keep working.
-  // This uses the typescript-eslint variant of the rule because only it understands
-  // `allowTypeImports` — the base rule bans both kinds.
+  // The folders above the canvas depend on its contract (`TInkCanvas` / `TInteractiveInkCanvas`),
+  // never on a concrete variant: `implements` only guards the contract in one direction, and a
+  // member added to the class does not make the interface stale to the compiler. The
+  // `*Configuration` types are part of the contracts and stay allowed.
   {
     files: [
       "src/manager/**/*.ts",
@@ -298,29 +273,7 @@ export default [
       "src/history/**/*.ts",
       "src/smartguide/**/*.ts",
     ],
-    plugins: {
-      "@typescript-eslint": typescriptEslint,
-    },
     rules: {
-      "@typescript-eslint/no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: ["@/canvas", "@/canvas/**"],
-              allowTypeImports: true,
-              message:
-                "this layer sits above the canvas: import its contract as a type (`import type`), never a value",
-            },
-          ],
-        },
-      ],
-      // A second, separate rule on purpose. The typescript-eslint variant above skips type imports
-      // whenever its options carry `allowTypeImports`, whatever the group — so a stricter group put
-      // beside that one is silently inert. The base rule has no such notion and bans both kinds,
-      // which is what naming a concrete canvas deserves: `implements` only guards the contract in
-      // one direction, and a member added to the class does not make the interface stale to the
-      // compiler. The `*Configuration` types are part of the contracts and stay allowed.
       "no-restricted-imports": [
         "error",
         {
@@ -353,65 +306,6 @@ export default [
             {
               group: ["./variants/*", "@/canvas/variants/*", "!*Configuration"],
               message: "the canvas contract level must not depend on a concrete variant",
-            },
-          ],
-        },
-      ],
-    },
-  },
-
-  // Layer boundary: `dom` is a bottom layer, like `core`, and may not import from anywhere else in
-  // `src/`. It is the only bottom layer allowed to touch the DOM — `core` stays DOM-free so the
-  // library runs headless and the client can be installed in Node — which is exactly why nothing
-  // above it may be pulled in from here.
-  {
-    files: ["src/dom/**/*.ts"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: ["@/*", "@/**", "!@/dom", "!@/dom/**"],
-              message: "dom is a bottom layer and must not import from anywhere else in src/",
-            },
-          ],
-        },
-      ],
-    },
-  },
-
-  // Layer boundary: `i18n` only translates labels, every layer showing one may use it — so it stands on core alone
-  {
-    files: ["src/i18n/**/*.ts"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: ["@/*", "@/**", "!@/core", "!@/core/**"],
-              message: "i18n may only depend on core",
-            },
-          ],
-        },
-      ],
-    },
-  },
-
-  // Layer boundary: `ui` holds generic widgets. They may build DOM and use core helpers, and must
-  // know nothing about a canvas, a manager, a symbol or the client — that is the whole difference
-  // between them and the interactive widgets left in `components/`.
-  {
-    files: ["src/ui/**/*.ts"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: ["@/*", "@/**", "!@/dom", "!@/dom/**", "!@/core", "!@/core/**", "!@/logger", "!@/constants", "!@/i18n"],
-              message: "ui widgets may only depend on dom, core, logger, constants and i18n",
             },
           ],
         },
