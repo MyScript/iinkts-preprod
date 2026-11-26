@@ -107,10 +107,8 @@ export default [
       parser: tsParser,
       ecmaVersion: 5,
       sourceType: "commonjs",
-
-      parserOptions: {
-        project: "./tsconfig.json",
-      },
+      // No type-aware parsing: no rule here reads the types, and building the TypeScript program
+      // costs seconds on every run, a single staged file included. `yarn typecheck` checks types.
     },
 
     rules: {

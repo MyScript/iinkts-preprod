@@ -16,9 +16,8 @@ export default [
     files: ["**/*.ts"],
     languageOptions: {
       globals: { ...globals.browser, ...globals.node, ...jestPlugin.environments.globals.globals },
+      // No type-aware parsing, as in the root config: no rule reads the types
       parser: tsParser,
-      // Anchored on this folder: the CLI runs from the repo root, the editor from test/unit
-      parserOptions: { project: "./tsconfig.json", tsconfigRootDir: import.meta.dirname },
     },
     plugins: {
       "@typescript-eslint": typescriptEslint,
