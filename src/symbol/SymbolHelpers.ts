@@ -4,9 +4,10 @@ import type { TSymbol } from "./Symbol"
 
 /**
  * @group Symbol
- * @summary Clone any TSymbol — all types are now plain objects, use structuredClone.
+ * @summary Clone any TSymbol — all types are now plain objects, use structuredClone. The clone keeps the
+ * type it was given, so cloning a stroke yields a stroke.
  */
-export function cloneSymbol(symbol: TSymbol): TSymbol {
+export function cloneSymbol<T extends TSymbol>(symbol: T): T {
   return structuredClone(symbol)
 }
 

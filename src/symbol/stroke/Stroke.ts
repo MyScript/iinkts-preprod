@@ -3,7 +3,7 @@ import type { TStyle } from "@/style"
 
 import type { DecoratorKind } from "../decorator/Decorator"
 import type { TAnchor } from "../edge/Anchor"
-import type { TBaseSymbol } from "../Symbol"
+import type { TBaseSymbol, TSymbolOfKind, TSymbolTagged } from "../Symbol"
 import { SymbolType } from "../Symbol"
 /**
  * @group Symbol
@@ -52,7 +52,7 @@ export type TStrokeImport = Omit<TPartialDeep<TStroke>, "pointers"> & { pointers
  * @param symbol - Symbol to check
  * @returns True if symbol is a stroke
  */
-export function isStroke(symbol: TBaseSymbol): symbol is TStroke {
+export function isStroke<T extends TSymbolTagged>(symbol: T): symbol is TSymbolOfKind<T, TStroke> {
   return symbol.type === SymbolType.Stroke
 }
 
@@ -62,8 +62,8 @@ export function isStroke(symbol: TBaseSymbol): symbol is TStroke {
  * @param symbol - Symbol to check
  * @returns True if symbol is a stroke with Math JIIX block type
  */
-export function isRecognizedMath(symbol: TBaseSymbol): symbol is TStroke {
-  return isStroke(symbol) && symbol.jiixBlockType === "Math"
+export function isRecognizedMath<T extends TSymbolTagged>(symbol: T): symbol is TSymbolOfKind<T, TStroke> {
+  return isStroke<TSymbolTagged>(symbol) && symbol.jiixBlockType === "Math"
 }
 
 /**
@@ -72,8 +72,8 @@ export function isRecognizedMath(symbol: TBaseSymbol): symbol is TStroke {
  * @param symbol - Symbol to check
  * @returns True if symbol is a stroke with Solver Output JIIX block type
  */
-export function isStrokeSolverOutput(symbol: TBaseSymbol): symbol is TStroke {
-  return isStroke(symbol) && symbol.isSolverOutput === true
+export function isStrokeSolverOutput<T extends TSymbolTagged>(symbol: T): symbol is TSymbolOfKind<T, TStroke> {
+  return isStroke<TSymbolTagged>(symbol) && symbol.isSolverOutput === true
 }
 
 /**
@@ -82,8 +82,8 @@ export function isStrokeSolverOutput(symbol: TBaseSymbol): symbol is TStroke {
  * @param symbol - Symbol to check
  * @returns True if symbol is a stroke with Text JIIX block type
  */
-export function isRecognizedText(symbol: TBaseSymbol): symbol is TStroke {
-  return isStroke(symbol) && symbol.jiixBlockType === "Text"
+export function isRecognizedText<T extends TSymbolTagged>(symbol: T): symbol is TSymbolOfKind<T, TStroke> {
+  return isStroke<TSymbolTagged>(symbol) && symbol.jiixBlockType === "Text"
 }
 
 /**

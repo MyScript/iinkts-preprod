@@ -844,7 +844,7 @@ export class IIConnectorManager extends IIAbstractManager {
         // A rigid (uniform matrix) move is safe to undo by re-applying the inverse matrix, so it
         // can ride along in the caller's own matrix-replay history entry. A gradient move is NOT
         // uniform — undoing it requires restoring this pre-mutation snapshot directly instead.
-        const oldSymbol = mode === "gradient" ? (cloneSymbol(symbol) as TStroke) : undefined
+        const oldSymbol = mode === "gradient" ? cloneSymbol(symbol) : undefined
 
         symbol.pointers.forEach((p, i) => {
           p.x = +newPoints[i].x.toFixed(3)

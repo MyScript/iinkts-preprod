@@ -4,7 +4,6 @@ import type { TBox, TPoint } from "@/core"
 import { BoxOps, convertBoundingBoxMillimeterToPixel, OBBOps } from "@/core"
 import { LoggerCategory } from "@/logger"
 import { SVGBuilder, SVGRendererConst } from "@/renderer"
-import type { TStroke } from "@/symbol"
 import { isStroke } from "@/symbol"
 import { SymbolGeometry } from "@/symbol-utils"
 
@@ -300,9 +299,7 @@ export class IIOverlayManager extends IIAbstractManager {
     if (mathBlock["bounding-box"]) {
       return convertBoundingBoxMillimeterToPixel(mathBlock["bounding-box"])
     }
-    const blockStrokes = this.canvas.model.symbols.filter(
-      (s) => isStroke(s) && (s as TStroke).jiixBlockId === mathBlock.id
-    ) as TStroke[]
+    const blockStrokes = this.canvas.model.symbols.filter(isStroke).filter((s) => s.jiixBlockId === mathBlock.id)
     if (!blockStrokes.length) {
       this.logger.warn("getMathBlockBounds", `Math block ${mathBlock.id} has no bounding box and no strokes`)
       return null

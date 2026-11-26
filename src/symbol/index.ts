@@ -6,7 +6,7 @@
  * live on the type's util in `symbol-utils` ({@link StrokeUtil}, {@link TextUtil}, {@link MathUtil},
  * {@link ShapeUtil}, {@link EdgeUtil}, {@link DecoratorUtil}).
  *
- * **Root** — {@link SymbolType}, {@link TBaseSymbol}, {@link TSymbol}
+ * **Root** — {@link SymbolType}, {@link TBaseSymbol}, {@link TSymbol}, {@link TSymbolOfKind}, {@link TSymbolTagged}
  *
  * **Stroke** — {@link TStroke}, {@link isStroke}
  *

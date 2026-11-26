@@ -9,7 +9,7 @@ import type { IIHistoryManager } from "@/history"
 import type { IIModel } from "@/model"
 import type { SVGRenderer } from "@/renderer"
 import type { TStyle } from "@/style"
-import type { TEdge, TShapeCircle, TShapeEllipse, TShapePolygon, TStroke, TSymbol } from "@/symbol"
+import type { TEdge, TShape, TShapePolygon, TStroke, TSymbol } from "@/symbol"
 import { cloneSymbol, EdgeDecoration, EdgeKind, isStroke, SymbolType } from "@/symbol"
 import { EdgeUtil, ShapeUtil, StrokeUtil, SymbolGeometry, symbolRegistry } from "@/symbol-utils"
 
@@ -164,35 +164,35 @@ export class IIWriterManager extends AbstractWriterManager {
     return this.updateCurrentSymbol(pointer)
   }
 
-  protected updateCurrentSymbolShape(pointer: TPointer): void {
+  protected updateCurrentSymbolShape(shape: TShape, pointer: TPointer): void {
+    const origin = this.currentSymbolOrigin!
+    if (ShapeUtil.isCircleShape(shape)) {
+      ShapeUtil.updateCircleBetweenPoints(shape, origin, pointer)
+    } else if (ShapeUtil.isEllipseShape(shape)) {
+      ShapeUtil.updateEllipseBetweenPoints(shape, origin, pointer)
+    } else {
+      this.updateCurrentPolygon(shape, origin, pointer)
+    }
+  }
+
+  protected updateCurrentPolygon(polygon: TShapePolygon, origin: TPoint, pointer: TPointer): void {
     switch (this.tool) {
       case CanvasWriteTool.Rectangle:
-        ShapeUtil.updateRectangleBetweenPoints(this.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
+        ShapeUtil.updateRectangleBetweenPoints(polygon, origin, pointer)
         break
       case CanvasWriteTool.Triangle:
-        ShapeUtil.updateTriangleBetweenPoints(this.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
+        ShapeUtil.updateTriangleBetweenPoints(polygon, origin, pointer)
         break
       case CanvasWriteTool.Parallelogram:
-        ShapeUtil.updateParallelogramBetweenPoints(
-          this.currentSymbol as TShapePolygon,
-          this.currentSymbolOrigin!,
-          pointer
-        )
+        ShapeUtil.updateParallelogramBetweenPoints(polygon, origin, pointer)
         break
       case CanvasWriteTool.Rhombus:
-        ShapeUtil.updateRhombusBetweenPoints(this.currentSymbol as TShapePolygon, this.currentSymbolOrigin!, pointer)
-        break
-      case CanvasWriteTool.Circle:
-        ShapeUtil.updateCircleBetweenPoints(this.currentSymbol as TShapeCircle, this.currentSymbolOrigin!, pointer)
-        break
-      case CanvasWriteTool.Ellipse:
-        ShapeUtil.updateEllipseBetweenPoints(this.currentSymbol as TShapeEllipse, this.currentSymbolOrigin!, pointer)
+        ShapeUtil.updateRhombusBetweenPoints(polygon, origin, pointer)
         break
     }
   }
 
-  protected updateCurrentSymbolEdge(pointer: TPointer): void {
-    const edge = this.currentSymbol as TEdge
+  protected updateCurrentSymbolEdge(edge: TEdge, pointer: TPointer): void {
     switch (edge.kind) {
       case EdgeKind.Line:
         edge.end = pointer
@@ -201,22 +201,23 @@ export class IIWriterManager extends AbstractWriterManager {
   }
 
   protected updateCurrentSymbol(pointer: TPointer): TSymbol {
-    if (!this.currentSymbol) {
+    const symbol = this.currentSymbol
+    if (!symbol) {
       throw new Error("Can't update current symbol because currentSymbol is undefined")
     }
 
-    switch (this.currentSymbol.type) {
+    switch (symbol.type) {
       case SymbolType.Stroke:
-        StrokeUtil.addPointer(this.currentSymbol as TStroke, pointer)
+        StrokeUtil.addPointer(symbol, pointer)
         break
       case SymbolType.Shape:
-        this.updateCurrentSymbolShape(pointer)
+        this.updateCurrentSymbolShape(symbol, pointer)
         break
       case SymbolType.Edge:
-        this.updateCurrentSymbolEdge(pointer)
+        this.updateCurrentSymbolEdge(symbol, pointer)
         break
     }
-    return this.currentSymbol
+    return symbol
   }
 
   start(info: TPointerInfo): void {
@@ -248,7 +249,7 @@ export class IIWriterManager extends AbstractWriterManager {
   }
 
   protected async interactWithBackend(stroke: TStroke): Promise<void> {
-    const localStroke = cloneSymbol(stroke) as TStroke
+    const localStroke = cloneSymbol(stroke)
     let gestureFromContextLess: TGesture | undefined
     if (this.needContextLessGesture(stroke)) {
       gestureFromContextLess = await this.gestureManager.getGestureFromContextLess(localStroke)

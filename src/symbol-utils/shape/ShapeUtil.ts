@@ -19,10 +19,11 @@ import type { TShape } from "@/symbol"
 import {
   ShapeKind,
   SymbolType,
-  type TBaseSymbol,
   type TShapeCircle,
   type TShapeEllipse,
   type TShapePolygon,
+  type TSymbolOfKind,
+  type TSymbolTagged,
 } from "@/symbol"
 
 import { defineKind, resolveKind, type TKindDefinition } from "../KindDefinition"
@@ -418,7 +419,7 @@ export class ShapeUtil extends PathSymbolUtil<TShape> {
    * @param symbol - Symbol to check
    * @returns True if symbol is a shape
    */
-  static isShape(symbol: TBaseSymbol): symbol is TShape {
+  static isShape<T extends TSymbolTagged>(symbol: T): symbol is TSymbolOfKind<T, TShape> {
     return symbol.type === SymbolType.Shape
   }
 
@@ -428,8 +429,10 @@ export class ShapeUtil extends PathSymbolUtil<TShape> {
    * @param shape - The shape to check
    * @returns True if the shape is a circle
    */
-  static isCircleShape(shape: TBaseSymbol): shape is TShapeCircle {
-    return ShapeUtil.isShape(shape) && shape.kind === ShapeKind.Circle
+  static isCircleShape<T extends TSymbolTagged>(
+    shape: T
+  ): shape is TSymbolOfKind<T, TShapeCircle, Pick<TShapeCircle, "type" | "kind">> {
+    return ShapeUtil.isShape<TSymbolTagged>(shape) && shape.kind === ShapeKind.Circle
   }
 
   /**
@@ -438,8 +441,10 @@ export class ShapeUtil extends PathSymbolUtil<TShape> {
    * @param shape - The shape to check
    * @returns True if the shape is an ellipse
    */
-  static isEllipseShape(shape: TBaseSymbol): shape is TShapeEllipse {
-    return ShapeUtil.isShape(shape) && shape.kind === ShapeKind.Ellipse
+  static isEllipseShape<T extends TSymbolTagged>(
+    shape: T
+  ): shape is TSymbolOfKind<T, TShapeEllipse, Pick<TShapeEllipse, "type" | "kind">> {
+    return ShapeUtil.isShape<TSymbolTagged>(shape) && shape.kind === ShapeKind.Ellipse
   }
 
   /**
@@ -448,7 +453,9 @@ export class ShapeUtil extends PathSymbolUtil<TShape> {
    * @param shape - The shape to check
    * @returns True if the shape is a polygon
    */
-  static isPolygonShape(shape: TBaseSymbol): shape is TShapePolygon {
-    return ShapeUtil.isShape(shape) && shape.kind === ShapeKind.Polygon
+  static isPolygonShape<T extends TSymbolTagged>(
+    shape: T
+  ): shape is TSymbolOfKind<T, TShapePolygon, Pick<TShapePolygon, "type" | "kind">> {
+    return ShapeUtil.isShape<TSymbolTagged>(shape) && shape.kind === ShapeKind.Polygon
   }
 }

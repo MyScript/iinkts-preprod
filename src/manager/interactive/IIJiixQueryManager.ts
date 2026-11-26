@@ -13,7 +13,7 @@ import { JIIXElementType, strokeIdsFromJIIXItems } from "@/client"
 import type { TBox } from "@/core"
 import { BoxOps, convertBoundingBoxMillimeterToPixel, convertMillimeterToPixel, OBBOps } from "@/core"
 import { LoggerCategory } from "@/logger"
-import type { TStroke, TSymbol } from "@/symbol"
+import { isStroke, type TStroke, type TSymbol } from "@/symbol"
 import { SymbolGeometry } from "@/symbol-utils"
 
 import { IIAbstractManager } from "./IIAbstractManager"
@@ -500,8 +500,8 @@ export class IIJiixQueryManager extends IIAbstractManager {
 
     // Build map of available strokes
     for (const symbol of this.model.symbols) {
-      if (symbol.type === "stroke") {
-        const stroke = symbol as TStroke
+      if (isStroke(symbol)) {
+        const stroke = symbol
         const strokeItems = stroke.pointers
         if (strokeItems && strokeItems.length > 0) {
           strokeMap.set(stroke.id, stroke)

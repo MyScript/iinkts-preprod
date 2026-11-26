@@ -1,7 +1,7 @@
 import { type TOBB } from "@/core"
 import type { TStyle } from "@/style"
 
-import type { TBaseSymbol } from "../Symbol"
+import type { TBaseSymbol, TSymbolOfKind, TSymbolTagged } from "../Symbol"
 import { SymbolType } from "../Symbol"
 /**
  * @group Symbol
@@ -49,7 +49,7 @@ export type TDecorator = TBaseSymbol & {
  * @group Symbol
  * @summary Check if symbol is a standalone decorator
  */
-export function isDecorator(symbol: TBaseSymbol): symbol is TDecorator {
+export function isDecorator<T extends TSymbolTagged>(symbol: T): symbol is TSymbolOfKind<T, TDecorator> {
   return symbol.type === SymbolType.Decorator
 }
 

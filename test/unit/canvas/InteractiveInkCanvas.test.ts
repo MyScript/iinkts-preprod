@@ -1519,7 +1519,7 @@ describe("InteractiveInkCanvas.ts", () => {
       const snapshots = strokes.map((stroke) => {
         stroke.jiixBlockId = "block-1"
         stroke.jiixBlockType = "Math"
-        const before = cloneSymbol(stroke) as TStroke
+        const before = cloneSymbol(stroke)
         stroke.transform = MatrixTransform.identity().translate(50, 25)
         canvas.model.addSymbol(stroke)
         return { before, after: canvas.model.getSymbol(stroke.id) as TStroke }
@@ -1554,7 +1554,7 @@ describe("InteractiveInkCanvas.ts", () => {
     test("undoing a written stroke should clear the ghost of the block it belongs to now", async () => {
       const stroke = buildIIStroke()
       // The entry's snapshot, taken at write time: no block yet.
-      const asWritten = cloneSymbol(stroke) as TStroke
+      const asWritten = cloneSymbol(stroke)
       expect(asWritten.jiixBlockId).toBeUndefined()
       // The document's record, after recognition assigned one.
       stroke.jiixBlockId = "block-1"
@@ -1572,7 +1572,7 @@ describe("InteractiveInkCanvas.ts", () => {
 
     test("should restore the before-state of every updated pair and redraw it", async () => {
       const stroke1 = buildIIStroke()
-      const oldStroke1 = cloneSymbol(stroke1) as TStroke
+      const oldStroke1 = cloneSymbol(stroke1)
       canvas.model.addSymbol(stroke1)
       canvas.history.undo = jest.fn(() => ({ updated: [{ before: stroke1, after: oldStroke1 }] }))
       canvas.history.context.canUndo = true
@@ -1591,8 +1591,8 @@ describe("InteractiveInkCanvas.ts", () => {
     test("should restore every pair independently", async () => {
       const strokeA = buildIIStroke()
       const strokeB = buildIIStroke()
-      const restoredA = cloneSymbol(strokeA) as TStroke
-      const restoredB = cloneSymbol(strokeB) as TStroke
+      const restoredA = cloneSymbol(strokeA)
+      const restoredB = cloneSymbol(strokeB)
       restoredA.style = { ...restoredA.style, color: "#ff0000" }
       restoredB.style = { ...restoredB.style, width: 9 }
       canvas.model.addSymbol(strokeA)
@@ -1619,7 +1619,7 @@ describe("InteractiveInkCanvas.ts", () => {
     test("should restore a style through the same pair replay, and still tell the client", async () => {
       const stroke1 = buildIIStroke()
       canvas.model.addSymbol(stroke1)
-      const restored = cloneSymbol(stroke1) as TStroke
+      const restored = cloneSymbol(stroke1)
       restored.style = { ...stroke1.style, color: "red" }
       canvas.history.undo = jest.fn(() => ({ updated: [{ before: stroke1, after: restored }] }))
       canvas.history.context.canUndo = true
@@ -1643,7 +1643,7 @@ describe("InteractiveInkCanvas.ts", () => {
       const stroke1 = buildIIStroke()
       canvas.model.addSymbol(stroke1)
       const entrySymbol = canvas.model.symbols[0] as TStroke
-      const restored = cloneSymbol(entrySymbol) as TStroke
+      const restored = cloneSymbol(entrySymbol)
       restored.style = { ...entrySymbol.style, color: "red" }
       const entryStyleBefore = { ...restored.style }
       canvas.history.undo = jest.fn(() => ({ updated: [{ before: entrySymbol, after: restored }] }))

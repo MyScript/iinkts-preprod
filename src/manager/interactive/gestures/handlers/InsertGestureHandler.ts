@@ -3,7 +3,7 @@ import type { TPoint, TPointer } from "@/core"
 import { BoxOps, computeAverage, isBetween, MatrixTransform } from "@/core"
 import type { TIIHistoryChanges } from "@/history"
 import { appendUpdated } from "@/history"
-import type { TDecorator, TStroke, TText } from "@/symbol"
+import type { TStroke, TText } from "@/symbol"
 import { cloneSymbol, isText, SymbolType, type TSymbol } from "@/symbol"
 import { StrokeUtil, SymbolGeometry, symbolRegistry, TextUtil } from "@/symbol-utils"
 
@@ -219,7 +219,7 @@ export class InsertGestureHandler extends GestureHandler {
         textToSplit.point,
         BoxOps.createFromBoxes(charsBefore.map((c) => c.bounds))
       )
-      textBefore.decorators = textToSplit.decorators.map((d) => cloneSymbol(d) as TDecorator)
+      textBefore.decorators = textToSplit.decorators.map((d) => cloneSymbol(d))
       this.typeset.setBounds(textBefore)
       newTexts.push(textBefore)
 
@@ -245,7 +245,7 @@ export class InsertGestureHandler extends GestureHandler {
         pointAfter,
         BoxOps.createFromBoxes(charsAfter.map((c) => c.bounds))
       )
-      textAfter.decorators = textToSplit.decorators.map((d) => cloneSymbol(d) as TDecorator)
+      textAfter.decorators = textToSplit.decorators.map((d) => cloneSymbol(d))
       this.typeset.setBounds(textAfter)
       newTexts.push(textAfter)
       replaced.newSymbols = newTexts
@@ -299,13 +299,10 @@ export class InsertGestureHandler extends GestureHandler {
       (s) => symbolRegistry.has(s.type) && gestureStroke.id !== s.id && this.isSymbolInRow(gestureStroke, s)
     )
 
-    const textToSplit = symbolsRow.find((s) => {
-      if (!isText(s)) {
-        return false
-      }
+    const textToSplit = symbolsRow.filter(isText).find((s) => {
       const b = SymbolGeometry.boundsOf(s)
       return isBetween(gestureBounds.center.x, b.center.x - b.width / 2, b.center.x + b.width / 2)
-    }) as TText | undefined
+    })
     const symbolsBeforeGestureInRow = symbolsRow.filter((s) => {
       const b = SymbolGeometry.boundsOf(s)
       return gestureBounds.center.x > b.center.x + b.width / 2

@@ -62,7 +62,7 @@ export class IITypesetManager extends IIAbstractManager {
   }
 
   protected drawSymbolHidden(symbol: TText | TMath): SVGGElement {
-    const clone = structuredClone(symbol) as TText | TMath
+    const clone = structuredClone(symbol)
     clone.id = "symbol-to-measure"
     if (isText(clone)) {
       clone.chars.forEach((c) => (c.id += "-to-measure"))
@@ -168,9 +168,9 @@ export class IITypesetManager extends IIAbstractManager {
     const textRowIndex = Math.round(textBounds.center.y / this.rowHeight)
     const row = this.getSymbolsByRowOrdered().find((r) => r.rowIndex === textRowIndex)
     if (row) {
-      const textsAfter = row.symbols.filter(
-        (s) => isText(s) && SymbolGeometry.boundsOf(s).center.x > textBounds.center.x
-      ) as TText[]
+      const textsAfter = row.symbols
+        .filter(isText)
+        .filter((s) => SymbolGeometry.boundsOf(s).center.x > textBounds.center.x)
       return textsAfter.flatMap((committed) => {
         // Drafted by id rather than shifted where it lies. `getSymbolsByRowOrdered` reads
         // `model.symbols`, which hands out the store's deep-frozen committed records, so
