@@ -13,12 +13,19 @@ import {
   getCanvasSymbols,
   getCanvasExportsType,
   callCanvasConvert,
+  getCanvasConfiguration,
+  loadCanvas,
+  waitForCanvasInit,
 } from "../helper"
 import locator from "../locators"
 import helloStrike from "../__dataset__/helloStrike"
 import helloInsert from "../__dataset__/helloInsert"
 import helloOneStroke from "../__dataset__/helloOneStroke"
 import helloOneStrokeSurrounded from "../__dataset__/helloOneStrokeSurrounded"
+
+/** Space between the right edge of `left` and the left edge of `right` */
+const horizontalGap = (left, right) =>
+  (right.bounds.center.x - right.bounds.width / 2) - (left.bounds.center.x + left.bounds.width / 2)
 
 test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch", "@slow"] }, () => {
   test.beforeEach(async ({ page }) => {
@@ -463,7 +470,15 @@ test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch"
   })
 
   test("gesture insert", async ({ page }) => {
-    test.fixme(true, "The insert gesture must be activated first for the menu to appear")
+    test.setTimeout(120 * 1000)
+
+    await test.step("should reload the canvas with the insert gesture", async () => {
+      // The menu only lists the gestures enabled at load, and insert is not a default one
+      const { server, recognition } = await getCanvasConfiguration(page)
+      const gestures = [...recognition["raw-content"].gestures, "insert"]
+      await loadCanvas(page, { configuration: { server, recognition: { "raw-content": { gestures } } } })
+      await waitForCanvasInit(page)
+    })
 
     await test.step("should display menu gesture", async () => {
       await expect(page.locator(locator.menu.action.gesture.triggerBtn)).toBeHidden()
@@ -493,7 +508,7 @@ test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch"
       const symbols = await getCanvasSymbols(page)
       expect(symbols).toHaveLength(1)
       expect(symbols[0].type).toEqual("stroke")
-      expect(symbols[0].kind).toEqual("text")
+      expect(symbols[0].jiixBlockType).toEqual("Text")
     })
 
     await test.step("should separate stroke in 2 on insert gesture", async () => {
@@ -504,10 +519,10 @@ test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch"
       // necessary to ensure that recognition is completed
       await page.evaluate("rootEl.iink.synchronize()")
       const symbols = await getCanvasSymbols(page)
-      expect(symbols).toHaveLength(1)
-      expect(symbols[0].words[0].label).toEqual("hel")
-      expect(symbols[0].words[1].label).toEqual(" ")
-      expect(symbols[0].words[2].label).toEqual("to")
+      expect(symbols).toHaveLength(2)
+      expect(symbols.every((s) => s.type === "stroke")).toBe(true)
+      const jiix = await getCanvasExportsType(page, "application/vnd.myscript.jiix")
+      expect(jiix.elements.map((e) => e.label)).toStrictEqual(["hel to"])
     })
 
     await test.step("insert should be kept on convert", async () => {
@@ -529,7 +544,7 @@ test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch"
       await expect(page.locator(`#${  hel.id }`)).toHaveText("hel")
       await expect(page.locator(`#${ to.id }`)).toHaveText("to")
       //verify 2nd word is separated from the first by at least 10px
-      expect(to.bounds.x - hel.bounds.x - hel.bounds.width).toBeGreaterThan(10)
+      expect(horizontalGap(hel, to)).toBeGreaterThan(10)
     })
 
     await test.step("insert should separate word on convert", async () => {
@@ -537,6 +552,8 @@ test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch"
       await page.evaluate("rootEl.iink.clear()")
       let symbols = await getCanvasSymbols(page)
       expect(symbols).toHaveLength(0)
+      // convert selected its result, which switched to the select tool
+      await page.locator(locator.menu.intention.writePencil).click()
 
       //write again and convert
       await writePointers(page, helloInsert.strokes[0].pointers)
@@ -545,11 +562,18 @@ test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch"
         waitForConvertedEvent(page),
         page.locator(locator.menu.action.convertBtn).click()
       ])
+      await page.locator(locator.menu.intention.writePencil).click()
 
-      //write the insert between the 2 l
+      // On typeset text the gesture is recognized without ink context: insert is a top-to-bottom
+      // line crossing the text, drawn here between its 2 l
+      const [text] = await getCanvasSymbols(page)
+      const [, , firstL, secondL] = text.chars
+      const x = (firstL.bounds.x + firstL.bounds.width + secondL.bounds.x) / 2
+      const top = text.bounds.center.y - text.bounds.height / 2 - 10
+      const insertPointers = Array.from({ length: 10 }, (_, i) => ({ x, y: top + i * (text.bounds.height + 20) / 9 }))
       await Promise.all([
         waitForGesturedEvent(page),
-        writePointers(page, helloInsert.strokes[1].pointers, 0, -20)
+        writePointers(page, insertPointers)
       ])
 
       symbols = await getCanvasSymbols(page)
@@ -562,7 +586,7 @@ test.describe("Interactive ink canvas Get Started Menu Action", { tag: ["@touch"
       await expect(page.locator(`#${  hel.id }`)).toHaveText(hel.chars.map(c => c.label).join(""))
       await expect(page.locator(`#${ lo.id }`)).toHaveText(lo.chars.map(c => c.label).join(""))
       //verify 2nd word is separated from the first by at least 10px
-      expect(lo.bounds.x - hel.bounds.x - hel.bounds.width).toBeGreaterThan(10)
+      expect(horizontalGap(hel, lo)).toBeGreaterThan(10)
     })
 
   })
