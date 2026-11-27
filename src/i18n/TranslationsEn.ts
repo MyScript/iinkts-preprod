@@ -135,6 +135,7 @@ export const TranslationsEn = {
   "menu.action.zoom": "Zoom",
   "menu.action.search": "Search",
   "menu.action.import": "Import",
+  "menu.action.import.file": "Symbols (JSON) or image (PNG, JPEG)",
   "menu.action.export": "Export",
   "menu.action.export.text": "Text",
   "menu.action.theme": "Theme",

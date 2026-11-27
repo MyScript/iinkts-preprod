@@ -139,6 +139,14 @@ export abstract class SymbolUtil<T extends TBaseSymbol> {
   }
 
   /**
+   * Whether the eraser tool removes this symbol when it runs over it. True by default; an image says
+   * no, so erasing the ink written over a picture never takes the picture with it.
+   */
+  canErase(_symbol: T): boolean {
+    return true
+  }
+
+  /**
    * Whether a resize of this symbol must preserve its aspect ratio.
    *
    * False by default. `IIResizeManager` decided this with

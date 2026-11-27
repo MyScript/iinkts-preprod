@@ -24,6 +24,9 @@ Full record: [changelog/5.1.0.md](changelog/5.1.0.md)
 - **Lock symbols**: a locked symbol stays selectable, copyable, exportable and recognized, but nothing changes it, neither the user nor the API. `canvas.lockSymbols(ids)` / `unlockSymbols(ids)`, `TBaseSymbol.locked`, context menu Lock / Unlock, `LOCKED_REFUSED` event; **behaviour**: `clear()` keeps locked symbols · [details](changelog/5.1.0.md#lock-symbols-interactive_ink)
 - **Search in recognized content**: Ctrl+F on handwriting, text and math, handwritten or converted; matches highlighted and brought into view. `canvas.search.find(query)`, search bar and magnifier button in the action bar · Try `interactive_canvas_search.html` · [details](changelog/5.1.0.md#search-in-recognized-content-interactive_ink)
 
+**Images**
+- **Import a picture and write over it**: PNG or JPEG, from `canvas.importImage(file)`, the Import menu, drag and drop or Ctrl+V; moved, resized and rotated like any symbol, never recognized, spared by the eraser; **type**: `TSymbol` gains `TImage` · [details](changelog/5.1.0.md#images-interactive_ink)
+
 **Interface**
 - **UI translations**: every label follows the recognition language, English and French built in, any other supplied by the integrator. `canvas.i18n`, `configuration.translations` · [details](changelog/5.1.0.md#ui-translations-interactive_ink-ink_v2)
 

@@ -3,6 +3,7 @@ import type { TStyle } from "@/style"
 
 import type { TDecorator } from "./decorator/Decorator"
 import type { TEdge } from "./edge/Edge"
+import type { TImage } from "./image/Image"
 import type { TShape } from "./shape/Shape"
 import type { TStroke } from "./stroke/Stroke"
 import type { TMath } from "./typeset/Math"
@@ -19,6 +20,7 @@ export enum SymbolType {
   Math = "math",
   Eraser = "eraser",
   Decorator = "decorator",
+  Image = "image",
 }
 
 /**
@@ -59,7 +61,7 @@ export type TBaseSymbol = {
 /**
  * @group Symbol
  */
-export type TSymbol = TEdge | TShape | TStroke | TText | TMath | TDecorator
+export type TSymbol = TEdge | TShape | TStroke | TText | TMath | TDecorator | TImage
 
 /**
  * What a symbol type guard narrows `T` to: the members of `T` carrying the variant's discriminants.

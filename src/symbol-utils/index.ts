@@ -1,6 +1,7 @@
 export * from "./decorator/DecoratorUtil"
 export * from "./edge/EdgeRenderOptions"
 export * from "./edge/EdgeUtil"
+export * from "./image/ImageUtil"
 export * from "./KindDefinition"
 export * from "./PathSymbolUtil"
 export * from "./registerBuiltinSymbolUtils"

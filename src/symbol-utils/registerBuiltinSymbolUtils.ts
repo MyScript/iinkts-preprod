@@ -1,5 +1,6 @@
 import { DecoratorUtil } from "./decorator/DecoratorUtil"
 import { EdgeUtil } from "./edge/EdgeUtil"
+import { ImageUtil } from "./image/ImageUtil"
 import { ShapeUtil } from "./shape/ShapeUtil"
 import { StrokeUtil } from "./stroke/StrokeUtil"
 import { symbolRegistry } from "./SymbolRegistry"
@@ -17,4 +18,5 @@ export function registerBuiltinSymbolUtils(): void {
     .register(new ShapeUtil())
     .register(new EdgeUtil())
     .register(new DecoratorUtil())
+    .register(new ImageUtil())
 }

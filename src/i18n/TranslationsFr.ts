@@ -138,6 +138,7 @@ export const TranslationsFr = {
   "menu.action.zoom": "Zoom",
   "menu.action.search": "Rechercher",
   "menu.action.import": "Importer",
+  "menu.action.import.file": "Symboles (JSON) ou image (PNG, JPEG)",
   "menu.action.export": "Exporter",
   "menu.action.export.text": "Texte",
   "menu.action.theme": "Thème",

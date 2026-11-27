@@ -1,5 +1,6 @@
 import type { TInteractiveInkCanvas } from "@/canvas"
 import { LoggerCategory } from "@/logger"
+import { ImageUtil } from "@/symbol-utils"
 
 import { CanvasTool } from "../base/CanvasTool"
 import { IIAbstractManager } from "./IIAbstractManager"
@@ -16,11 +17,14 @@ export class IIKeyboardManager extends IIAbstractManager {
   static readonly PAN_STEP = 100
 
   #toolBeforeCtrl?: CanvasTool
+  /** Ctrl+V was pressed on the canvas, and neither paste has run yet */
+  #pastePending = false
 
   constructor(canvas: TInteractiveInkCanvas) {
     super(canvas, LoggerCategory.KEYBOARD)
     this.handleKeyDown = this.handleKeyDown.bind(this)
     this.handleKeyUp = this.handleKeyUp.bind(this)
+    this.handlePaste = this.handlePaste.bind(this)
   }
 
   /**
@@ -30,6 +34,7 @@ export class IIKeyboardManager extends IIAbstractManager {
     this.logger.info("attach")
     window.addEventListener("keydown", this.handleKeyDown)
     window.addEventListener("keyup", this.handleKeyUp)
+    window.addEventListener("paste", this.handlePaste)
   }
 
   /**
@@ -39,6 +44,7 @@ export class IIKeyboardManager extends IIAbstractManager {
     this.logger.info("detach")
     window.removeEventListener("keydown", this.handleKeyDown)
     window.removeEventListener("keyup", this.handleKeyUp)
+    window.removeEventListener("paste", this.handlePaste)
   }
 
   /**
@@ -49,6 +55,40 @@ export class IIKeyboardManager extends IIAbstractManager {
     if (this.#toolBeforeCtrl) {
       this.#toolBeforeCtrl = undefined
     }
+  }
+
+  /**
+   * Copied symbols stay in the canvas, so the system clipboard keeps whatever was copied before: a
+   * picture there would win over them at the next Ctrl+V. Emptying it makes the last copy the one
+   * pasted. Not possible on a page that is not a secure context, which has no `navigator.clipboard`:
+   * there, a picture left in the system clipboard is still pasted before the copied symbols.
+   */
+  #clearSystemClipboard(): void {
+    navigator.clipboard?.writeText("").catch(() => undefined)
+  }
+
+  #pasteSymbols(): void {
+    if (!this.#pastePending) {
+      return
+    }
+    this.#pastePending = false
+    this.canvas.tool = CanvasTool.Select
+    this.canvas.paste()
+  }
+
+  /** Ctrl+V on the canvas: a picture in the system clipboard is imported, otherwise the copied symbols are pasted. */
+  protected handlePaste(event: ClipboardEvent): void {
+    if (!this.#pastePending) {
+      return
+    }
+    event.preventDefault()
+    const file = Array.from(event.clipboardData?.files ?? []).find((f) => ImageUtil.isSupportedMimeType(f.type))
+    if (!file) {
+      this.#pasteSymbols()
+      return
+    }
+    this.#pastePending = false
+    this.canvas.importImage(file).catch(() => undefined)
   }
 
   #zoomAtCenter(factor: number): void {
@@ -74,16 +114,20 @@ export class IIKeyboardManager extends IIAbstractManager {
         return true
       case "c":
         event.preventDefault()
+        this.#clearSystemClipboard()
         this.canvas.copy()
         return true
       case "v":
-        event.preventDefault()
+        // Not prevented: the browser's paste event is the only way to read a picture from the system
+        // clipboard without asking for a permission. It picks between the picture and the copied
+        // symbols; a browser that sends none outside a text field gets the symbols on the next task.
         this.#toolBeforeCtrl = undefined
-        this.canvas.tool = CanvasTool.Select
-        this.canvas.paste()
+        this.#pastePending = true
+        setTimeout(() => this.#pasteSymbols())
         return true
       case "x":
         event.preventDefault()
+        this.#clearSystemClipboard()
         this.canvas.cut()
         return true
       case "f":

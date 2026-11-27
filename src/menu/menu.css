@@ -60,7 +60,9 @@
 }
 
 .ms-ink .ms-menu-field-hint {
-  max-width: 220px;
+  /* As wide as the field it explains: never widens the menu, never wraps short of its edge */
+  width: 0;
+  min-width: 100%;
   white-space: normal;
   font-size: 0.85em;
   color: var(--ms-ink-text-muted);
