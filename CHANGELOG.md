@@ -34,6 +34,7 @@ Full record: [changelog/5.1.0.md](changelog/5.1.0.md)
 - **behaviour** Decorator context menu acts on every selected stroke, text and math in one undo step; **type** `DecoratorContextMenu.symbolsDecorable` returns `TDecorable[]`, `hasSingleMathSymbol` removed · [details](changelog/5.1.0.md#decorator-context-menu-on-strokes-texts-and-maths)
 - **behaviour** `MathDiagnosticMessages` maps a code to its severity only, read the text with `getMathDiagnosticMessage(code, i18n?)`; built-in list labels are translation keys · [details](changelog/5.1.0.md#ui-translations)
 - **behaviour** Language menu moves into the action dropdown (`LanguageMenuAction` extends `SubMenuItem`, select id `ms-menu-action-language-input`); action bar order: Convert, Undo/Redo, Clear · [details](changelog/5.1.0.md#narrower-action-bar)
+- **type** symbol type guards (`isStroke`, `isText`, `ShapeUtil.isCircleShape`…) and `cloneSymbol` are generic: a read-only symbol stays read-only once narrowed; **subclass** `IIWriterManager.updateCurrentSymbolShape(shape, pointer)` / `updateCurrentSymbolEdge(edge, pointer)` · [details](changelog/5.1.0.md#generic-symbol-type-guards)
 
 ## 🐛 Bug fixes
 

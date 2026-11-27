@@ -122,9 +122,9 @@ export class IIMathVariableSubManager extends IIAbstractManager {
   }
 
   findMathSymbolsByJiixId(jiixId: string): TStroke[] {
-    return this.canvas.model.symbols.filter(
-      (s) => isStroke(s) && s.jiixBlockId === jiixId && s.jiixBlockType === "Math"
-    ) as TStroke[]
+    return this.canvas.model.symbols
+      .filter(isStroke)
+      .filter((s) => s.jiixBlockId === jiixId && s.jiixBlockType === "Math")
   }
 
   private getBlockBounds(jiixBlockId: string): TBox | null {

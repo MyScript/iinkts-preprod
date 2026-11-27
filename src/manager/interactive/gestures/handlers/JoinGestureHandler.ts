@@ -2,7 +2,7 @@ import type { TInteractiveInkCanvas } from "@/canvas"
 import { BoxOps, MatrixTransform, OBBOps, roundTo } from "@/core"
 import type { TIIHistoryChanges } from "@/history"
 import { appendUpdated } from "@/history"
-import type { TStroke, TText } from "@/symbol"
+import type { TStroke } from "@/symbol"
 import { cloneSymbol, isText, type TSymbol } from "@/symbol"
 import { SymbolGeometry, symbolRegistry, TextUtil } from "@/symbol-utils"
 
@@ -97,8 +97,8 @@ export class JoinGestureHandler extends GestureHandler {
       const firstSymbolAfterClone = cloneSymbol(firstSymbolAfter)
       this.manager.translator.applyToSymbol(firstSymbolAfterClone, MatrixTransform.identity().translate(translateX, 0))
 
-      if (isText(lastSymbBefore) && isText(firstSymbolAfter)) {
-        const texts = [lastSymbBeforeClone as TText, firstSymbolAfterClone as TText]
+      if (isText(lastSymbBeforeClone) && isText(firstSymbolAfterClone)) {
+        const texts = [lastSymbBeforeClone, firstSymbolAfterClone]
         const text = TextUtil.createText(
           texts.flatMap((s) => s.chars),
           texts[0].point,

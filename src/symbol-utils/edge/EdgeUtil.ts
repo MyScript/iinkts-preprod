@@ -20,11 +20,12 @@ import {
   EdgeDecoration,
   EdgeKind,
   SymbolType,
-  type TBaseSymbol,
   type TEdgeArc,
   type TEdgeLine,
   type TEdgePolyLine,
   type TResizePoint,
+  type TSymbolOfKind,
+  type TSymbolTagged,
 } from "@/symbol"
 
 import { defineKind, resolveKind, type TKindDefinition } from "../KindDefinition"
@@ -458,7 +459,7 @@ export class EdgeUtil extends PathSymbolUtil<TEdge> {
    * @param symbol - Symbol to check
    * @returns True if symbol is an edge
    */
-  static isEdge(symbol: TBaseSymbol): symbol is TEdge {
+  static isEdge<T extends TSymbolTagged>(symbol: T): symbol is TSymbolOfKind<T, TEdge> {
     return symbol.type === SymbolType.Edge
   }
 
@@ -468,8 +469,10 @@ export class EdgeUtil extends PathSymbolUtil<TEdge> {
    * @param edge - The edge to check
    * @returns True if the edge is a line
    */
-  static isLineEdge(edge: TBaseSymbol): edge is TEdgeLine {
-    return EdgeUtil.isEdge(edge) && edge.kind === EdgeKind.Line
+  static isLineEdge<T extends TSymbolTagged>(
+    edge: T
+  ): edge is TSymbolOfKind<T, TEdgeLine, Pick<TEdgeLine, "type" | "kind">> {
+    return EdgeUtil.isEdge<TSymbolTagged>(edge) && edge.kind === EdgeKind.Line
   }
 
   /**
@@ -478,8 +481,10 @@ export class EdgeUtil extends PathSymbolUtil<TEdge> {
    * @param edge - The edge to check
    * @returns True if the edge is an arc
    */
-  static isArcEdge(edge: TBaseSymbol): edge is TEdgeArc {
-    return EdgeUtil.isEdge(edge) && edge.kind === EdgeKind.Arc
+  static isArcEdge<T extends TSymbolTagged>(
+    edge: T
+  ): edge is TSymbolOfKind<T, TEdgeArc, Pick<TEdgeArc, "type" | "kind">> {
+    return EdgeUtil.isEdge<TSymbolTagged>(edge) && edge.kind === EdgeKind.Arc
   }
 
   /**
@@ -488,7 +493,9 @@ export class EdgeUtil extends PathSymbolUtil<TEdge> {
    * @param edge - The edge to check
    * @returns True if the edge is a polyline
    */
-  static isPolyEdge(edge: TBaseSymbol): edge is TEdgePolyLine {
-    return EdgeUtil.isEdge(edge) && edge.kind === EdgeKind.PolyEdge
+  static isPolyEdge<T extends TSymbolTagged>(
+    edge: T
+  ): edge is TSymbolOfKind<T, TEdgePolyLine, Pick<TEdgePolyLine, "type" | "kind">> {
+    return EdgeUtil.isEdge<TSymbolTagged>(edge) && edge.kind === EdgeKind.PolyEdge
   }
 }

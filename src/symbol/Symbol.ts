@@ -60,3 +60,24 @@ export type TBaseSymbol = {
  * @group Symbol
  */
 export type TSymbol = TEdge | TShape | TStroke | TText | TMath | TDecorator
+
+/**
+ * What a symbol type guard narrows `T` to: the members of `T` carrying the variant's discriminants.
+ *
+ * Matching on the discriminants alone, not on the whole variant, is what keeps a read-only symbol
+ * read-only once narrowed: a `TReadonlyDeep<TStroke>` is not assignable to `TStroke` (its arrays are
+ * read-only), so extracting on `TStroke` would find nothing. When `T` holds no such member (a
+ * `TBaseSymbol`, whose `type` is a plain string), the guard narrows to `T & TVariant`.
+ * @group Symbol
+ */
+export type TSymbolOfKind<T, TVariant extends TSymbolTagged, TTag = Pick<TVariant, "type">> = [
+  Extract<T, TTag>,
+] extends [never]
+  ? T & TVariant
+  : Extract<T, TTag>
+
+/**
+ * The least a value needs for a symbol type guard to accept it, read-only symbols included.
+ * @group Symbol
+ */
+export type TSymbolTagged = { readonly type: string }

@@ -3,7 +3,7 @@ import { type TOBB } from "@/core"
 import type { TStyle } from "@/style"
 
 import type { TDecorator } from "../decorator/Decorator"
-import type { TBaseSymbol } from "../Symbol"
+import type { TBaseSymbol, TSymbolOfKind, TSymbolTagged } from "../Symbol"
 import { SymbolType } from "../Symbol"
 import type { TTypesetChild } from "./Typeset"
 /**
@@ -34,7 +34,7 @@ export type TMath = TBaseSymbol & {
  * @param symbol - Symbol to check
  * @returns True if symbol is math
  */
-export function isMath(symbol: TBaseSymbol): symbol is TMath {
+export function isMath<T extends TSymbolTagged>(symbol: T): symbol is TSymbolOfKind<T, TMath> {
   return symbol.type === SymbolType.Math
 }
 

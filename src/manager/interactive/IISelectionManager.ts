@@ -7,7 +7,7 @@ import type { TPointerInfo } from "@/grabber"
 import { PointerEventGrabber } from "@/grabber"
 import { LoggerCategory } from "@/logger"
 import { createLockIcon, SVGBuilder, SvgElementRole } from "@/renderer"
-import type { TDecorator, TEdge, TEdgeArc, TStroke, TSymbol } from "@/symbol"
+import type { TEdge, TEdgeArc, TStroke, TSymbol } from "@/symbol"
 import {
   EdgeKind,
   isDecorator,
@@ -604,7 +604,7 @@ export class IISelectionManager extends IIAbstractManager {
       )
     }
     if (edge.kind === EdgeKind.Arc) {
-      const arc = edge as TEdgeArc
+      const arc = edge
       /** The arc as the document currently holds it, mutable. One per frame. */
       const draftArc = (): TDraft<TEdgeArc> | undefined => {
         const draft = this.model.draftSymbol(arc.id)
@@ -910,7 +910,7 @@ export class IISelectionManager extends IIAbstractManager {
       let shouldBeSelected: boolean
 
       if (s.type === SymbolType.Stroke) {
-        const stroke = s as TStroke
+        const stroke = s
         if (stroke.jiixBlockType === "Text") {
           if (textSets && textSets.covered.has(stroke.id)) {
             shouldBeSelected = textSets.selected.has(stroke.id)
@@ -959,7 +959,7 @@ export class IISelectionManager extends IIAbstractManager {
    */
   private getQualifyingMathBlockIds(): string[] {
     const mathLevel = this.canvas.configuration.selection.mathLevel
-    const selectedMathStrokes = this.model.symbolsSelected.filter(isRecognizedMath) as TStroke[]
+    const selectedMathStrokes = this.model.symbolsSelected.filter(isRecognizedMath)
 
     if (selectedMathStrokes.length === 0) {
       return []
@@ -1107,7 +1107,7 @@ export class IISelectionManager extends IIAbstractManager {
     if (currentEl?.id) {
       const sym = this.canvas.model.symbols.find((s) => s.id === currentEl!.id)
       if (sym && isDecorator(sym)) {
-        this.canvas.select((sym as TDecorator).targetIds)
+        this.canvas.select(sym.targetIds)
       } else {
         this.canvas.select([currentEl.id])
       }
