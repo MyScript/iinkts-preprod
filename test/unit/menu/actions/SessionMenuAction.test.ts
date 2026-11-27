@@ -1,5 +1,6 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
 import { IIMenuAction, SessionMenuAction } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 
 const setInputFiles = (input: HTMLInputElement, files: File[]): void => {
   Object.defineProperty(input, "files", { value: files, configurable: true })
@@ -41,7 +42,9 @@ describe("SessionMenuAction.ts", () => {
     // In tests an SVG import is its file name, so the icon's text comes before the title
     expect(text("#ms-menu-action-session-save .ms-menu-field-title")).toMatch(/Save to a file$/)
     expect(text("#ms-menu-action-session-save .ms-menu-field-hint")).toEqual("Content and recognition, to resume later")
-    expect((wrapper.querySelector("#ms-menu-action-session-save-input") as HTMLInputElement).placeholder).toEqual("File name")
+    expect((wrapper.querySelector("#ms-menu-action-session-save-input") as HTMLInputElement).placeholder).toEqual(
+      "File name"
+    )
     expect(text("#ms-menu-action-session-save button")).toEqual("Download .iinkts")
     expect(text("#ms-menu-action-session-open .ms-menu-field-title")).toMatch(/Open a file$/)
     expect(text("#ms-menu-action-session-open .ms-menu-field-hint")).toEqual("Replaces the current content")
@@ -65,7 +68,9 @@ describe("SessionMenuAction.ts", () => {
     submenu.dispatchEvent(new Event("pointerdown"))
     await flush()
 
-    expect((wrapper.querySelector("#ms-menu-action-session-save-input") as HTMLInputElement).value).toEqual("Shopping list for")
+    expect((wrapper.querySelector("#ms-menu-action-session-save-input") as HTMLInputElement).value).toEqual(
+      "Shopping list for"
+    )
   })
 
   test("should download the session under the name typed on Save", async () => {
@@ -90,7 +95,10 @@ describe("SessionMenuAction.ts", () => {
 
   test("should show, and download under, the dated name when nothing is recognized as text", async () => {
     const dated = "iink-ts-2026-11-21T10-30-15"
-    const { canvas, wrapper } = build(undefined, jest.fn(() => Promise.resolve(dated)))
+    const { canvas, wrapper } = build(
+      undefined,
+      jest.fn(() => Promise.resolve(dated))
+    )
     const submenu = wrapper.querySelector("#ms-menu-action-session-trigger") as HTMLButtonElement
 
     submenu.dispatchEvent(new Event("pointerdown"))
@@ -121,7 +129,9 @@ describe("SessionMenuAction.ts", () => {
     open(wrapper, new File(["{}"], "notes.iinkts"))
     await flush()
 
-    expect(canvas.layers.showMessageInfo).toHaveBeenCalledWith({ message: "Session restored, its strokes are recognized again" })
+    expect(canvas.layers.showMessageInfo).toHaveBeenCalledWith({
+      message: "Session restored, its strokes are recognized again",
+    })
   })
 
   test("should report a file that is not a session", async () => {
@@ -137,7 +147,9 @@ describe("SessionMenuAction.ts", () => {
   test("should be in the action menu unless config.session is false", () => {
     const render = (session?: boolean) => {
       const canvas = createCanvasMock()
-      new IIMenuAction(asCanvas(canvas), "ms-menu-action", session === undefined ? {} : { session }).render(canvas.layers.ui.root)
+      new IIMenuAction(asCanvas(canvas), "ms-menu-action", session === undefined ? {} : { session }).render(
+        canvas.layers.ui.root
+      )
       return canvas.layers.ui.root
     }
 

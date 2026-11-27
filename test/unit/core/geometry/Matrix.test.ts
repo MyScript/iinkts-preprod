@@ -1,5 +1,7 @@
-import { describe, test, expect } from "@jest/globals"
-import { isIdentityMatrix, mergeSymbolTransform, MatrixTransform, TMatrixTransform } from "@/iink"
+import { describe, expect, test } from "@jest/globals"
+
+import type { TMatrixTransform } from "@/iink"
+import { isIdentityMatrix, MatrixTransform, mergeSymbolTransform } from "@/iink"
 
 describe("isIdentityMatrix", () => {
   test("should return true for the identity matrix", () => {

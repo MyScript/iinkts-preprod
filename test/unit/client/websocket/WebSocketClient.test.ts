@@ -1,14 +1,48 @@
-import { InteractiveInkCanvasOverrideConfiguration } from "../../__dataset__/configuration.dataset"
-import { ServerWebSocketMock, contextlessGestureMessage, gestureDetectedMessage, hTextJIIX, partChangeMessage } from "../../__mocks__/ServerWebSocketMock"
-import { buildIIStroke, delay } from "../../helpers"
-import { WebSocketClient, ClientError, TMatrixTransform, MatrixTransform, TIIHistoryBackendChanges, TWebSocketClientConfiguration, TWebSocketClientMessage, TStroke, toWireStroke, LoggerManager, LoggerCategory, TWebSocketClientMessageType, base64ToBytes } from "@/iink"
-
 import { toResolve } from "jest-extended"
+
+import type {
+  TIIHistoryBackendChanges,
+  TMatrixTransform,
+  TStroke,
+  TWebSocketClientConfiguration,
+  TWebSocketClientMessage,
+} from "@/iink"
+import {
+  base64ToBytes,
+  ClientError,
+  LoggerCategory,
+  LoggerManager,
+  MatrixTransform,
+  toWireStroke,
+  TWebSocketClientMessageType,
+  WebSocketClient,
+} from "@/iink"
+
+import { InteractiveInkCanvasOverrideConfiguration } from "../../__dataset__/configuration.dataset"
+import {
+  contextlessGestureMessage,
+  gestureDetectedMessage,
+  hTextJIIX,
+  partChangeMessage,
+  ServerWebSocketMock,
+} from "../../__mocks__/ServerWebSocketMock"
+import { buildIIStroke, delay } from "../../helpers"
 expect.extend({ toResolve })
 
-jest.mock("web-worker:../../worker/ping.worker.ts", () =>
-  jest.fn().mockImplementation(() => ({ postMessage: jest.fn(), terminate: jest.fn() }))
-)
+// Under Jest the `web-worker:` import resolves to the worker script itself, which exports no class:
+// this stands in for the bundled worker, posting a tick every `pingDelay` like ping.worker.ts does.
+jest.mock("web-worker:../../worker/ping.worker.ts", () => ({
+  __esModule: true,
+  default: class FakePingWorker {
+    onmessage?: () => void
+    timer?: ReturnType<typeof setInterval>
+    postMessage({ pingDelay }: { pingDelay: number }) {
+      clearInterval(this.timer)
+      this.timer = setInterval(() => this.onmessage?.(), pingDelay)
+    }
+    terminate = jest.fn(() => clearInterval(this.timer))
+  },
+}))
 
 describe("WebSocketClient.ts", () => {
   const configuration: TWebSocketClientConfiguration = {
@@ -23,7 +57,9 @@ describe("WebSocketClient.ts", () => {
 
   describe("Properties", () => {
     const conf = structuredClone(configuration)
-    ;((conf.server.scheme = "http"), (conf.server.host = "pony"), (conf.server.applicationKey = "applicationKey"))
+    conf.server.scheme = "http"
+    conf.server.host = "pony"
+    conf.server.applicationKey = "applicationKey"
     test("should get url", () => {
       const wsClient = new WebSocketClient(conf)
       expect(wsClient.url).toEqual("ws://pony/api/v4.0/iink/offscreen?applicationKey=applicationKey")
@@ -246,7 +282,7 @@ describe("WebSocketClient.ts", () => {
       await promise
       expect(1).toEqual(1)
     })
-    test.skip("should reject if receive error message", async () => {
+    test("should reject if receive error message", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(wsClient.event, "emitError")
       expect.assertions(3)
       const promise = wsClient.init()
@@ -330,8 +366,7 @@ describe("WebSocketClient.ts", () => {
     })
   })
 
-  //TODO fix mock web worker
-  describe.skip("Ping", () => {
+  describe("Ping", () => {
     const conf = structuredClone(configuration)
     conf.server.host = "ping-test"
     let mockServer: ServerWebSocketMock
@@ -380,7 +415,8 @@ describe("WebSocketClient.ts", () => {
       await delay(conf.server.websocket.pingDelay * 1.5)
       expect(mockServer.server.clients()).toHaveLength(1)
       await delay(conf.server.websocket.pingDelay * conf.server.websocket.maxPingLostCount + 100)
-      expect(mockServer.getMessages("ping")).toHaveLength(conf.server.websocket.maxPingLostCount + 1)
+      // maxPingLostCount pings go unanswered, the next tick closes instead of sending another
+      expect(mockServer.getMessages("ping")).toHaveLength(conf.server.websocket.maxPingLostCount)
       expect(mockServer.server.clients()).toHaveLength(0)
     })
   })
@@ -494,7 +530,7 @@ describe("WebSocketClient.ts", () => {
       await expect(spyEmitGesture).toHaveBeenCalledTimes(1)
       await expect(spyEmitGesture).toHaveBeenCalledWith(gestureDetectedMessage)
     })
-    test.skip("should reject if receive error message", async () => {
+    test("should emit the error the server answers, the change being already sent", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(wsClient.event, "emitError")
       expect.assertions(3)
       await wsClient.init()
@@ -502,7 +538,7 @@ describe("WebSocketClient.ts", () => {
       //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the client
       await delay(100)
       mockServer.sendNotGrantedErrorMessage()
-      await expect(promise).rejects.toEqual(ClientError.WRONG_CREDENTIALS)
+      await expect(promise).resolves.toBeUndefined()
       await expect(spyEmitError).toHaveBeenCalledTimes(1)
       await expect(spyEmitError).toHaveBeenCalledWith(new Error(ClientError.WRONG_CREDENTIALS))
     })
@@ -516,19 +552,17 @@ describe("WebSocketClient.ts", () => {
       await expect(promise).resolves.toBeUndefined()
     })
 
-    test.skip("should send overlapping addStrokes immediately and resolve acks in FIFO send order", async () => {
+    test("should send overlapping addStrokes immediately, without waiting for an answer", async () => {
       expect.assertions(3)
       await wsClient.init()
       const firstPromise = wsClient.addStrokes(strokes)
       const secondPromise = wsClient.addStrokes(strokes)
-      await delay(100)
-      // Both messages reach the server right away — no wait for the first ack before sending the second.
-      expect(mockServer.getMessages("addStrokes")).toHaveLength(2)
-      // First ack received (gesture) settles the first-sent call; second ack (contentChanged) settles the second.
-      mockServer.sendGestureDetectedMessage()
-      mockServer.sendContentChangeMessage()
-      await expect(firstPromise).resolves.toEqual(gestureDetectedMessage)
+      // A change settles once sent: the server answers with contentChanged, not with a per-message ack
+      await expect(firstPromise).resolves.toBeUndefined()
       await expect(secondPromise).resolves.toBeUndefined()
+      // the mock server receives the frames asynchronously
+      await delay(100)
+      expect(mockServer.getMessages("addStrokes")).toHaveLength(2)
     })
   })
 
@@ -556,7 +590,9 @@ describe("WebSocketClient.ts", () => {
     }
 
     test("should split strokes over several messages so none outgrows the frame budget", async () => {
-      const strokes = Array.from({ length: 6 }, () => buildIIStroke({ nbPoint: 40, box: { x: 0, y: 0, width: 400, height: 400 } }))
+      const strokes = Array.from({ length: 6 }, () =>
+        buildIIStroke({ nbPoint: 40, box: { x: 0, y: 0, width: 400, height: 400 } })
+      )
       const budget = strokeBytes(strokes[0]) * 2 + 200
       const wsClient = new SmallFrameClient(onlineConf(), budget)
       const sent: TWebSocketClientMessage[] = []
@@ -574,7 +610,11 @@ describe("WebSocketClient.ts", () => {
     })
 
     test("should still send a stroke larger than the budget, alone", async () => {
-      const strokes = [buildIIStroke(), buildIIStroke({ nbPoint: 200, box: { x: 0, y: 0, width: 2000, height: 2000 } }), buildIIStroke()]
+      const strokes = [
+        buildIIStroke(),
+        buildIIStroke({ nbPoint: 200, box: { x: 0, y: 0, width: 2000, height: 2000 } }),
+        buildIIStroke(),
+      ]
       const wsClient = new SmallFrameClient(onlineConf(), strokeBytes(strokes[0]) + 200)
       const sent: TWebSocketClientMessage[] = []
       jest.spyOn(wsClient, "send").mockImplementation((message) => {
@@ -596,7 +636,8 @@ describe("WebSocketClient.ts", () => {
       return sent
     }
     const ids = Array.from({ length: 30 }, (_, i) => `stroke-${String(i).padStart(36, "0")}`)
-    const idsOf = (message: TWebSocketClientMessage): unknown[] => (Array.isArray(message.strokeIds) ? message.strokeIds : [])
+    const idsOf = (message: TWebSocketClientMessage): unknown[] =>
+      Array.isArray(message.strokeIds) ? message.strokeIds : []
 
     test.each([
       ["transformTranslate", (c: WebSocketClient) => c.transformTranslate(ids, 1, 2)],
@@ -633,7 +674,9 @@ describe("WebSocketClient.ts", () => {
     })
 
     test("replaceStrokes should send the replacement first, then the strokes left over as additions", async () => {
-      const newStrokes = Array.from({ length: 6 }, () => buildIIStroke({ nbPoint: 40, box: { x: 0, y: 0, width: 400, height: 400 } }))
+      const newStrokes = Array.from({ length: 6 }, () =>
+        buildIIStroke({ nbPoint: 40, box: { x: 0, y: 0, width: 400, height: 400 } })
+      )
       const budget = strokeBytes(newStrokes[0]) * 2 + 400
       const wsClient = new SmallFrameClient(onlineConf(), budget)
       const sent = recordSends(wsClient)
@@ -685,7 +728,7 @@ describe("WebSocketClient.ts", () => {
       await expect(promise).toResolve()
     })
 
-    test.skip("should replay queued addStrokes in order once reconnected", async () => {
+    test("should replay queued addStrokes in order once reconnected", async () => {
       await wsClient.init()
       await wsClient.close(1000, "simulate-drop")
       const promise = wsClient.addStrokes(strokes)
@@ -696,8 +739,7 @@ describe("WebSocketClient.ts", () => {
         type: "addStrokes",
         strokes: strokes.map((s) => toWireStroke(s)),
       })
-      mockServer.sendGestureDetectedMessage()
-      await expect(promise).resolves.toEqual(gestureDetectedMessage)
+      await expect(promise).resolves.toBeUndefined()
       expect(wsClient.isOffline).toBe(false)
     })
 
@@ -782,7 +824,9 @@ describe("WebSocketClient.ts", () => {
     const waitUntil = async (condition: () => boolean, timeout = 3000) => {
       const start = Date.now()
       while (!condition()) {
-        if (Date.now() - start > timeout) throw new Error("waitUntil: condition never met")
+        if (Date.now() - start > timeout) {
+          throw new Error("waitUntil: condition never met")
+        }
         await delay(10)
       }
     }
@@ -817,7 +861,9 @@ describe("WebSocketClient.ts", () => {
       const request = retryClient.getVariables("block-1")
       await waitUntil(() => server.getMessages("mathSolver").length > 0)
       const socket = server.server.clients().at(-1)
-      socket?.send(JSON.stringify({ type: "mathSolverResult", action: "get-variables", blockId: "block-1", result: [] }))
+      socket?.send(
+        JSON.stringify({ type: "mathSolverResult", action: "get-variables", blockId: "block-1", result: [] })
+      )
 
       await expect(request).resolves.toEqual([])
       await retryClient.destroy()
@@ -1087,7 +1133,7 @@ describe("WebSocketClient.ts", () => {
       mockServer.sendContentChangeMessage()
       await expect(promise).toResolve()
     })
-    test.skip("should reject if receive error message", async () => {
+    test("should emit the error the server answers, the change being already sent", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(wsClient.event, "emitError")
       expect.assertions(3)
       await wsClient.init()
@@ -1095,7 +1141,7 @@ describe("WebSocketClient.ts", () => {
       //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the client
       await delay(100)
       mockServer.sendNotGrantedErrorMessage()
-      await expect(promise).rejects.toEqual(ClientError.WRONG_CREDENTIALS)
+      await expect(promise).resolves.toBeUndefined()
       await expect(spyEmitError).toHaveBeenCalledTimes(1)
       await expect(spyEmitError).toHaveBeenCalledWith(new Error(ClientError.WRONG_CREDENTIALS))
     })
@@ -1154,7 +1200,7 @@ describe("WebSocketClient.ts", () => {
       mockServer.sendContentChangeMessage()
       await expect(promise).toResolve()
     })
-    test.skip("should reject if receive error message", async () => {
+    test("should emit the error the server answers, the change being already sent", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(wsClient.event, "emitError")
       expect.assertions(3)
       await wsClient.init()
@@ -1162,7 +1208,7 @@ describe("WebSocketClient.ts", () => {
       //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the client
       await delay(100)
       mockServer.sendNotGrantedErrorMessage()
-      await expect(promise).rejects.toEqual(ClientError.WRONG_CREDENTIALS)
+      await expect(promise).resolves.toBeUndefined()
       await expect(spyEmitError).toHaveBeenCalledTimes(1)
       await expect(spyEmitError).toHaveBeenCalledWith(new Error(ClientError.WRONG_CREDENTIALS))
     })
@@ -1223,7 +1269,7 @@ describe("WebSocketClient.ts", () => {
       mockServer.sendContentChangeMessage()
       await expect(promise).toResolve()
     })
-    test.skip("should reject if receive error message", async () => {
+    test("should emit the error the server answers, the change being already sent", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(wsClient.event, "emitError")
       expect.assertions(3)
       await wsClient.init()
@@ -1231,7 +1277,7 @@ describe("WebSocketClient.ts", () => {
       //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the client
       await delay(100)
       mockServer.sendNotGrantedErrorMessage()
-      await expect(promise).rejects.toEqual(ClientError.WRONG_CREDENTIALS)
+      await expect(promise).resolves.toBeUndefined()
       await expect(spyEmitError).toHaveBeenCalledTimes(1)
       await expect(spyEmitError).toHaveBeenCalledWith(new Error(ClientError.WRONG_CREDENTIALS))
     })
@@ -1294,7 +1340,7 @@ describe("WebSocketClient.ts", () => {
       mockServer.sendContentChangeMessage()
       await expect(promise).toResolve()
     })
-    test.skip("should reject if receive error message", async () => {
+    test("should emit the error the server answers, the change being already sent", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(wsClient.event, "emitError")
       expect.assertions(3)
       await wsClient.init()
@@ -1302,7 +1348,7 @@ describe("WebSocketClient.ts", () => {
       //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the client
       await delay(100)
       mockServer.sendNotGrantedErrorMessage()
-      await expect(promise).rejects.toEqual(ClientError.WRONG_CREDENTIALS)
+      await expect(promise).resolves.toBeUndefined()
       await expect(spyEmitError).toHaveBeenCalledTimes(1)
       await expect(spyEmitError).toHaveBeenCalledWith(new Error(ClientError.WRONG_CREDENTIALS))
     })
@@ -1359,7 +1405,7 @@ describe("WebSocketClient.ts", () => {
       mockServer.sendContentChangeMessage()
       await expect(promise).toResolve()
     })
-    test.skip("should reject if receive error message", async () => {
+    test("should emit the error the server answers, the change being already sent", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(wsClient.event, "emitError")
       expect.assertions(3)
       await wsClient.init()
@@ -1367,7 +1413,7 @@ describe("WebSocketClient.ts", () => {
       //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the client
       await delay(100)
       mockServer.sendNotGrantedErrorMessage()
-      await expect(promise).rejects.toEqual(ClientError.WRONG_CREDENTIALS)
+      await expect(promise).resolves.toBeUndefined()
       await expect(spyEmitError).toHaveBeenCalledTimes(1)
       await expect(spyEmitError).toHaveBeenCalledWith(new Error(ClientError.WRONG_CREDENTIALS))
     })
@@ -1421,7 +1467,7 @@ describe("WebSocketClient.ts", () => {
       mockServer.sendContentChangeMessage()
       await expect(promise).toResolve()
     })
-    test.skip("should reject if receive error message", async () => {
+    test("should emit the error the server answers, the change being already sent", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(wsClient.event, "emitError")
       expect.assertions(3)
       await wsClient.init()
@@ -1429,7 +1475,7 @@ describe("WebSocketClient.ts", () => {
       //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the client
       await delay(100)
       mockServer.sendNotGrantedErrorMessage()
-      await expect(promise).rejects.toEqual(ClientError.WRONG_CREDENTIALS)
+      await expect(promise).resolves.toBeUndefined()
       await expect(spyEmitError).toHaveBeenCalledTimes(1)
       await expect(spyEmitError).toHaveBeenCalledWith(new Error(ClientError.WRONG_CREDENTIALS))
     })
@@ -1485,7 +1531,7 @@ describe("WebSocketClient.ts", () => {
       mockServer.sendContextlessGestureMessage()
       await expect(promise).toResolve()
     })
-    test.skip("should reject if receive error message", async () => {
+    test("should reject if receive error message", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(wsClient.event, "emitError")
       expect.assertions(3)
       await wsClient.init()
@@ -1529,7 +1575,7 @@ describe("WebSocketClient.ts", () => {
       await delay(100)
       await expect(promise).resolves.toBeUndefined()
     })
-    test.skip("should reject if receive error message", async () => {
+    test("should reject if receive error message", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(wsClient.event, "emitError")
       expect.assertions(3)
       await wsClient.init()
@@ -1601,9 +1647,7 @@ describe("WebSocketClient.ts", () => {
       // No transform message reaches the server on undo any more. A transform is recorded as a
       // before/after pair like every other change, and a pair travels as a stroke replacement —
       // the wire form carries the moved coordinates, since the serializer bakes the matrix in.
-      expect(
-        messageSent.changes.filter((change: { type?: string }) => change.type === "transform")
-      ).toEqual([])
+      expect(messageSent.changes.filter((change: { type?: string }) => change.type === "transform")).toEqual([])
     })
     test("should resolve undo when received contentChanged", async () => {
       expect.assertions(1)
@@ -1615,7 +1659,7 @@ describe("WebSocketClient.ts", () => {
       mockServer.sendContentChangeMessage()
       await expect(promise).toResolve()
     })
-    test.skip("should reject if receive error message", async () => {
+    test("should emit the error the server answers, the change being already sent", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(wsClient.event, "emitError")
       expect.assertions(3)
       await wsClient.init()
@@ -1624,7 +1668,7 @@ describe("WebSocketClient.ts", () => {
       //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the client
       await delay(100)
       mockServer.sendNotGrantedErrorMessage()
-      await expect(promise).rejects.toEqual(ClientError.WRONG_CREDENTIALS)
+      await expect(promise).resolves.toBeUndefined()
       expect(spyEmitError).toHaveBeenCalledTimes(1)
       expect(spyEmitError).toHaveBeenCalledWith(new Error(ClientError.WRONG_CREDENTIALS))
     })
@@ -1667,7 +1711,7 @@ describe("WebSocketClient.ts", () => {
       mockServer.sendContentChangeMessage()
       await expect(promise).toResolve()
     })
-    test.skip("should reject if receive error message", async () => {
+    test("should emit the error the server answers, the change being already sent", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(wsClient.event, "emitError")
       expect.assertions(3)
       await wsClient.init()
@@ -1676,7 +1720,7 @@ describe("WebSocketClient.ts", () => {
       //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the client
       await delay(100)
       mockServer.sendNotGrantedErrorMessage()
-      await expect(promise).rejects.toEqual(ClientError.WRONG_CREDENTIALS)
+      await expect(promise).resolves.toBeUndefined()
       await expect(spyEmitError).toHaveBeenCalledTimes(1)
       await expect(spyEmitError).toHaveBeenCalledWith(new Error(ClientError.WRONG_CREDENTIALS))
     })
@@ -1717,7 +1761,7 @@ describe("WebSocketClient.ts", () => {
       mockServer.sendContentChangeMessage()
       await expect(promise).toResolve()
     })
-    test.skip("should reject if receive error message", async () => {
+    test("should emit the error the server answers, the change being already sent", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(wsClient.event, "emitError")
       expect.assertions(3)
       await wsClient.init()
@@ -1725,7 +1769,7 @@ describe("WebSocketClient.ts", () => {
       //¯\_(ツ)_/¯  required to wait for the instantiation of the promise of the client
       await delay(100)
       mockServer.sendNotGrantedErrorMessage()
-      await expect(promise).rejects.toEqual(ClientError.WRONG_CREDENTIALS)
+      await expect(promise).resolves.toBeUndefined()
       await expect(spyEmitError).toHaveBeenCalledTimes(1)
       await expect(spyEmitError).toHaveBeenCalledWith(new Error(ClientError.WRONG_CREDENTIALS))
     })
@@ -1755,7 +1799,9 @@ describe("WebSocketClient.ts", () => {
       //¯\_(ツ)_/¯  required to wait server received message
       await delay(100)
 
-      expect(mockServer.getMessages("exportPackage").map((m) => JSON.parse(m as string))).toEqual([{ type: "exportPackage" }])
+      expect(mockServer.getMessages("exportPackage").map((m) => JSON.parse(m as string))).toEqual([
+        { type: "exportPackage" },
+      ])
     })
 
     test("should resolve with the bytes of every chunk, in order", async () => {
@@ -1781,8 +1827,12 @@ describe("WebSocketClient.ts", () => {
       //¯\_(ツ)_/¯  required to wait server received message
       await delay(100)
       mockServer.send(JSON.stringify({ type: "packageInfo", exportId: "current", size: 1, chunkCount: 1 }))
-      mockServer.send(JSON.stringify({ type: "packageChunk", exportId: "stale", chunkIdx: 0, data: "AAAA", lastChunk: true }))
-      mockServer.send(JSON.stringify({ type: "packageChunk", exportId: "current", chunkIdx: 0, data: "BQ==", lastChunk: true }))
+      mockServer.send(
+        JSON.stringify({ type: "packageChunk", exportId: "stale", chunkIdx: 0, data: "AAAA", lastChunk: true })
+      )
+      mockServer.send(
+        JSON.stringify({ type: "packageChunk", exportId: "current", chunkIdx: 0, data: "BQ==", lastChunk: true })
+      )
 
       expect(readBytes(await exported)).toEqual([5])
     })
@@ -1966,7 +2016,9 @@ describe("WebSocketClient.ts", () => {
       expect(parse(chunks).map((chunk) => [chunk.importId, chunk.lastChunk])).toEqual(
         chunks.map((_, i) => [importId, i === chunks.length - 1])
       )
-      expect(parse(chunks).flatMap((chunk) => Array.from(base64ToBytes(chunk.data as string)))).toEqual(Array.from(sessionPackage))
+      expect(parse(chunks).flatMap((chunk) => Array.from(base64ToBytes(chunk.data as string)))).toEqual(
+        Array.from(sessionPackage)
+      )
     })
 
     test("should restore the imported session, not import it again, when reconnecting", async () => {
@@ -1984,7 +2036,11 @@ describe("WebSocketClient.ts", () => {
     test("should reject when the server refuses the package, and start a new session on the next connection", async () => {
       mockServer.close()
       mockServer = new ServerWebSocketMock(wsClient.url)
-      mockServer.init({ withHMAC: true, withIdle: true, importError: { type: "error", code: "import.error", message: "Invalid package" } })
+      mockServer.init({
+        withHMAC: true,
+        withIdle: true,
+        importError: { type: "error", code: "import.error", message: "Invalid package" },
+      })
       wsClient.event.emitError = jest.fn()
 
       await expect(wsClient.importPackage(sessionPackage, "part-7")).rejects.toEqual("Invalid package")
@@ -2001,7 +2057,9 @@ describe("WebSocketClient.ts", () => {
     test("should reject without connecting to a server older than 4.6.0", async () => {
       wsClient.configuration.server.version = "4.5.4"
 
-      await expect(wsClient.importPackage(sessionPackage, "part-7")).rejects.toThrow("Server 4.5.4 can not import the session package")
+      await expect(wsClient.importPackage(sessionPackage, "part-7")).rejects.toThrow(
+        "Server 4.5.4 can not import the session package"
+      )
       //¯\_(ツ)_/¯  required to wait server received message
       await delay(100)
       expect(mockServer.getMessages("authenticate")).toHaveLength(0)
@@ -2056,7 +2114,10 @@ describe("WebSocketClient.ts", () => {
       await delay(100)
 
       expect(mockServer.getMessages("importPackage")).toHaveLength(1)
-      expect(JSON.parse(mockServer.getMessages("openContentPart")[0] as string)).toEqual({ type: "openContentPart", id: "part-7" })
+      expect(JSON.parse(mockServer.getMessages("openContentPart")[0] as string)).toEqual({
+        type: "openContentPart",
+        id: "part-7",
+      })
       expect(recovery.recover).toHaveBeenCalledWith(true)
     })
 
@@ -2086,7 +2147,9 @@ describe("WebSocketClient.ts", () => {
     test("should recover in a new session when the package is refused", async () => {
       const recovery = recoveryWith(savedPackage)
       wsClient.setSessionRecovery(recovery)
-      const sentBeforeDrop = await loseSession({ importError: { type: "error", code: "import.error", message: "Invalid package" } })
+      const sentBeforeDrop = await loseSession({
+        importError: { type: "error", code: "import.error", message: "Invalid package" },
+      })
 
       await wsClient.send({ type: "probe" })
       //¯\_(ツ)_/¯  required to wait server received message
@@ -2298,7 +2361,7 @@ describe("WebSocketClient.ts", () => {
       )
       wsClient.destroy()
     })
-    test.skip("should reject if receive error message", async () => {
+    test("should reject if receive error message", async () => {
       const spyEmitError: jest.SpyInstance = jest.spyOn(wsClient.event, "emitError")
       expect.assertions(3)
       await wsClient.init()

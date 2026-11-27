@@ -1,5 +1,7 @@
+import type { TBox, TPoint, TStyle } from "@/iink"
+import { DefaultStyle, EdgeUtil, HIT_TOLERANCE, OBBOps, Polyline2d } from "@/iink"
+
 import { edgeGeometry } from "../../helpers"
-import { DefaultStyle, EdgeUtil, OBBOps, Polyline2d, HIT_TOLERANCE, TBox, TPoint, TStyle } from "@/iink"
 
 describe("PolyLine.ts", () => {
   describe("constructor", () => {

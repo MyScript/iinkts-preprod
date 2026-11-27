@@ -1,5 +1,7 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { MATH_SOLVER_DEBOUNCE_MS, MathMenuAction, TMathActionItemsConfig } from "@/iink"
+import type { TMathActionItemsConfig } from "@/iink"
+import { MATH_SOLVER_DEBOUNCE_MS, MathMenuAction } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 
 describe("MathMenuAction.ts", () => {
   afterEach(() => {

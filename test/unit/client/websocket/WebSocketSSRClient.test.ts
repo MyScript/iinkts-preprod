@@ -1,8 +1,18 @@
-import { WebSocketSSRClientMathConfiguration, WebSocketSSRClientTextConfiguration } from "../../__dataset__/configuration.dataset"
-import { ServerWebSocketSSRMock, emptyJIIX, errorNotGrantedMessage, hTextJIIX, partChangeMessage } from "../../__mocks__/ServerWebSocketSSRMock"
-import { buildStroke, delay } from "../../helpers"
+import type { TConverstionState, TPenStyle, TRecognitionTypeV1, TTheme, TWebSocketSSRClientConfiguration } from "@/iink"
+import { ClientError, LoggerCategory, LoggerManager, Model, toWireStroke, WebSocketSSRClient } from "@/iink"
 
-import { WebSocketSSRClient, ClientError, TRecognitionTypeV1, TPenStyle, TTheme, Model, TConverstionState, TWebSocketSSRClientConfiguration, toWireStroke, LoggerManager, LoggerCategory } from "@/iink"
+import {
+  WebSocketSSRClientMathConfiguration,
+  WebSocketSSRClientTextConfiguration,
+} from "../../__dataset__/configuration.dataset"
+import {
+  emptyJIIX,
+  errorNotGrantedMessage,
+  hTextJIIX,
+  partChangeMessage,
+  ServerWebSocketSSRMock,
+} from "../../__mocks__/ServerWebSocketSSRMock"
+import { buildStroke, delay } from "../../helpers"
 
 describe("WebSocketSSRClient.ts", () => {
   const height = 100,
@@ -47,14 +57,8 @@ describe("WebSocketSSRClient.ts", () => {
         const customConf = structuredClone(WebSocketSSRClientTextConfiguration)
         customConf.recognition = config.recognition
         const wsr = new WebSocketSSRClient(customConf)
-        switch (type) {
-          case "TEXT":
-            expect(wsr.mimeTypes).toEqual(config.recognition.text.mimeTypes)
-            break
-          case "MATH":
-            expect(wsr.mimeTypes).toEqual(config.recognition.math.mimeTypes)
-            break
-        }
+        const expected = type === "TEXT" ? config.recognition.text.mimeTypes : config.recognition.math.mimeTypes
+        expect(wsr.mimeTypes).toEqual(expected)
       })
     })
   })
@@ -272,8 +276,7 @@ describe("WebSocketSSRClient.ts", () => {
       client.destroy()
       server.close()
     })
-    //TODO fix test
-    test.skip("should reconnect before send message", async () => {
+    test("should reconnect before send message", async () => {
       expect.assertions(1)
       await wsr.init(height, width)
       await wsr.close(1000, "CLOSE_CLIENT")

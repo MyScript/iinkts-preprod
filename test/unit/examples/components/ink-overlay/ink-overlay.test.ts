@@ -1,6 +1,7 @@
 import { convertBoundingBoxMillimeterToPixel } from "@/iink"
-import { InkOverlay } from "../../../../../examples/components/ink-overlay/ink-overlay.js"
+
 import type { TBox } from "../../../../../examples/components/ink-overlay/ink-overlay.js"
+import { InkOverlay } from "../../../../../examples/components/ink-overlay/ink-overlay.js"
 
 describe("components/ink-overlay", () => {
   const frames: FrameRequestCallback[] = []

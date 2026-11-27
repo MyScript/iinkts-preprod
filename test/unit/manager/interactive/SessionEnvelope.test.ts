@@ -1,5 +1,7 @@
+import type { TSessionEnvelope, TSymbolChar } from "@/iink"
+import { parseSession, registerBuiltinSymbolUtils, serializeSession } from "@/iink"
+
 import { buildIIMath, buildIIStroke, buildIIText } from "../../helpers"
-import { parseSession, registerBuiltinSymbolUtils, serializeSession, TSessionEnvelope, TSymbolChar } from "@/iink"
 
 describe("SessionEnvelope.ts", () => {
   beforeAll(() => registerBuiltinSymbolUtils())
@@ -55,7 +57,9 @@ describe("SessionEnvelope.ts", () => {
   })
 
   test("should reject a session file without symbols", () => {
-    expect(() => parseSession(JSON.stringify({ format: "iinkts-session", formatVersion: 1 }))).toThrow("Not an iinkTS session file")
+    expect(() => parseSession(JSON.stringify({ format: "iinkts-session", formatVersion: 1 }))).toThrow(
+      "Not an iinkTS session file"
+    )
   })
 
   test("should reject a session written by a newer format version", () => {
@@ -92,7 +96,9 @@ describe("SessionEnvelope.ts", () => {
     })
 
     test("should open a session whose history can not be read, without its history", () => {
-      const text = serializeSession(envelope({ history: { stack: [{}, { added: [{ type: "unknown" }] }], stackIndex: 1 } } as never))
+      const text = serializeSession(
+        envelope({ history: { stack: [{}, { added: [{ type: "unknown" }] }], stackIndex: 1 } } as never)
+      )
 
       const parsed = parseSession(text)
 

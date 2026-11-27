@@ -1,5 +1,7 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { RangeMenuItem, TMenuRange } from "@/iink"
+import type { TMenuRange } from "@/iink"
+import { RangeMenuItem } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 
 describe("RangeMenuItem.ts", () => {
   afterEach(() => {

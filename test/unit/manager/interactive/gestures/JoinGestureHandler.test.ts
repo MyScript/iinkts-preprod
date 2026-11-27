@@ -1,6 +1,8 @@
+import type { TGesture } from "@/iink"
+import { GestureHelpers, JoinAction, JoinGestureHandler, OBBOps, StrokeUtil, SymbolGeometry } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../../__mocks__/createCanvasMock"
 import { buildIIStroke, buildIIText } from "../../../helpers"
-import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { GestureHelpers, JoinAction, JoinGestureHandler, OBBOps, StrokeUtil, SymbolGeometry, TGesture } from "@/iink"
 
 describe("JoinGestureHandler.ts", () => {
   let canvas: ReturnType<typeof createCanvasMock>
@@ -204,7 +206,13 @@ describe("JoinGestureHandler.ts", () => {
 
       await handler.apply(gestureStroke, join())
 
-      expect(translate).toHaveBeenNthCalledWith(1, [after], rightEdge(above) - leftEdge(after) + rowHeight * 2, -rowHeight, false)
+      expect(translate).toHaveBeenNthCalledWith(
+        1,
+        [after],
+        rightEdge(above) - leftEdge(after) + rowHeight * 2,
+        -rowHeight,
+        false
+      )
       expect(canvas.history.push).toHaveBeenCalledTimes(1)
     })
 

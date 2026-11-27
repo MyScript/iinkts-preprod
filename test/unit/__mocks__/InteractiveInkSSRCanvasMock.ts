@@ -1,4 +1,5 @@
 import { DefaultInteractiveInkSSRCanvasConfiguration, InteractiveInkSSRCanvas } from "@/iink"
+
 import { CanvasEventMock } from "./CanvasEventMock"
 
 export class InteractiveInkSSRCanvasMock extends InteractiveInkSSRCanvas {

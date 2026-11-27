@@ -1,7 +1,8 @@
-import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { buildIIStroke } from "../../../helpers"
-import { ColorPaletteManager, IIMathVariableSubManager, JIIXMathExpressionType } from "@/iink"
 import type { TJIIXMathExpression, TMathVariable, TStroke } from "@/iink"
+import { ColorPaletteManager, IIMathVariableSubManager, JIIXMathExpressionType } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../../__mocks__/createCanvasMock"
+import { buildIIStroke } from "../../../helpers"
 
 describe("IIMathVariableSubManager.ts", () => {
   beforeEach(() => {
@@ -73,7 +74,7 @@ describe("IIMathVariableSubManager.ts", () => {
       ])
     })
 
-    test("should exclude the block's own definition variable (e.g. writing \"c=3/2\")", async () => {
+    test('should exclude the block\'s own definition variable (e.g. writing "c=3/2")', async () => {
       const canvas = createCanvasMock()
       const manager = new IIMathVariableSubManager(asCanvas(canvas))
       const variables: TMathVariable[] = [

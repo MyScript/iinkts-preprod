@@ -1,6 +1,8 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
+import type { TPointer, TPointerInfo, TStyle, TSymbol } from "@/iink"
+import { AbstractWriterManager } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 import { buildIIStroke } from "../../helpers"
-import { AbstractWriterManager, TPointer, TPointerInfo, TStyle, TSymbol } from "@/iink"
 
 class TestWriterManager extends AbstractWriterManager {
   protected createCurrentSymbol(_pointer: TPointer, style: TStyle): TSymbol {

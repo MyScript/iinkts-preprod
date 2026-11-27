@@ -1,6 +1,8 @@
+import type { TInteractiveInkCanvasOptions, TSymbolChar, TText } from "@/iink"
+import { DefaultInteractiveInkCanvasConfiguration, InteractiveInkCanvas } from "@/iink"
+
 import { jiixMathDuplicateStrokes, jiixText } from "../../__dataset__/exports.dataset"
 import { buildIIMath, buildIIStroke, buildIIText } from "../../helpers"
-import { DefaultInteractiveInkCanvasConfiguration, InteractiveInkCanvas, TInteractiveInkCanvasOptions, TSymbolChar, TText } from "@/iink"
 
 describe("IIExportManager.ts", () => {
   const CanvasOptions: TInteractiveInkCanvasOptions = {
@@ -133,8 +135,20 @@ describe("IIExportManager.ts", () => {
         "application/vnd.myscript.jiix": {
           type: "Raw Content",
           elements: [
-            { type: "Text", id: "text 1", label: "hello", "bounding-box": box, words: [{ label: "hello", items: [{ type: "stroke", id: "word" }] }] },
-            { type: "Edge", kind: "line", id: "raw-content 31", "bounding-box": { ...box, x: 50 }, items: [{ type: "stroke", id: "line" }] },
+            {
+              type: "Text",
+              id: "text 1",
+              label: "hello",
+              "bounding-box": box,
+              words: [{ label: "hello", items: [{ type: "stroke", id: "word" }] }],
+            },
+            {
+              type: "Edge",
+              kind: "line",
+              id: "raw-content 31",
+              "bounding-box": { ...box, x: 50 },
+              items: [{ type: "stroke", id: "line" }],
+            },
           ],
         } as never,
       })

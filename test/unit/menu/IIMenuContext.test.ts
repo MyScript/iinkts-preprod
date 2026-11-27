@@ -1,6 +1,8 @@
+import type { TMenuItemOptions } from "@/iink"
+import { IIJiixQueryManager, IIMathManager, IIMenuContext } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../__mocks__/createCanvasMock"
 import { buildIIStroke, StubMenuItem } from "../helpers"
-import { createCanvasMock, asCanvas } from "../__mocks__/createCanvasMock"
-import { IIMenuContext, IIJiixQueryManager, IIMathManager, TMenuItemOptions } from "@/iink"
 
 const ONLY_MATH_MENU_CONFIG = {
   edit: false,
@@ -260,7 +262,11 @@ describe("IIMenuContext zones", () => {
       const stroke = buildIIStroke()
       canvas.model.addSymbol(stroke)
       canvas.model.selectSymbol(stroke.id)
-      const menuContext = new IIMenuContext(asCanvas(canvas), "ms-menu-context", { ...ONLY_MATH_MENU_CONFIG, math: false, ...config })
+      const menuContext = new IIMenuContext(asCanvas(canvas), "ms-menu-context", {
+        ...ONLY_MATH_MENU_CONFIG,
+        math: false,
+        ...config,
+      })
       menuContext.render(canvas.layers.rendering)
       return { canvas, menuContext, stroke }
     }

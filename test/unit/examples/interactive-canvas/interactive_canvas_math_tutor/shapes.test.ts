@@ -1,4 +1,9 @@
-import { measure, shapeFigure, shapeSvg, triangleCorners } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/shapes.js"
+import {
+  measure,
+  shapeFigure,
+  shapeSvg,
+  triangleCorners,
+} from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/shapes.js"
 import { FIGURE_UI } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/strings.js"
 
 describe("interactive_canvas_math_tutor/shapes", () => {
@@ -38,8 +43,15 @@ describe("interactive_canvas_math_tutor/shapes", () => {
       const rectangle = shapeFigure({ type: "rectangle", width: 6, height: 4 })
       expect(rectangle.labels.map((label) => label.text)).toEqual(["6", "4"])
       expect(rectangle.rightAngles).toHaveLength(1)
-      expect(shapeFigure({ type: "right-triangle", legs: [3, 4] }).labels.map((label) => label.text)).toEqual(["3", "4"])
-      expect(shapeFigure({ type: "triangle", sides: [5, 6, 7] }).labels.map((label) => label.text)).toEqual(["5", "6", "7"])
+      expect(shapeFigure({ type: "right-triangle", legs: [3, 4] }).labels.map((label) => label.text)).toEqual([
+        "3",
+        "4",
+      ])
+      expect(shapeFigure({ type: "triangle", sides: [5, 6, 7] }).labels.map((label) => label.text)).toEqual([
+        "5",
+        "6",
+        "7",
+      ])
     })
 
     test("should show the radius of a circle", () => {

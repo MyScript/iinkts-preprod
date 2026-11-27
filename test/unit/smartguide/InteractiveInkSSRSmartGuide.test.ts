@@ -1,6 +1,9 @@
+import type { TMarginConfiguration } from "@/iink"
+import { InteractiveInkSSRSmartGuide } from "@/iink"
+
 import { LeftClickEventMock } from "../__mocks__/EventMock"
 import { InteractiveInkSSRCanvasMock } from "../__mocks__/InteractiveInkSSRCanvasMock"
-import { InteractiveInkSSRSmartGuide, TMarginConfiguration } from "@/iink"
+import { delay } from "../helpers"
 
 describe("InteractiveInkSSRSmartGuide.ts", () => {
   const canvasMock = new InteractiveInkSSRCanvasMock()
@@ -39,7 +42,7 @@ describe("InteractiveInkSSRSmartGuide.ts", () => {
       expect(wrapper).toBeDefined()
       expect(wrapper.id).toBe(`ellipsis-${sm.uuid}`)
     })
-    test("should init ellipsis", () => {
+    test("should init tag icon", () => {
       const wrapper = domElement.querySelector(".tag-icon") as HTMLDivElement
       expect(wrapper).toBeDefined()
       expect(wrapper.id).toBe(`tag-icon-${sm.uuid}`)
@@ -115,8 +118,27 @@ describe("InteractiveInkSSRSmartGuide.ts", () => {
       btn.dispatchEvent(pointerDownEvt)
       expect(canvasMock.convert).toHaveBeenCalledTimes(1)
     })
-    test.skip("should COPY", () => {
-      // TODO
+    test("should tell there is nothing to copy when the prompter is empty", async () => {
+      canvasMock.event.emitNotif = jest.fn()
+      const btn = domElement.querySelector(`#copy-${sm.uuid}`) as HTMLDivElement
+      btn.dispatchEvent(pointerDownEvt)
+      await delay(0)
+      expect(canvasMock.event.emitNotif).toHaveBeenCalledWith({ message: "Nothing to copy", timeout: 1500 })
+    })
+    test("should copy the prompter text to the clipboard", async () => {
+      canvasMock.event.emitNotif = jest.fn()
+      // jsdom implements neither innerText nor execCommand
+      const prompter = domElement.querySelector(".prompter-text") as HTMLDivElement
+      Object.defineProperty(prompter, "innerText", { value: "hello", configurable: true })
+      document.execCommand = jest.fn(() => true)
+      const btn = domElement.querySelector(`#copy-${sm.uuid}`) as HTMLDivElement
+      btn.dispatchEvent(pointerDownEvt)
+      await delay(0)
+      expect(document.execCommand).toHaveBeenCalledWith("copy")
+      expect(canvasMock.event.emitNotif).toHaveBeenCalledWith({
+        message: '"hello" copied to clipboard',
+        timeout: 1500,
+      })
     })
     test("should call behavior.clear", () => {
       expect(canvasMock.clear).toHaveBeenCalledTimes(0)
@@ -227,21 +249,6 @@ describe("InteractiveInkSSRSmartGuide.ts", () => {
       expect(prompterText.children.length).toBeGreaterThan(0)
       const candidates = domElement.querySelector(".candidates") as HTMLDivElement
       expect(candidates.children).toHaveLength(0)
-    })
-
-    test.skip("should open candidates", () => {
-      // cannot be tested here, you have to simulate an event with a target different from the prompter
-      const prompterTextElement = domElement.querySelector(".prompter-text") as HTMLDivElement
-      const pointerDownEvt = new LeftClickEventMock("pointerdown", {
-        pointerType: "pen",
-        clientX: 10,
-        clientY: 10,
-        pressure: 1,
-      })
-
-      prompterTextElement.dispatchEvent(pointerDownEvt)
-      const candidates = domElement.querySelector(".candidates") as HTMLDivElement
-      expect(candidates.children).toHaveLength(jiix.words.length)
     })
   })
 })

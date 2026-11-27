@@ -1,6 +1,7 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
+import { DefaultStyle, StrokeColorStyle } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 import { buildIIStroke } from "../../helpers"
-import { StrokeColorStyle, DefaultStyle } from "@/iink"
 
 describe("StrokeColorStyle.ts", () => {
   afterEach(() => {

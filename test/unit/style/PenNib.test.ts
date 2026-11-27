@@ -106,7 +106,12 @@ describe("computeWidthProfile", () => {
     // The nibs are ordered by expressiveness, and that order has to show up in the numbers.
     const gesture = Array.from({ length: 60 }, (_, i) => {
       const u = i / 59
-      return { x: 20 + u * 420, y: 60 + Math.sin(u * Math.PI * 3) * 30, dt: i * 12 * (1 + 3 * Math.sin(u * Math.PI)), p: 0.5 }
+      return {
+        x: 20 + u * 420,
+        y: 60 + Math.sin(u * Math.PI * 3) * 30,
+        dt: i * 12 * (1 + 3 * Math.sin(u * Math.PI)),
+        p: 0.5,
+      }
     })
     const spread = (nib: keyof typeof PEN_NIBS) => {
       const mid = computeWidthProfile(gesture, "mouse", nib).slice(6, -6)

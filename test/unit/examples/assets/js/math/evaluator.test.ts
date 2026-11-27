@@ -1,5 +1,10 @@
-import { checkLine, checkLines, evaluate, isFinalValue, parseAnswer } from "../../../../../../examples/assets/js/math/evaluator.js"
-
+import {
+  checkLine,
+  checkLines,
+  evaluate,
+  isFinalValue,
+  parseAnswer,
+} from "../../../../../../examples/assets/js/math/evaluator.js"
 import { add, div, eq, frac, mul, neg, num, op, pi, sqrt, sub, sup, twoXPlusThreeEqualsSeven, v } from "./fixtures"
 
 describe("assets/js/math/evaluator", () => {

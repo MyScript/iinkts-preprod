@@ -1,4 +1,5 @@
-import { TEraser, EraserOps } from "@/iink"
+import type { TEraser } from "@/iink"
+import { EraserOps } from "@/iink"
 
 describe("TEraser", () => {
   test("is plain object", () => {

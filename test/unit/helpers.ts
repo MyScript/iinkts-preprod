@@ -1,5 +1,41 @@
-import { BaseMenuItem, DecoratorKind, DecoratorUtil, DefaultPenStyle, DefaultStyle, EdgeUtil, Ellipse2d, EraserOps, MathUtil, OBBOps, Polygon2d, Polyline2d, HIT_TOLERANCE, ShapeUtil, Stroke, StrokeUtil, TBox, TDecorator, TEdge, TEdgeLine, TEraser, TMath, TMathElement, TPartialDeep, TPoint, TShapeCircle, TShapeEllipse, TStroke, TStyle, TSymbolChar, TText, TextUtil, computeTypesetVertices, TInteractiveInkCanvas } from "@/iink"
-
+import type {
+  DecoratorKind,
+  TBox,
+  TDecorator,
+  TEdge,
+  TEdgeLine,
+  TEraser,
+  TInteractiveInkCanvas,
+  TMath,
+  TMathElement,
+  TPartialDeep,
+  TPoint,
+  TShapeCircle,
+  TShapeEllipse,
+  TStroke,
+  TStyle,
+  TSymbolChar,
+  TText,
+} from "@/iink"
+import {
+  BaseMenuItem,
+  computeTypesetVertices,
+  DecoratorUtil,
+  DefaultPenStyle,
+  DefaultStyle,
+  EdgeUtil,
+  Ellipse2d,
+  EraserOps,
+  HIT_TOLERANCE,
+  MathUtil,
+  OBBOps,
+  Polygon2d,
+  Polyline2d,
+  ShapeUtil,
+  Stroke,
+  StrokeUtil,
+  TextUtil,
+} from "@/iink"
 
 export const delay = (delayInms: number) => {
   return new Promise((resolve) => setTimeout(resolve, delayInms))
@@ -136,7 +172,6 @@ export function buildIIMath(
   ]
   return MathUtil.createMath(elements, point, boundingBox, style)
 }
-
 
 /**
  * Asserts a transform wrote its coordinates rounded to the three decimals the document stores.

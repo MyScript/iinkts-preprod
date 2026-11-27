@@ -1,4 +1,5 @@
-import { InkCanvas, TInkCanvasOptions, DefaultInkCanvasConfiguration, TPointerInfo } from "@/iink"
+import type { TInkCanvasOptions, TPointerInfo } from "@/iink"
+import { DefaultInkCanvasConfiguration, InkCanvas } from "@/iink"
 
 describe("IWriterManager.ts", () => {
   const buildCanvas = () => {

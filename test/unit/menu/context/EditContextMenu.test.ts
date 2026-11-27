@@ -1,6 +1,7 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { buildIIText, buildIIStroke } from "../../helpers"
 import { EditContextMenu, type TText } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
+import { buildIIStroke, buildIIText } from "../../helpers"
 
 describe("EditContextMenu.ts", () => {
   afterEach(() => {

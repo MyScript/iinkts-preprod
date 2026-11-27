@@ -1,5 +1,15 @@
+import type { TBox, TMathElement, TPoint } from "@/iink"
+import {
+  BoxOps,
+  computeClosedEdges,
+  computeTypesetSnapPoints,
+  computeTypesetVertices,
+  MathUtil,
+  MatrixTransform,
+  OBBOps,
+} from "@/iink"
+
 import { typesetGeometry } from "../../helpers"
-import { BoxOps, MathUtil, MatrixTransform, OBBOps, TBox, TMathElement, TPoint, computeClosedEdges, computeTypesetSnapPoints, computeTypesetVertices } from "@/iink"
 
 const elements: TMathElement[] = [
   {
@@ -49,7 +59,6 @@ describe("MathOps", () => {
       expect(computeTypesetSnapPoints(OBBOps.toUnrotatedBox(math.bounds), math.point)).toHaveLength(5)
       expect(computeClosedEdges(computeTypesetVertices(OBBOps.toUnrotatedBox(math.bounds)))).toHaveLength(4)
     })
-
   })
 
   describe("createFromPartial", () => {

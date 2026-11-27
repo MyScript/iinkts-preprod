@@ -1,5 +1,7 @@
-import { createCanvasMock, asCanvas } from "../__mocks__/createCanvasMock"
-import { BaseMenuItem, CanvasLayer, IIMenuManager, IIMenuStyle, IIMenuTool, IIMenuAction, IIMenuContext, LayoutManager, TInteractiveInkCanvas, TMenuItemRegistration } from "@/iink"
+import type { BaseMenuItem, TInteractiveInkCanvas, TMenuItemRegistration } from "@/iink"
+import { CanvasLayer, IIMenuAction, IIMenuContext, IIMenuManager, IIMenuStyle, IIMenuTool, LayoutManager } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../__mocks__/createCanvasMock"
 import { StubMenuItem } from "../helpers"
 
 describe("IIMenuManager.ts", () => {
@@ -391,7 +393,14 @@ describe("IIMenuManager registry", () => {
 describe("IIMenuManager in the layout", () => {
   function setup(items: TMenuItemRegistration[] = []) {
     const layers = new CanvasLayer(document.createElement("div"))
-    const layout = new LayoutManager<TInteractiveInkCanvas>(layers, ["action", "style", "tool", "state", "minimap", "search"])
+    const layout = new LayoutManager<TInteractiveInkCanvas>(layers, [
+      "action",
+      "style",
+      "tool",
+      "state",
+      "minimap",
+      "search",
+    ])
     const canvas = createCanvasMock({ layers, layout })
     canvas.configuration.menu.enable = true
     // The action menu fetches the language list on render: not what these tests are about

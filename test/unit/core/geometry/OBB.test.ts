@@ -1,5 +1,7 @@
-import { describe, test, expect } from "@jest/globals"
-import { OBBOps, TBox, TOBB, TPoint, TSegment } from "@/iink"
+import { describe, expect, test } from "@jest/globals"
+
+import type { TBox, TOBB, TPoint, TSegment } from "@/iink"
+import { OBBOps } from "@/iink"
 
 describe("OBBOps", () => {
   describe("polygonOverlapsBox", () => {

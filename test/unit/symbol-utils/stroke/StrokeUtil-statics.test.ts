@@ -1,4 +1,5 @@
-import { DefaultStyle, MatrixTransform, OBBOps, PointSet2d, StrokeUtil, TPointer, TStyle } from "@/iink"
+import type { TPointer, TStyle } from "@/iink"
+import { DefaultStyle, MatrixTransform, OBBOps, PointSet2d, StrokeUtil } from "@/iink"
 
 describe("StrokeUtil statics", () => {
   describe("create", () => {

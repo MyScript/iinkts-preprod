@@ -1,6 +1,8 @@
+import type { TBaseSymbol, TInkCanvas, TPointerInfo, TSymbol } from "@/iink"
+import { EraseManager, registerBuiltinSymbolUtils, symbolRegistry, SymbolType } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 import { buildIICircle, buildIIEraser, buildIIStroke, buildIIText } from "../../helpers"
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { EraseManager, TPointerInfo, SymbolType, TBaseSymbol, TSymbol, TInkCanvas, symbolRegistry, registerBuiltinSymbolUtils } from "@/iink"
 
 describe("EraseManager.ts", () => {
   test("should create", () => {
@@ -86,8 +88,22 @@ describe("partial character erase", () => {
 
     const text = buildIIText({
       chars: [
-        { id: "c1", label: "a", color: "#000", fontSize: 10, fontWeight: "normal", bounds: { x: 0, y: 0, width: 5, height: 10 } },
-        { id: "c2", label: "b", color: "#000", fontSize: 10, fontWeight: "normal", bounds: { x: 5, y: 0, width: 5, height: 10 } },
+        {
+          id: "c1",
+          label: "a",
+          color: "#000",
+          fontSize: 10,
+          fontWeight: "normal",
+          bounds: { x: 0, y: 0, width: 5, height: 10 },
+        },
+        {
+          id: "c2",
+          label: "b",
+          color: "#000",
+          fontSize: 10,
+          fontWeight: "normal",
+          bounds: { x: 5, y: 0, width: 5, height: 10 },
+        },
       ],
     })
     canvas.model.addSymbol(text)

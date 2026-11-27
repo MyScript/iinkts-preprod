@@ -1,4 +1,6 @@
+import { checkLines } from "../../../../../examples/assets/js/math/evaluator.js"
 import { DEMO_EXERCISES } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/demo-exercises.js"
+import type { TExercise } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/exercises.js"
 import {
   formatLinear,
   generateExercise,
@@ -7,10 +9,7 @@ import {
   measureExercise,
   SHAPE_SIZES,
 } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/exercises.js"
-import type { TExercise } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/exercises.js"
-import { checkLines } from "../../../../../examples/assets/js/math/evaluator.js"
 import { measure } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/shapes.js"
-
 import { add, eq, mul, num, op, pi, twoXPlusThreeEqualsSeven, v } from "../../assets/js/math/fixtures"
 
 /** Deterministic stand-in for Math.random, cycling through the given values */
@@ -85,7 +84,10 @@ describe("interactive_canvas_math_tutor/exercises", () => {
 
   describe("measureExercise", () => {
     test("should ask for P or A, never another letter", () => {
-      expect(measureExercise("p", { type: "square", side: 5 }, "perimeter").answer).toEqual({ variable: "P", value: 20 })
+      expect(measureExercise("p", { type: "square", side: 5 }, "perimeter").answer).toEqual({
+        variable: "P",
+        value: 20,
+      })
       expect(measureExercise("a", { type: "square", side: 5 }, "area").answer).toEqual({ variable: "A", value: 25 })
     })
 
@@ -162,7 +164,9 @@ describe("interactive_canvas_math_tutor/exercises", () => {
       expect(isSolved(rectangle, checkLines([formula], rectangle.solution))).toBe(false)
       expect(isSolved(rectangle, checkLines([formula, eq(v("P"), num(20))], rectangle.solution))).toBe(true)
       // A chain counts by its last member
-      expect(isSolved(rectangle, checkLines([eq(v("P"), add(num(12), num(8)), num(20))], rectangle.solution))).toBe(true)
+      expect(isSolved(rectangle, checkLines([eq(v("P"), add(num(12), num(8)), num(20))], rectangle.solution))).toBe(
+        true
+      )
     })
 
     test("should accept the area of a circle with π kept or rounded", () => {
@@ -176,4 +180,3 @@ describe("interactive_canvas_math_tutor/exercises", () => {
     })
   })
 })
-

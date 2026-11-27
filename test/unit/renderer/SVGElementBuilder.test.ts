@@ -1,4 +1,5 @@
-import { SVGBuilder, TPoint } from "@/iink"
+import type { TPoint } from "@/iink"
+import { SVGBuilder } from "@/iink"
 
 describe("SVGBuilder.ts", () => {
   test("should createLayer", () => {

@@ -1,6 +1,21 @@
-import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
+import type { TBaseSymbol, TPoint, TStroke, TSymbol, TSymbolChar } from "@/iink"
+import {
+  BoxOps,
+  EdgeUtil,
+  IIConnectorManager,
+  IIResizeManager,
+  MatrixTransform,
+  OBBOps,
+  ResizeDirection,
+  ShapeUtil,
+  StrokeUtil,
+  SvgElementRole,
+  SymbolGeometry,
+  TextUtil,
+} from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../../__mocks__/createCanvasMock"
 import { buildIIMath, buildIIStroke, buildIIText } from "../../../helpers"
-import { BoxOps, EdgeUtil, IIConnectorManager, IIResizeManager, MatrixTransform, OBBOps, ResizeDirection, ShapeUtil, StrokeUtil, SvgElementRole, SymbolGeometry, TBaseSymbol, TPoint, TStroke, TSymbol, TSymbolChar, TextUtil } from "@/iink"
 
 describe("IIResizeManager.ts", () => {
   test("should create", () => {
@@ -344,9 +359,7 @@ describe("IIResizeManager.ts", () => {
         // already carries, and a bare `scale` would replace it. `strokeOrigin`'s own matrix is the
         // identity here, so both writes come out the same — the composition itself is pinned by the
         // "keeps the matrix a symbol already carries" test below.
-        const live = MatrixTransform.identity()
-          .scale(data.scale.x, data.scale.y, data.transformOrigin)
-          .toCssString()
+        const live = MatrixTransform.identity().scale(data.scale.x, data.scale.y, data.transformOrigin).toCssString()
         expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(1, group.id, "transform", live)
         expect(canvas.renderer.setAttribute).toHaveBeenNthCalledWith(2, strokeOrigin.id, "transform", live)
       })
@@ -639,7 +652,7 @@ describe("IIResizeManager.ts", () => {
       expect(changes.updated?.find((entry) => entry.before.id === shape.id)).toBeDefined()
     })
   })
-  })
+})
 
 /**
  * Two resize cells that nothing covered: gutting either left this whole file green. IIC-2013 moved
@@ -743,7 +756,15 @@ describe("IIResizeManager aspect ratio locking", () => {
   test.each([
     ["a stroke", () => buildStroke()],
     ["an ellipse", () => ShapeUtil.createEllipse({ x: 20, y: 20 }, 30, 10, 0)],
-    ["a polygon", () => ShapeUtil.createPolygon([{ x: 0, y: 0 }, { x: 20, y: 0 }, { x: 20, y: 20 }])],
+    [
+      "a polygon",
+      () =>
+        ShapeUtil.createPolygon([
+          { x: 0, y: 0 },
+          { x: 20, y: 0 },
+          { x: 20, y: 20 },
+        ]),
+    ],
     ["a line", () => EdgeUtil.createLine({ x: 0, y: 0 }, { x: 20, y: 20 })],
   ])("%s alone should not lock it", async (_name, build) => {
     const { manager } = await startResize([build()], ResizeDirection.East)

@@ -1,5 +1,6 @@
-import { buildStroke } from "../helpers"
 import { SVGStroker } from "@/iink"
+
+import { buildStroke } from "../helpers"
 
 describe("SVGStroker.ts", () => {
   const strokePen = buildStroke()

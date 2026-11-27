@@ -1,5 +1,7 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { ButtonListMenuItem, TMenuButtonList } from "@/iink"
+import type { TMenuButtonList } from "@/iink"
+import { ButtonListMenuItem } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 
 describe("ButtonListMenuItem.ts", () => {
   afterEach(() => {

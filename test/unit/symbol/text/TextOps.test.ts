@@ -1,5 +1,15 @@
+import type { TBox, TPoint, TSymbolChar } from "@/iink"
+import {
+  BoxOps,
+  computeClosedEdges,
+  computeTypesetSnapPoints,
+  computeTypesetVertices,
+  MatrixTransform,
+  OBBOps,
+  TextUtil,
+} from "@/iink"
+
 import { typesetGeometry } from "../../helpers"
-import { BoxOps, MatrixTransform, OBBOps, TBox, TPoint, TSymbolChar, TextUtil, computeClosedEdges, computeTypesetSnapPoints, computeTypesetVertices } from "@/iink"
 
 const chars: TSymbolChar[] = [
   {
@@ -47,7 +57,6 @@ describe("TextOps", () => {
       expect(computeTypesetSnapPoints(OBBOps.toUnrotatedBox(text.bounds), text.point)).toHaveLength(5)
       expect(computeClosedEdges(computeTypesetVertices(OBBOps.toUnrotatedBox(text.bounds)))).toHaveLength(4)
     })
-
   })
 
   describe("createFromPartial", () => {

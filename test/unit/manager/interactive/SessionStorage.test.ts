@@ -1,4 +1,5 @@
 import { IDBFactory } from "fake-indexeddb"
+
 import { SessionStorage } from "@/iink"
 
 describe("SessionStorage.ts", () => {
@@ -25,14 +26,16 @@ describe("SessionStorage.ts", () => {
     await storage.writeSymbols({ id: "a", key: "k", symbols: "[1]", symbolCount: 1, now: 1000 })
     await storage.writeSymbols({ id: "a", key: "k", symbols: "[1,2]", symbolCount: 2, now: 5000 })
 
-    expect(await storage.list("k")).toEqual([{ id: "a", key: "k", createdAt: 1000, updatedAt: 5000, symbolCount: 2, size: 5 }])
+    expect(await storage.list("k")).toEqual([
+      { id: "a", key: "k", createdAt: 1000, updatedAt: 5000, symbolCount: 2, size: 5 },
+    ])
   })
 
   test("should read back the symbols and the snapshot of an entry", async () => {
     await storage.writeSymbols({ id: "a", key: "k", symbols: "[1,2]", symbolCount: 2, now: 1000 })
-    await storage.writeSnapshot({ id: "a", key: "k", snapshot: "{\"package\":1}", now: 2000 })
+    await storage.writeSnapshot({ id: "a", key: "k", snapshot: '{"package":1}', now: 2000 })
 
-    expect(await storage.read("a")).toEqual({ symbols: "[1,2]", snapshot: "{\"package\":1}" })
+    expect(await storage.read("a")).toEqual({ symbols: "[1,2]", snapshot: '{"package":1}' })
     expect((await storage.list("k"))[0]).toEqual(expect.objectContaining({ updatedAt: 2000, size: 5 + 13 }))
   })
 

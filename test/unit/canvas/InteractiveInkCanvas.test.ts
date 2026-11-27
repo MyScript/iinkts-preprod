@@ -1,6 +1,38 @@
+import type {
+  TBaseSymbol,
+  TDecorator,
+  TEdgeLine,
+  TInteractiveInkCanvasOptions,
+  TPartialDeep,
+  TShapeCircle,
+  TStroke,
+  TStyle,
+  TSymbol,
+  TSymbolChar,
+  TText,
+} from "@/iink"
+import {
+  CanvasTool,
+  cloneSymbol,
+  DecoratorKind,
+  DecoratorUtil,
+  DefaultInteractiveInkCanvasConfiguration,
+  DUPLICATE_OFFSET,
+  EdgeUtil,
+  getInitialHistoryContext,
+  IIAbstractManager,
+  InteractiveInkCanvas,
+  isStroke,
+  MatrixTransform,
+  OBBOps,
+  ShapeKind,
+  ShapeUtil,
+  SymbolGeometry,
+  SymbolType,
+} from "@/iink"
+
 import { jiixText } from "../__dataset__/exports.dataset"
-import { buildIICircle, buildIIStroke, buildIIText, buildIIDecorator, delay } from "../helpers"
-import { CanvasTool, DecoratorKind, DecoratorUtil, DefaultInteractiveInkCanvasConfiguration, EdgeUtil, IIAbstractManager, InteractiveInkCanvas, MatrixTransform, DUPLICATE_OFFSET, OBBOps, ShapeKind, ShapeUtil, SymbolGeometry, SymbolType, TBaseSymbol, TDecorator, TEdgeLine, TInteractiveInkCanvasOptions, TPartialDeep, TShapeCircle, TStroke, TStyle, TSymbol, TSymbolChar, TText, cloneSymbol, getInitialHistoryContext, isStroke } from "@/iink"
+import { buildIICircle, buildIIDecorator, buildIIStroke, buildIIText, delay } from "../helpers"
 
 describe("InteractiveInkCanvas.ts", () => {
   global.fetch = jest.fn(() =>
@@ -1754,7 +1786,9 @@ describe("InteractiveInkCanvas.ts", () => {
       racingCanvas.client.export = jest.fn(async () => {
         calls++
         // Each of the two first answers lands after the model changed under it
-        if (calls <= 2) racingCanvas.model.addSymbol(buildIIStroke())
+        if (calls <= 2) {
+          racingCanvas.model.addSymbol(buildIIStroke())
+        }
         return { "application/vnd.myscript.jiix": jiixText }
       })
       const settled = (promise: Promise<unknown>) =>
@@ -1772,9 +1806,7 @@ describe("InteractiveInkCanvas.ts", () => {
     test("should only request mimeTypes not already cached in model.exports", async () => {
       const cachedCanvas = new InteractiveInkCanvas(document.createElement("div"), CanvasOptions)
       cachedCanvas.model.mergeExport({ "text/plain": "already cached" })
-      cachedCanvas.client.export = jest.fn(() =>
-        Promise.resolve({ "application/vnd.myscript.jiix": jiixText })
-      )
+      cachedCanvas.client.export = jest.fn(() => Promise.resolve({ "application/vnd.myscript.jiix": jiixText }))
 
       const result = await cachedCanvas.export(["text/plain", "application/vnd.myscript.jiix"])
 

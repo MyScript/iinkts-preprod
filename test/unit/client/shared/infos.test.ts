@@ -1,7 +1,8 @@
-import { WebSocketSSRClientTextConfiguration } from "../../__dataset__/configuration.dataset"
 import { ensureServerVersion, getApiInfos } from "@/iink"
 
-describe("language.ts", () => {
+import { WebSocketSSRClientTextConfiguration } from "../../__dataset__/configuration.dataset"
+
+describe("getApiInfos", () => {
   global.fetch = jest.fn(() =>
     Promise.resolve({
       json: () => Promise.resolve({ result: { fr: "fr_FR" } }),
@@ -16,44 +17,28 @@ describe("language.ts", () => {
     )
   })
 
-  test("should reject getApiInfos if no configuration", async () => {
+  const fallback = { version: "3.1.3", gitCommit: "unknown", nativeVersion: "<=3.1.1" }
+
+  test("should answer the last version without the endpoint if no configuration", async () => {
     // @ts-ignore
-    getApiInfos().catch((e) => {
-      expect(e.message).toBe(
-        "Failed to get infos: configuration.server.scheme & configuration.server.host are required!"
-      )
-    })
+    await expect(getApiInfos()).resolves.toEqual(fallback)
   })
 
-  test("should reject getApiInfos if configuration.server is empty", async () => {
-    const conf = JSON.parse(JSON.stringify(WebSocketSSRClientTextConfiguration))
-    delete conf?.server
-    getApiInfos(conf).catch((e) => {
-      expect(e.message).toBe(
-        "Failed to get infos: configuration.server.scheme & configuration.server.host are required!"
-      )
-    })
-  })
-
-  test("should reject getApiInfos if configuration.server.scheme is empty", async () => {
-    const conf = JSON.parse(JSON.stringify(WebSocketSSRClientTextConfiguration))
-    delete conf?.server?.scheme
-    getApiInfos(conf).catch((e) => {
-      expect(e.message).toBe(
-        "Failed to get infos: configuration.server.scheme & configuration.server.host are required!"
-      )
-    })
-  })
-
-  test("should reject getApiInfos if configuration.server.host empty", async () => {
-    const conf = JSON.parse(JSON.stringify(WebSocketSSRClientTextConfiguration))
-    delete conf?.server?.host
-    getApiInfos(conf).catch((e) => {
-      expect(e.message).toBe(
-        "Failed to get infos: configuration.server.scheme & configuration.server.host are required!"
-      )
-    })
-  })
+  test.each(["server", "scheme", "host"])(
+    "should answer the last version without the endpoint, without fetching, if %s is missing",
+    async (key) => {
+      const conf = JSON.parse(JSON.stringify(WebSocketSSRClientTextConfiguration))
+      if (key === "server") {
+        delete conf.server
+      } else {
+        delete conf.server[key]
+      }
+      const fetchSpy = jest.fn()
+      global.fetch = fetchSpy
+      await expect(getApiInfos(conf)).resolves.toEqual(fallback)
+      expect(fetchSpy).not.toHaveBeenCalled()
+    }
+  )
 })
 
 describe("ensureServerVersion", () => {

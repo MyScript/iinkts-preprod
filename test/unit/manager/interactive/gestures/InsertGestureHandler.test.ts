@@ -1,6 +1,19 @@
-import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
+import {
+  DecoratorKind,
+  DecoratorUtil,
+  GestureHelpers,
+  InsertAction,
+  InsertGestureHandler,
+  MatrixTransform,
+  OBBOps,
+  StrokeUtil,
+  SymbolGeometry,
+  type TGesture,
+  type TStroke,
+} from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../../__mocks__/createCanvasMock"
 import { buildIIStroke, buildIIText } from "../../../helpers"
-import { DecoratorKind, DecoratorUtil, GestureHelpers, InsertAction, InsertGestureHandler, MatrixTransform, OBBOps, StrokeUtil, SymbolGeometry, type TGesture, type TStroke } from "@/iink"
 
 describe("InsertGestureHandler.ts", () => {
   let canvas: ReturnType<typeof createCanvasMock>
@@ -108,10 +121,8 @@ describe("InsertGestureHandler.ts", () => {
       const result = handler.computeSplitStroke(strokeOrigin, subStrokes)
 
       expect(result.after).toBeDefined()
-      if (result.after) {
-        // After stroke should be translated
-        expect(OBBOps.toBox(SymbolGeometry.boundsOf(result.after)).x).not.toBe(5)
-      }
+      // After stroke should be translated
+      expect(OBBOps.toBox(SymbolGeometry.boundsOf(result.after!)).x).not.toBe(5)
     })
   })
 

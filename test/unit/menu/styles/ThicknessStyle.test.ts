@@ -1,6 +1,7 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
+import { DefaultStyle, ThicknessStyle } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 import { buildIIStroke } from "../../helpers"
-import { ThicknessStyle, DefaultStyle } from "@/iink"
 
 describe("ThicknessStyle.ts", () => {
   afterEach(() => {

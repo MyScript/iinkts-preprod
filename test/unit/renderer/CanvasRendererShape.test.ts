@@ -1,4 +1,5 @@
-import { CanvasRendererShape, DefaultPenStyle, MatrixTransform, TCanvasShapeEllipseSymbol, TCanvasShapeLineSymbol, TCanvasShapeTableSymbol } from "@/iink"
+import type { TCanvasShapeEllipseSymbol, TCanvasShapeLineSymbol, TCanvasShapeTableSymbol } from "@/iink"
+import { CanvasRendererShape, DefaultPenStyle, MatrixTransform } from "@/iink"
 
 describe("CanvasRendererShape.ts", () => {
   const canvas: HTMLCanvasElement = document.createElement("canvas")

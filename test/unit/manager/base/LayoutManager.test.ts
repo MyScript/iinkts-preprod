@@ -1,4 +1,13 @@
-import { CanvasLayer, LayoutManager, LoggerCategory, LoggerManager, slotAnchor, slotOpenTowards, slotOrientation, TLayoutConfiguration, TLayoutOccupant } from "@/iink"
+import type { TLayoutConfiguration, TLayoutOccupant } from "@/iink"
+import {
+  CanvasLayer,
+  LayoutManager,
+  LoggerCategory,
+  LoggerManager,
+  slotAnchor,
+  slotOpenTowards,
+  slotOrientation,
+} from "@/iink"
 
 const INTERACTIVE_OCCUPANTS = ["action", "style", "tool", "state", "minimap", "search"]
 
@@ -206,9 +215,13 @@ describe("LayoutManager at runtime", () => {
 
   test("should keep rendering the layout when a factory throws", () => {
     const { layout } = rendered()
-    layout.add("broken", () => {
-      throw new Error("boom")
-    }, { slot: "top-center" })
+    layout.add(
+      "broken",
+      () => {
+        throw new Error("boom")
+      },
+      { slot: "top-center" }
+    )
     expect(layout.host("tool")).toBeDefined()
   })
 

@@ -1,6 +1,16 @@
-import { SymbolGeometry, DefaultIIRendererConfiguration, TGesture, IIGestureManager, TStroke, TWebSocketClientMessageType, BoxOps, OBBOps, UnderlineAction } from "@/iink"
+import type { TGesture, TStroke } from "@/iink"
+import {
+  BoxOps,
+  DefaultIIRendererConfiguration,
+  IIGestureManager,
+  OBBOps,
+  SymbolGeometry,
+  TWebSocketClientMessageType,
+  UnderlineAction,
+} from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 import { buildIICircle, buildIIMath, buildIIStroke, buildIIText } from "../../helpers"
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
 
 describe("IIGestureManager.ts", () => {
   const rowHeight = DefaultIIRendererConfiguration.guides.gap
@@ -110,7 +120,7 @@ describe("IIGestureManager.ts", () => {
       expect(await gestMan.getGestureFromContextLess(gestureStroke)).toBeUndefined()
     })
 
-    test("should return undefined when recognizeGesture return nothing", async () => {
+    test("should return undefined when recognizeGesture finds no gesture", async () => {
       gestMan.client.recognizeGesture = jest.fn((stroke: TStroke) =>
         Promise.resolve({
           type: TWebSocketClientMessageType.ContextlessGesture,
@@ -142,7 +152,10 @@ describe("IIGestureManager.ts", () => {
         canvas.model.addSymbol(
           buildIICircle({
             center: BoxOps.getCenter(OBBOps.toBox(SymbolGeometry.boundsOf(gestureStroke))),
-            radius: Math.max(SymbolGeometry.boundsOf(gestureStroke).width * 2, SymbolGeometry.boundsOf(gestureStroke).height * 2),
+            radius: Math.max(
+              SymbolGeometry.boundsOf(gestureStroke).width * 2,
+              SymbolGeometry.boundsOf(gestureStroke).height * 2
+            ),
           })
         )
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toBeUndefined()
@@ -152,7 +165,10 @@ describe("IIGestureManager.ts", () => {
         canvas.model.addSymbol(
           buildIICircle({
             center: BoxOps.getCenter(OBBOps.toBox(SymbolGeometry.boundsOf(gestureStroke))),
-            radius: Math.min(SymbolGeometry.boundsOf(gestureStroke).width / 2, SymbolGeometry.boundsOf(gestureStroke).height / 2),
+            radius: Math.min(
+              SymbolGeometry.boundsOf(gestureStroke).width / 2,
+              SymbolGeometry.boundsOf(gestureStroke).height / 2
+            ),
           })
         )
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toEqual(
@@ -280,9 +296,7 @@ describe("IIGestureManager.ts", () => {
       })
       test("must return undefined when the gesture stroke has no symbols in row", async () => {
         const gestureStroke = buildIIStroke({ box: { height: 10, width: 10, x: 0, y: rowHeight } })
-        canvas.model.addSymbol(
-          buildIIText({ boundingBox: { height: 10, width: 10, x: 0, y: 2 * rowHeight } })
-        )
+        canvas.model.addSymbol(buildIIText({ boundingBox: { height: 10, width: 10, x: 0, y: 2 * rowHeight } }))
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toBeUndefined()
       })
       test("should return gesture join when there is symbol in gesture row", async () => {
@@ -319,9 +333,7 @@ describe("IIGestureManager.ts", () => {
       })
       test("must return undefined when the gesture stroke has no symbols in row", async () => {
         const gestureStroke = buildIIStroke({ box: { height: 10, width: 10, x: 0, y: rowHeight } })
-        canvas.model.addSymbol(
-          buildIIText({ boundingBox: { height: 10, width: 10, x: 0, y: 2 * rowHeight } })
-        )
+        canvas.model.addSymbol(buildIIText({ boundingBox: { height: 10, width: 10, x: 0, y: 2 * rowHeight } }))
         expect(await gestMan.getGestureFromContextLess(gestureStroke)).toBeUndefined()
       })
       test("should return gesture insert when there is symbol in gesture row", async () => {

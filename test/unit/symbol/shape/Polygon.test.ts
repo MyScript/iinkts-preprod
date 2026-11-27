@@ -1,4 +1,5 @@
-import { Polygon2d, ShapeUtil, TBox, TPoint, TStyle } from "@/iink"
+import type { TBox, TPoint, TStyle } from "@/iink"
+import { Polygon2d, ShapeUtil } from "@/iink"
 
 describe("Polygon.ts", () => {
   describe("overlaps", () => {

@@ -1,5 +1,9 @@
 //@ts-nocheck
-import { TPartialDeep, TInteractiveInkCanvasConfiguration, TInteractiveInkSSRCanvasConfiguration, THTTPClientV1Configuration, TWebSocketSSRClientConfiguration } from "@/iink"
+import type {
+  THTTPClientV1Configuration,
+  TInteractiveInkCanvasConfiguration,
+  TWebSocketSSRClientConfiguration,
+} from "@/iink"
 
 export const WebSocketSSRClientTextConfiguration: TWebSocketSSRClientConfiguration = {
   server: {

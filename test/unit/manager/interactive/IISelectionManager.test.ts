@@ -1,7 +1,20 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
+import type { TBaseSymbol, TBox, TEdge, TEdgeArc, TPointerInfo, TStroke, TSymbol } from "@/iink"
+import {
+  computePointOnEllipse,
+  EdgeUtil,
+  IIConnectorManager,
+  IISelectionManager,
+  MatrixTransform,
+  OBBOps,
+  ResizeDirection,
+  ShapeUtil,
+  SvgElementRole,
+  SymbolGeometry,
+} from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 import { LeftClickEventMock, RightClickEventMock } from "../../__mocks__/EventMock"
 import { buildIICircle, buildIILine, buildIIStroke } from "../../helpers"
-import { SymbolGeometry, IISelectionManager, MatrixTransform, OBBOps, TBox, SvgElementRole, ResizeDirection, TPointerInfo, TStroke, TEdgeArc, computePointOnEllipse, IIConnectorManager, EdgeUtil, ShapeUtil, TEdge, TBaseSymbol, TSymbol } from "@/iink"
 
 describe("IISelectionManager.ts", () => {
   Object.defineProperty(global.SVGElement.prototype, "getBBox", {
@@ -680,9 +693,16 @@ describe("IISelectionManager.ts", () => {
       return { canvas, arc, group, current }
     }
 
-    function dragHandle(canvas: ReturnType<typeof createCanvasMock>, group: SVGGElement, index: number, target: { x: number; y: number }) {
+    function dragHandle(
+      canvas: ReturnType<typeof createCanvasMock>,
+      group: SVGGElement,
+      index: number,
+      target: { x: number; y: number }
+    ) {
       const el = group.children[index] as unknown as SVGCircleElement
-      el.dispatchEvent(new LeftClickEventMock("pointerdown", { clientX: 0, clientY: 0, pointerType: "pen", pressure: 1 }))
+      el.dispatchEvent(
+        new LeftClickEventMock("pointerdown", { clientX: 0, clientY: 0, pointerType: "pen", pressure: 1 })
+      )
       canvas.renderer.layer.dispatchEvent(
         new LeftClickEventMock("pointermove", { clientX: target.x, clientY: target.y, pointerType: "pen", pressure: 1 })
       )
@@ -718,11 +738,23 @@ describe("IISelectionManager.ts", () => {
 
     test("dragging the start handle keeps the end endpoint fixed", () => {
       const { canvas, arc, group, current } = setup()
-      const endBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+      const endBefore = computePointOnEllipse(
+        arc.center,
+        arc.radiusX,
+        arc.radiusY,
+        arc.phi,
+        arc.startAngle + arc.sweepAngle
+      )
 
       dragHandle(canvas, group, 0, { x: 3, y: 4 })
 
-      const endAfter = computePointOnEllipse(current().center, current().radiusX, current().radiusY, current().phi, current().startAngle + current().sweepAngle)
+      const endAfter = computePointOnEllipse(
+        current().center,
+        current().radiusX,
+        current().radiusY,
+        current().phi,
+        current().startAngle + current().sweepAngle
+      )
       expect(endAfter.x).toBeCloseTo(endBefore.x, 1)
       expect(endAfter.y).toBeCloseTo(endBefore.y, 1)
     })
@@ -741,13 +773,25 @@ describe("IISelectionManager.ts", () => {
     test("dragging the middle handle keeps BOTH endpoints fixed (the reported bug)", () => {
       const { canvas, arc, group, current } = setup()
       const startBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
-      const endBefore = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle + arc.sweepAngle)
+      const endBefore = computePointOnEllipse(
+        arc.center,
+        arc.radiusX,
+        arc.radiusY,
+        arc.phi,
+        arc.startAngle + arc.sweepAngle
+      )
       const radiusYBefore = arc.radiusY
 
       dragHandle(canvas, group, 1, { x: 0, y: 20 })
 
       const startAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
-      const endAfter = computePointOnEllipse(current().center, current().radiusX, current().radiusY, current().phi, current().startAngle + current().sweepAngle)
+      const endAfter = computePointOnEllipse(
+        current().center,
+        current().radiusX,
+        current().radiusY,
+        current().phi,
+        current().startAngle + current().sweepAngle
+      )
       expect(startAfter.x).toBeCloseTo(startBefore.x, 1)
       expect(startAfter.y).toBeCloseTo(startBefore.y, 1)
       expect(endAfter.x).toBeCloseTo(endBefore.x, 1)
@@ -764,7 +808,13 @@ describe("IISelectionManager.ts", () => {
       dragHandle(canvas, group, 2, { x: 10, y: 0 })
 
       const startAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
-      const endAfter = computePointOnEllipse(current().center, current().radiusX, current().radiusY, current().phi, current().startAngle + current().sweepAngle)
+      const endAfter = computePointOnEllipse(
+        current().center,
+        current().radiusX,
+        current().radiusY,
+        current().phi,
+        current().startAngle + current().sweepAngle
+      )
       expect(startAfter.x).toBeCloseTo(startBefore.x, 1)
       expect(startAfter.y).toBeCloseTo(startBefore.y, 1)
       expect(endAfter.x).toBeCloseTo(10, 1)
@@ -783,7 +833,13 @@ describe("IISelectionManager.ts", () => {
       expect(Number.isFinite(arc.radiusX)).toBe(true)
       expect(Number.isFinite(arc.radiusY)).toBe(true)
       const startAfter = computePointOnEllipse(arc.center, arc.radiusX, arc.radiusY, arc.phi, arc.startAngle)
-      const endAfter = computePointOnEllipse(current().center, current().radiusX, current().radiusY, current().phi, current().startAngle + current().sweepAngle)
+      const endAfter = computePointOnEllipse(
+        current().center,
+        current().radiusX,
+        current().radiusY,
+        current().phi,
+        current().startAngle + current().sweepAngle
+      )
       expect(startAfter.x).toBeCloseTo(startBefore.x, 1)
       expect(startAfter.y).toBeCloseTo(startBefore.y, 1)
       expect(endAfter.x).toBeCloseTo(-15, 1)
@@ -809,7 +865,13 @@ describe("IISelectionManager.ts", () => {
       expect(current().endAnchor).toEqual(
         expect.objectContaining({ symbolId: circle.id, normalizedX: 0.5, normalizedY: 0.5 })
       )
-      const endAfter = computePointOnEllipse(current().center, current().radiusX, current().radiusY, current().phi, current().startAngle + current().sweepAngle)
+      const endAfter = computePointOnEllipse(
+        current().center,
+        current().radiusX,
+        current().radiusY,
+        current().phi,
+        current().startAngle + current().sweepAngle
+      )
       expect(endAfter.x).toBeCloseTo(50, 1)
       expect(endAfter.y).toBeCloseTo(0, 1)
     })
@@ -833,7 +895,6 @@ describe("IISelectionManager.ts", () => {
       expect(canvas.jiix.getShapeSelectionGroups).toHaveBeenCalledWith("element")
     })
   })
-
 })
 
 /**
@@ -1013,7 +1074,9 @@ describe("createInteractElementsGroup skips unregistered symbol types", () => {
       const behind = jest.fn()
       canvas.renderer.layer.addEventListener("pointerdown", behind)
 
-      group.querySelector(`[role=${SvgElementRole.Translate}]`)!.dispatchEvent(new Event("pointerdown", { bubbles: true }))
+      group
+        .querySelector(`[role=${SvgElementRole.Translate}]`)!
+        .dispatchEvent(new Event("pointerdown", { bubbles: true }))
 
       expect(behind).not.toHaveBeenCalled()
     })

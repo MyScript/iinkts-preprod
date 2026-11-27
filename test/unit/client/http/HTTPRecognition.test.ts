@@ -1,8 +1,17 @@
-import fetchMock from "jest-fetch-mock"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 
-import { ClientError, computeHmac, parseRecognitionResponse, postRecognition, toRecognitionContentType, toRecognitionError, TServerHTTPConfiguration } from "@/iink"
+import fetchMock from "jest-fetch-mock"
+
+import type { TServerHTTPConfiguration } from "@/iink"
+import {
+  ClientError,
+  computeHmac,
+  parseRecognitionResponse,
+  postRecognition,
+  toRecognitionContentType,
+  toRecognitionError,
+} from "@/iink"
 
 describe("HTTPRecognition.ts", () => {
   const server: TServerHTTPConfiguration = {

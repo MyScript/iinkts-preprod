@@ -1,9 +1,11 @@
+import type { TBox, TPoint, TStyle } from "@/iink"
+import { DefaultStyle, OBBOps, ShapeUtil } from "@/iink"
+
 import { ellipseGeometry } from "../../helpers"
-import { DefaultStyle, OBBOps, ShapeUtil, TBox, TPoint, TStyle } from "@/iink"
 
 describe("Ellipse.ts", () => {
   describe("constructor", () => {
-    test("should create ", () => {
+    test("should create", () => {
       const center: TPoint = { x: 5, y: 0 }
       const radiusX = 5
       const radiusY = 10

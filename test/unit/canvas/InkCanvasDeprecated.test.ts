@@ -1,5 +1,14 @@
+import type { TInkCanvasDeprecatedConfiguration, TInkCanvasDeprecatedOptions, TPointer } from "@/iink"
+import {
+  DefaultInkCanvasDeprecatedConfiguration,
+  DefaultPenStyle,
+  HTTPClientV1,
+  InkCanvasDeprecated,
+  Model,
+  PointerEventGrabber,
+} from "@/iink"
+
 import { delay } from "../helpers"
-import { InkCanvasDeprecated, Model, DefaultPenStyle, TInkCanvasDeprecatedOptions, TInkCanvasDeprecatedConfiguration, TPointer, PointerEventGrabber, HTTPClientV1, DefaultInkCanvasDeprecatedConfiguration } from "@/iink"
 
 describe("InkCanvasDeprecated.ts", () => {
   const height = 100,
@@ -95,7 +104,7 @@ describe("InkCanvasDeprecated.ts", () => {
       await canvas.initialize()
       canvas.renderer.drawModel = jest.fn()
       canvas.client.export = jest.fn(() => Promise.reject("pouet"))
-      expect(canvas.updateModelRendering()).rejects.toEqual("pouet")
+      await expect(canvas.updateModelRendering()).rejects.toEqual("pouet")
     })
 
     test("should not call client.export when exportContent = DEMAND", async () => {

@@ -1,5 +1,6 @@
-import { createCanvasMock, asCanvas } from "../__mocks__/createCanvasMock"
 import { type IIJiixQueryManager, IIMathFunctionEvaluator } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../__mocks__/createCanvasMock"
 
 describe("IIMathFunctionEvaluator.ts", () => {
   let canvas: ReturnType<typeof createCanvasMock>
@@ -8,8 +9,12 @@ describe("IIMathFunctionEvaluator.ts", () => {
     canvas = createCanvasMock({
       jiix: {
         getBlockLabel: jest.fn().mockImplementation((id: string) => {
-          if (id === "block-1") return "f(x) = x + 1"
-          if (id === "block-2") return "g(x) = 2x"
+          if (id === "block-1") {
+            return "f(x) = x + 1"
+          }
+          if (id === "block-2") {
+            return "g(x) = 2x"
+          }
           return "Unknown"
         }),
       } as unknown as IIJiixQueryManager,
@@ -53,8 +58,8 @@ describe("IIMathFunctionEvaluator.ts", () => {
       const evaluator = new IIMathFunctionEvaluator(asCanvas(canvas), jiixBlockIds)
 
       // Mock modal to prevent actual DOM operations
-      const showSpy = jest.spyOn(evaluator as any, "createModalContent")
-      showSpy.mockReturnValue(document.createElement("div"))
+      const showSpy = jest.fn(() => document.createElement("div"))
+      evaluator["createModalContent"] = showSpy
 
       await evaluator.show()
 
@@ -69,8 +74,8 @@ describe("IIMathFunctionEvaluator.ts", () => {
 
       const evaluator = new IIMathFunctionEvaluator(asCanvas(canvas), jiixBlockIds)
 
-      const showSpy = jest.spyOn(evaluator as any, "createModalContent")
-      showSpy.mockReturnValue(document.createElement("div"))
+      const showSpy = jest.fn(() => document.createElement("div"))
+      evaluator["createModalContent"] = showSpy
 
       await evaluator.show()
 
@@ -86,12 +91,12 @@ describe("IIMathFunctionEvaluator.ts", () => {
 
       const evaluator = new IIMathFunctionEvaluator(asCanvas(canvas), jiixBlockIds)
 
-      const showSpy = jest.spyOn(evaluator as any, "createModalContent")
-      showSpy.mockReturnValue(document.createElement("div"))
+      const showSpy = jest.fn(() => document.createElement("div"))
+      evaluator["createModalContent"] = showSpy
 
       await evaluator.show()
 
-      const functions = (evaluator as any).functionsToEvaluate
+      const functions = evaluator["functionsToEvaluate"]
       expect(functions.length).toBe(3)
       expect(functions[0].color).toBeDefined()
       expect(functions[1].color).toBeDefined()

@@ -1,4 +1,5 @@
-import { Modal, TModalConfig } from "@/iink"
+import type { TModalConfig } from "@/iink"
+import { Modal } from "@/iink"
 
 describe("Modal.ts", () => {
   let container: HTMLDivElement
@@ -101,7 +102,7 @@ describe("Modal.ts", () => {
       expect(modalElements.length).toBeGreaterThan(1)
     })
 
-    test("should focus first input after opening", (done) => {
+    test("should focus first input after opening", async () => {
       const config: TModalConfig = {
         title: "Test Modal",
         fields: [
@@ -123,12 +124,10 @@ describe("Modal.ts", () => {
       const modal = new Modal(config)
       modal.open()
 
-      setTimeout(() => {
-        const input = document.querySelector("#name") as HTMLInputElement
-        expect(input).toBeTruthy()
-        expect(document.activeElement).toBe(input)
-        done()
-      }, 100)
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      const input = document.querySelector("#name") as HTMLInputElement
+      expect(input).toBeTruthy()
+      expect(document.activeElement).toBe(input)
     })
 
     test("should not open if already open", () => {

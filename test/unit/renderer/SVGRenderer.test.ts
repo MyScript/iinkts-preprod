@@ -1,6 +1,33 @@
-import { beforeAll, describe, test, expect, jest } from "@jest/globals"
+import { beforeAll, describe, expect, jest, test } from "@jest/globals"
+
+import type {
+  Geometry2d,
+  TBaseSymbol,
+  TBox,
+  TIIRendererConfiguration,
+  TPartialDeep,
+  TPoint,
+  TSymbol,
+  TSymbolChar,
+  TTransformContext,
+} from "@/iink"
+import {
+  applyMatrixToPoint,
+  BoxOps,
+  DefaultIIRendererConfiguration,
+  MatrixTransform,
+  OBBOps,
+  Polygon2d,
+  registerBuiltinSymbolUtils,
+  StrokeUtil,
+  SvgElementRole,
+  SVGRenderer,
+  SVGRendererConst,
+  symbolRegistry,
+  SymbolUtil,
+} from "@/iink"
+
 import { buildIICircle, buildIIEraser, buildIILine, buildIIStroke, buildIIText } from "../helpers"
-import { BoxOps, DefaultIIRendererConfiguration, Geometry2d, MatrixTransform, OBBOps, Polygon2d, SVGRenderer, SVGRendererConst, SvgElementRole, StrokeUtil, SymbolUtil, TBaseSymbol, TBox, TIIRendererConfiguration, TPartialDeep, TPoint, TSymbol, TSymbolChar, TTransformContext, applyMatrixToPoint, registerBuiltinSymbolUtils, symbolRegistry } from "@/iink"
 
 beforeAll(() => {
   registerBuiltinSymbolUtils()
@@ -270,7 +297,9 @@ describe("SVGRenderer.ts", () => {
         renderer.updateSelectedState(symbol, true)
 
         renderer.drawSymbol(symbol)
-        expect(renderer.getElementById(symbol.id)!.querySelector(`.${SVGRendererConst.selectionHaloClassName}`)).not.toBeNull()
+        expect(
+          renderer.getElementById(symbol.id)!.querySelector(`.${SVGRendererConst.selectionHaloClassName}`)
+        ).not.toBeNull()
 
         symbol.transform = MatrixTransform.identity().translate(10, 20)
         renderer.setSymbolTransform(symbol)
@@ -626,7 +655,7 @@ describe("SVGRenderer.ts", () => {
       )
     })
 
-    test("should append a previously off-screen element once panned into view", () => {
+    test("should append a previously off-screen element once the view box is moved onto it", () => {
       const divElement: HTMLDivElement = document.createElement("div")
       const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
       renderer.init(divElement)
@@ -641,7 +670,7 @@ describe("SVGRenderer.ts", () => {
       expect(el?.parentNode).toBe(renderer.layer)
     })
 
-    test("should remove an on-screen element from the DOM once panned out of view, keeping it retrievable", () => {
+    test("should remove an on-screen element from the DOM once the view box is moved away, keeping it retrievable", () => {
       const divElement: HTMLDivElement = document.createElement("div")
       const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
       renderer.init(divElement)
@@ -657,7 +686,7 @@ describe("SVGRenderer.ts", () => {
       expect(el?.parentNode).toBeNull()
     })
 
-    test("should append a previously off-screen element once panned into view", () => {
+    test("should append a previously off-screen element once pan() brings it into view", () => {
       const divElement: HTMLDivElement = document.createElement("div")
       const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
       renderer.init(divElement)
@@ -672,7 +701,7 @@ describe("SVGRenderer.ts", () => {
       expect(el?.parentNode).toBe(renderer.layer)
     })
 
-    test("should remove an on-screen element from the DOM once panned out of view, keeping it retrievable", () => {
+    test("should remove an on-screen element from the DOM once pan() moves it out of view, keeping it retrievable", () => {
       const divElement: HTMLDivElement = document.createElement("div")
       const renderer = new SVGRenderer(DefaultIIRendererConfiguration)
       renderer.init(divElement)

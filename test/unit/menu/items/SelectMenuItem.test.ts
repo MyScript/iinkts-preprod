@@ -1,5 +1,7 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { SelectMenuItem, TMenuSelect } from "@/iink"
+import type { TMenuSelect } from "@/iink"
+import { SelectMenuItem } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 
 describe("SelectMenuItem.ts", () => {
   afterEach(() => {

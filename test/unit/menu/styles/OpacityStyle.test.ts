@@ -1,6 +1,7 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
+import { DefaultStyle, OpacityStyle } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 import { buildIIStroke } from "../../helpers"
-import { OpacityStyle, DefaultStyle } from "@/iink"
 
 describe("OpacityStyle.ts", () => {
   afterEach(() => {

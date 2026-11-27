@@ -1,6 +1,16 @@
+import type {
+  TJIIXEdgeElement,
+  TJIIXElement,
+  TJIIXExport,
+  TJIIXMathElement,
+  TJIIXNodeElement,
+  TJIIXTextElement,
+  TStroke,
+} from "@/iink"
+import { IISynchronizerManager, JIIXEdgeKind, JIIXElementType } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 import { buildIIStroke } from "../../helpers"
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { IISynchronizerManager, JIIXEdgeKind, JIIXElementType, TJIIXEdgeElement, TJIIXElement, TJIIXExport, TJIIXMathElement, TJIIXNodeElement, TJIIXTextElement, TStroke } from "@/iink"
 
 function buildMathElement(id: string): TJIIXMathElement {
   return { type: JIIXElementType.Math, id }
@@ -389,22 +399,26 @@ describe("IISynchronizerManager.ts", () => {
     test("should report stale once a new synchronize() is queued mid-enrichment, then resolve fresh on the redo pass", async () => {
       const { canvas, manager } = setupMath(["math-0"])
       let triggeredRedo = false
+      const isStaleAroundTheNewPass: boolean[] = []
       const isStaleResultsPerPass: boolean[] = []
 
-      canvas.math.enrichMathDependencies = jest.fn().mockImplementation(async (_blockId: string, isStale: () => boolean) => {
-        if (!triggeredRedo) {
-          triggeredRedo = true
-          expect(isStale()).toBe(false)
-          // A stroke came in mid-enrichment: queue a fresh pass (not awaited - it can
-          // only complete once this one, and its redo, are done).
-          void manager.synchronize()
-          expect(isStale()).toBe(true)
-        }
-        isStaleResultsPerPass.push(isStale())
-      })
+      canvas.math.enrichMathDependencies = jest
+        .fn()
+        .mockImplementation(async (_blockId: string, isStale: () => boolean) => {
+          if (!triggeredRedo) {
+            triggeredRedo = true
+            isStaleAroundTheNewPass.push(isStale())
+            // A stroke came in mid-enrichment: queue a fresh pass (not awaited - it can
+            // only complete once this one, and its redo, are done).
+            void manager.synchronize()
+            isStaleAroundTheNewPass.push(isStale())
+          }
+          isStaleResultsPerPass.push(isStale())
+        })
 
       await manager.synchronize()
 
+      expect(isStaleAroundTheNewPass).toEqual([false, true])
       // First pass: superseded before the backend answered - discarded.
       // Redo pass (triggered by #dirtyDuringSync): fresh, nothing pending after it.
       expect(isStaleResultsPerPass).toEqual([true, false])
@@ -428,9 +442,9 @@ describe("IISynchronizerManager.ts", () => {
       canvas.export = jest.fn().mockImplementation(async () => {
         canvas.model.mergeExport({ "application/vnd.myscript.jiix": jiixExport })
       })
-      jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id: string) =>
-        id === "node-1" ? [nodeStroke.id] : []
-      )
+      jest
+        .spyOn(canvas.jiix, "getStrokesForElement")
+        .mockImplementation((id: string) => (id === "node-1" ? [nodeStroke.id] : []))
 
       const manager = new IISynchronizerManager(asCanvas(canvas))
       await manager.synchronize()
@@ -453,9 +467,9 @@ describe("IISynchronizerManager.ts", () => {
       canvas.export = jest.fn().mockImplementation(async () => {
         canvas.model.mergeExport({ "application/vnd.myscript.jiix": jiixExport })
       })
-      jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id: string) =>
-        id === "node-1" ? [nodeStroke.id] : []
-      )
+      jest
+        .spyOn(canvas.jiix, "getStrokesForElement")
+        .mockImplementation((id: string) => (id === "node-1" ? [nodeStroke.id] : []))
       const manager = new IISynchronizerManager(asCanvas(canvas))
       await manager.synchronize()
       const draftSymbol = jest.spyOn(canvas.model, "draftSymbol")
@@ -506,8 +520,12 @@ describe("IISynchronizerManager.ts", () => {
       const edgeElConnectedToB = buildEdgeElement("edge-1", edgeStroke.id, ["node-b"], [0])
 
       jest.spyOn(canvas.jiix, "getStrokesForElement").mockImplementation((id: string) => {
-        if (id === "node-a") return [nodeAStroke.id]
-        if (id === "node-b") return [nodeBStroke.id]
+        if (id === "node-a") {
+          return [nodeAStroke.id]
+        }
+        if (id === "node-b") {
+          return [nodeBStroke.id]
+        }
         return []
       })
 

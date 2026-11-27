@@ -1,9 +1,11 @@
+import type { TBox, TPoint, TStyle } from "@/iink"
+import { Circle2d, DefaultStyle, OBBOps, ShapeUtil } from "@/iink"
+
 import { round } from "../../helpers"
-import { Circle2d, DefaultStyle, OBBOps, ShapeUtil, TBox, TPoint, TStyle } from "@/iink"
 
 describe("Circle.ts", () => {
   describe("constructor", () => {
-    test("should create ", () => {
+    test("should create", () => {
       const center: TPoint = { x: 5, y: 0 }
       const radius = 5
       const style: TStyle = {

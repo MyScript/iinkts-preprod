@@ -1,6 +1,8 @@
-import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
+import type { TGesture, TSymbolChar } from "@/iink"
+import { GestureHelpers, OBBOps, ScratchGestureHandler, StrokeUtil, SymbolGeometry } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../../__mocks__/createCanvasMock"
 import { buildIICircle, buildIIStroke, buildIIText } from "../../../helpers"
-import { GestureHelpers, OBBOps, ScratchGestureHandler, StrokeUtil, SymbolGeometry, TGesture, TSymbolChar } from "@/iink"
 
 describe("ScratchGestureHandler.ts", () => {
   let canvas: ReturnType<typeof createCanvasMock>
@@ -198,8 +200,22 @@ describe("ScratchGestureHandler.ts", () => {
       ...extra,
     })
     const twoChars = (): TSymbolChar[] => [
-      { bounds: { height: 10, width: 5, x: 0, y: 10 }, color: "black", fontSize: 16, fontWeight: "normal", id: "char-1", label: "A" },
-      { bounds: { height: 10, width: 5, x: 5, y: 10 }, color: "black", fontSize: 16, fontWeight: "normal", id: "char-2", label: "b" },
+      {
+        bounds: { height: 10, width: 5, x: 0, y: 10 },
+        color: "black",
+        fontSize: 16,
+        fontWeight: "normal",
+        id: "char-1",
+        label: "A",
+      },
+      {
+        bounds: { height: 10, width: 5, x: 5, y: 10 },
+        color: "black",
+        fontSize: 16,
+        fontWeight: "normal",
+        id: "char-2",
+        label: "b",
+      },
     ]
 
     test("should touch nothing when the gesture covers no stroke", async () => {

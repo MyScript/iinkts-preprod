@@ -1,5 +1,7 @@
+import type { TGrabberConfiguration, TGrabberInputMode } from "@/iink"
+import { bumpSvgTransformVersion, DefaultGrabberConfiguration, PointerEventGrabber } from "@/iink"
+
 import { DoubleTouchEventMock, LeftClickEventMock, RightClickEventMock, TouchEventMock } from "../__mocks__/EventMock"
-import { bumpSvgTransformVersion, DefaultGrabberConfiguration, PointerEventGrabber, TGrabberConfiguration, TGrabberInputMode } from "@/iink"
 
 describe("PointerEventGrabber.ts", () => {
   test("should create with default configuration", () => {
@@ -67,7 +69,13 @@ describe("PointerEventGrabber.ts", () => {
       g.attach(wrapperHTML)
 
       wrapperHTML.dispatchEvent(
-        new LeftClickEventMock("pointerdown", { pointerType: "pen", clientX: 0, clientY: 0, pressure: 1, timeStamp: 1000 })
+        new LeftClickEventMock("pointerdown", {
+          pointerType: "pen",
+          clientX: 0,
+          clientY: 0,
+          pressure: 1,
+          timeStamp: 1000,
+        })
       )
       const batched = new LeftClickEventMock("pointermove", {
         pointerType: "pen",
@@ -76,9 +84,27 @@ describe("PointerEventGrabber.ts", () => {
         pressure: 1,
         timeStamp: 1012,
         coalescedEvents: [
-          new LeftClickEventMock("pointermove", { pointerType: "pen", clientX: 4, clientY: 4, pressure: 1, timeStamp: 1004 }),
-          new LeftClickEventMock("pointermove", { pointerType: "pen", clientX: 7, clientY: 7, pressure: 1, timeStamp: 1008.5 }),
-          new LeftClickEventMock("pointermove", { pointerType: "pen", clientX: 10, clientY: 10, pressure: 1, timeStamp: 1012 }),
+          new LeftClickEventMock("pointermove", {
+            pointerType: "pen",
+            clientX: 4,
+            clientY: 4,
+            pressure: 1,
+            timeStamp: 1004,
+          }),
+          new LeftClickEventMock("pointermove", {
+            pointerType: "pen",
+            clientX: 7,
+            clientY: 7,
+            pressure: 1,
+            timeStamp: 1008.5,
+          }),
+          new LeftClickEventMock("pointermove", {
+            pointerType: "pen",
+            clientX: 10,
+            clientY: 10,
+            pressure: 1,
+            timeStamp: 1012,
+          }),
         ],
       })
       wrapperHTML.dispatchEvent(batched)
@@ -99,13 +125,31 @@ describe("PointerEventGrabber.ts", () => {
 
       const stroke = (downAt: number, moveAt: number) => {
         wrapperHTML.dispatchEvent(
-          new LeftClickEventMock("pointerdown", { pointerType: "pen", clientX: 0, clientY: 0, pressure: 1, timeStamp: downAt })
+          new LeftClickEventMock("pointerdown", {
+            pointerType: "pen",
+            clientX: 0,
+            clientY: 0,
+            pressure: 1,
+            timeStamp: downAt,
+          })
         )
         wrapperHTML.dispatchEvent(
-          new LeftClickEventMock("pointermove", { pointerType: "pen", clientX: 5, clientY: 5, pressure: 1, timeStamp: moveAt })
+          new LeftClickEventMock("pointermove", {
+            pointerType: "pen",
+            clientX: 5,
+            clientY: 5,
+            pressure: 1,
+            timeStamp: moveAt,
+          })
         )
         wrapperHTML.dispatchEvent(
-          new LeftClickEventMock("pointerup", { pointerType: "pen", clientX: 5, clientY: 5, pressure: 1, timeStamp: moveAt })
+          new LeftClickEventMock("pointerup", {
+            pointerType: "pen",
+            clientX: 5,
+            clientY: 5,
+            pressure: 1,
+            timeStamp: moveAt,
+          })
         )
       }
       stroke(1000, 1020)
@@ -126,7 +170,13 @@ describe("PointerEventGrabber.ts", () => {
       }
       g.attach(wrapperHTML)
       wrapperHTML.dispatchEvent(
-        new LeftClickEventMock("pointerdown", { pointerType: "pen", clientX: 0, clientY: 0, pressure: 1, timeStamp: 1234.5 })
+        new LeftClickEventMock("pointerdown", {
+          pointerType: "pen",
+          clientX: 0,
+          clientY: 0,
+          pressure: 1,
+          timeStamp: 1234.5,
+        })
       )
       expect(start).toBeCloseTo(performance.timeOrigin + 1234.5, 3)
       g.detach()
@@ -367,7 +417,7 @@ describe("PointerEventGrabber.ts", () => {
       grabber.detach()
     })
 
-    test("should not listen right click event", () => {
+    test("should not listen double touch event", () => {
       const pointerDownEvt = new DoubleTouchEventMock("pointerdown", {
         pointerType: "pen",
         clientX: 300,
@@ -394,7 +444,9 @@ describe("PointerEventGrabber.ts", () => {
     }
 
     function dispatch(type: string, pointerType: string, timeStamp = 0): void {
-      wrapperHTML.dispatchEvent(new LeftClickEventMock(type, { pointerType, clientX: 10, clientY: 10, pressure: 1, timeStamp }))
+      wrapperHTML.dispatchEvent(
+        new LeftClickEventMock(type, { pointerType, clientX: 10, clientY: 10, pressure: 1, timeStamp })
+      )
     }
 
     test("should accept every pointer type by default", () => {
@@ -484,9 +536,19 @@ describe("PointerEventGrabber.ts", () => {
       const downEvt = new LeftClickEventMock("pointerdown", { pointerType: "pen", clientX: 0, clientY: 0, pressure: 1 })
       wrapperHTML.dispatchEvent(downEvt)
 
-      const moveEvt1 = new LeftClickEventMock("pointermove", { pointerType: "pen", clientX: 1, clientY: 1, pressure: 1 })
+      const moveEvt1 = new LeftClickEventMock("pointermove", {
+        pointerType: "pen",
+        clientX: 1,
+        clientY: 1,
+        pressure: 1,
+      })
       wrapperHTML.dispatchEvent(moveEvt1)
-      const moveEvt2 = new LeftClickEventMock("pointermove", { pointerType: "pen", clientX: 2, clientY: 2, pressure: 1 })
+      const moveEvt2 = new LeftClickEventMock("pointermove", {
+        pointerType: "pen",
+        clientX: 2,
+        clientY: 2,
+        pressure: 1,
+      })
       wrapperHTML.dispatchEvent(moveEvt2)
 
       expect(svg.getScreenCTM).toHaveBeenCalledTimes(1)
@@ -527,7 +589,9 @@ describe("PointerEventGrabber.ts", () => {
     const createSvg = (): SVGSVGElement => {
       const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg") as SVGSVGElement
       svg.getScreenCTM = jest.fn(() => ({ inverse: () => ({}) }) as unknown as DOMMatrix)
-      svg.createSVGPoint = jest.fn(() => ({ x: 0, y: 0, matrixTransform: () => ({ x: 1, y: 2 }) }) as unknown as DOMPoint)
+      svg.createSVGPoint = jest.fn(
+        () => ({ x: 0, y: 0, matrixTransform: () => ({ x: 1, y: 2 }) }) as unknown as DOMPoint
+      )
       return svg
     }
     const move = (wrapper: HTMLElement, x: number) =>

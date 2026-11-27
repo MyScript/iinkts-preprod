@@ -1,4 +1,5 @@
-import { BoxOps, TBox } from "@/iink"
+import type { TBox } from "@/iink"
+import { BoxOps } from "@/iink"
 
 test("TBox is a plain object", () => {
   const box: TBox = { x: 1, y: 2, width: 3, height: 4 }

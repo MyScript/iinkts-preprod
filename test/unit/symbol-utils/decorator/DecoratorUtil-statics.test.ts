@@ -1,6 +1,8 @@
+import { describe, expect, test } from "@jest/globals"
+
+import { DecoratorKind, DecoratorUtil, MatrixTransform, OBBOps, SymbolType } from "@/iink"
+
 import { decoratorGeometry } from "../../helpers"
-import { describe, test, expect } from "@jest/globals"
-import { OBBOps, SymbolType, DecoratorKind, MatrixTransform, DecoratorUtil } from "@/iink"
 
 describe("DecoratorUtil", () => {
   describe("create", () => {

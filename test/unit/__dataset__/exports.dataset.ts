@@ -118,13 +118,19 @@ export const jiixMathDuplicateStrokes: TJIIXExport = {
         {
           type: "=",
           id: "math/1",
-          items: [{ type: "stroke", id: "eq-1" }, { type: "stroke", id: "eq-2" }],
+          items: [
+            { type: "stroke", id: "eq-1" },
+            { type: "stroke", id: "eq-2" },
+          ],
           operands: [
             {
               type: "variable",
               id: "math/2",
               label: "x",
-              items: [{ type: "stroke", id: "x-1" }, { type: "stroke", id: "x-2" }],
+              items: [
+                { type: "stroke", id: "x-1" },
+                { type: "stroke", id: "x-2" },
+              ],
             },
             {
               type: "number",

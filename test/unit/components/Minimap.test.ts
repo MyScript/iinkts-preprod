@@ -1,7 +1,8 @@
-import { LeftClickEventMock } from "../__mocks__/EventMock"
 import { createLockIcon, type InteractiveInkCanvas, Minimap, SvgElementRole } from "@/iink"
 
-function buildMockCanvas(overrides: Partial<any> = {}): InteractiveInkCanvas {
+import { LeftClickEventMock } from "../__mocks__/EventMock"
+
+function buildMockCanvas(overrides: Record<string, unknown> = {}): InteractiveInkCanvas {
   const mockMainLayer = document.createElementNS("http://www.w3.org/2000/svg", "svg")
 
   return {

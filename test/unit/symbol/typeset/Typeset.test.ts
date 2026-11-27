@@ -1,4 +1,5 @@
-import { computeChildrenOverlaps, computeTypesetSnapPoints, computeTypesetVertices, TBox, TPoint, TTypesetChild, typesetOverlapsBox } from "@/iink"
+import type { TBox, TPoint, TTypesetChild } from "@/iink"
+import { computeChildrenOverlaps, computeTypesetSnapPoints, computeTypesetVertices, typesetOverlapsBox } from "@/iink"
 
 describe("Typeset.ts", () => {
   describe("typesetOverlapsBox", () => {

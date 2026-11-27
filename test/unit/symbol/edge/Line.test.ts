@@ -1,5 +1,7 @@
+import type { TBox, TPoint, TStyle } from "@/iink"
+import { DefaultStyle, EdgeUtil, OBBOps } from "@/iink"
+
 import { edgeGeometry } from "../../helpers"
-import { DefaultStyle, EdgeUtil, OBBOps, TBox, TPoint, TStyle } from "@/iink"
 
 describe("Line.ts", () => {
   describe("constructor", () => {

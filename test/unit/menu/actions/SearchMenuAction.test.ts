@@ -1,5 +1,7 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { IIMenuSearch, SearchMenuAction } from "@/iink"
+import type { IIMenuSearch } from "@/iink"
+import { SearchMenuAction } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 
 function setup(isOpen = false) {
   const search = { isOpen, open: jest.fn(), close: jest.fn() }

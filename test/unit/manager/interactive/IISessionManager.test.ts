@@ -1,5 +1,12 @@
 import { IDBFactory } from "fake-indexeddb"
-import { buildIIStroke } from "../../helpers"
+
+import type {
+  TInteractiveInkCanvasOptions,
+  TSavedSessionInfo,
+  TSessionEnvelope,
+  TSessionRecovery,
+  TStroke,
+} from "@/iink"
 import {
   DefaultInteractiveInkCanvasConfiguration,
   InteractiveInkCanvas,
@@ -7,13 +14,10 @@ import {
   registerBuiltinSymbolUtils,
   serializeSession,
   SessionStorage,
-  TSavedSessionInfo,
-  TInteractiveInkCanvasOptions,
-  TSessionEnvelope,
-  TSessionRecovery,
-  TStroke,
   WebSocketClient,
 } from "@/iink"
+
+import { buildIIStroke } from "../../helpers"
 
 describe("IISessionManager.ts", () => {
   beforeAll(() => registerBuiltinSymbolUtils())
@@ -137,7 +141,10 @@ describe("IISessionManager.ts", () => {
     test("should pick the history up where it was saved, so the restored work can be undone", async () => {
       const canvas = buildCanvas()
       const [first, second] = [buildIIStroke(), buildIIStroke()]
-      const saved = { ...envelopeOf([first, second]), history: { stack: [{}, { added: [first] }, { added: [second] }], stackIndex: 2 } }
+      const saved = {
+        ...envelopeOf([first, second]),
+        history: { stack: [{}, { added: [first] }, { added: [second] }], stackIndex: 2 },
+      }
       canvas.client.undo = jest.fn(() => Promise.resolve())
 
       await canvas.session.restore(saved)
@@ -250,8 +257,10 @@ describe("IISessionManager.ts", () => {
 
     const withRecognizedText = (canvas: InteractiveInkCanvas, text: string) => {
       const exportAs = canvas.exportAs.bind(canvas)
-      jest.spyOn(canvas, "exportAs").mockImplementation(((format: "text" | "session") =>
-        format === "text" ? Promise.resolve(text) : exportAs(format)) as InteractiveInkCanvas["exportAs"])
+      jest
+        .spyOn(canvas, "exportAs")
+        .mockImplementation(((format: "text" | "session") =>
+          format === "text" ? Promise.resolve(text) : exportAs(format)) as InteractiveInkCanvas["exportAs"])
     }
     const downloadedName = async (canvas: InteractiveInkCanvas, options?: { filename?: string }) => {
       const link = document.createElement("a")
@@ -315,13 +324,18 @@ describe("IISessionManager.ts", () => {
     }
     const change = (canvas: InteractiveInkCanvas) => canvas.event.emitChanged(canvas.history.context)
     const setPageHidden = (hidden: boolean) => {
-      Object.defineProperty(document, "visibilityState", { configurable: true, get: () => (hidden ? "hidden" : "visible") })
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => (hidden ? "hidden" : "visible"),
+      })
       document.dispatchEvent(new Event("visibilitychange"))
     }
     const strokesSent = (canvas: InteractiveInkCanvas) => ({
       added: jest.mocked(canvas.client.addStrokes).mock.calls.flatMap(([strokes]) => strokes.map((s) => s.id)),
       erased: jest.mocked(canvas.client.eraseStrokes).mock.calls.flatMap(([ids]) => ids),
-      replaced: jest.mocked(canvas.client.replaceStrokes).mock.calls.map(([ids, strokes]) => [ids, strokes.map((s) => s.id)]),
+      replaced: jest
+        .mocked(canvas.client.replaceStrokes)
+        .mock.calls.map(([ids, strokes]) => [ids, strokes.map((s) => s.id)]),
     })
 
     beforeEach(() => jest.useFakeTimers())
@@ -454,7 +468,16 @@ describe("IISessionManager.ts", () => {
 
         await recovery.recover(true)
 
-        expect(strokesSent(canvas)).toEqual({ added: [], erased: [], replaced: [[[erased.id, moved.id], [moved.id, added.id]]] })
+        expect(strokesSent(canvas)).toEqual({
+          added: [],
+          erased: [],
+          replaced: [
+            [
+              [erased.id, moved.id],
+              [moved.id, added.id],
+            ],
+          ],
+        })
       })
 
       test("should only add the strokes written since, when nothing else changed", async () => {
@@ -547,10 +570,25 @@ describe("IISessionManager.ts", () => {
       return canvas
     }
     const change = (canvas: InteractiveInkCanvas) => canvas.event.emitChanged(canvas.history.context)
-    const savedAt = async (id: string, symbols: TStroke[], options: { now?: number; key?: string; snapshot?: TSessionEnvelope } = {}) => {
-      await stored.writeSymbols({ id, key: options.key ?? KEY, symbols: JSON.stringify(symbols), symbolCount: symbols.length, now: options.now ?? Date.now() })
+    const savedAt = async (
+      id: string,
+      symbols: TStroke[],
+      options: { now?: number; key?: string; snapshot?: TSessionEnvelope } = {}
+    ) => {
+      await stored.writeSymbols({
+        id,
+        key: options.key ?? KEY,
+        symbols: JSON.stringify(symbols),
+        symbolCount: symbols.length,
+        now: options.now ?? Date.now(),
+      })
       if (options.snapshot) {
-        await stored.writeSnapshot({ id, key: options.key ?? KEY, snapshot: serializeSession(options.snapshot), now: options.now ?? Date.now() })
+        await stored.writeSnapshot({
+          id,
+          key: options.key ?? KEY,
+          snapshot: serializeSession(options.snapshot),
+          now: options.now ?? Date.now(),
+        })
       }
     }
 
@@ -720,7 +758,9 @@ describe("IISessionManager.ts", () => {
 
         expect(canvas.model.symbols.map((s) => s.id)).toEqual([inSnapshot.id, writtenAfter.id])
         expect(canvas.client.importPackage).toHaveBeenCalledWith(new Uint8Array([1, 2, 3]), "part-7")
-        expect(jest.mocked(canvas.client.addStrokes).mock.calls.flatMap(([s]) => s.map((x) => x.id))).toEqual([writtenAfter.id])
+        expect(jest.mocked(canvas.client.addStrokes).mock.calls.flatMap(([s]) => s.map((x) => x.id))).toEqual([
+          writtenAfter.id,
+        ])
       })
 
       test("should take the restored session over: written on as this canvas's own", async () => {
@@ -759,7 +799,9 @@ describe("IISessionManager.ts", () => {
         await reader.session.restoreSaved(reader.session.saved[0].id)
 
         expect(reader.history.context.canUndo).toBe(true)
-        expect(asData(reader.history.exportStack())).toEqual(asData({ stack: [{}, { added: [stroke] }], stackIndex: 1 }))
+        expect(asData(reader.history.exportStack())).toEqual(
+          asData({ stack: [{}, { added: [stroke] }], stackIndex: 1 })
+        )
       })
 
       test("should discard one saved session, or all of them", async () => {

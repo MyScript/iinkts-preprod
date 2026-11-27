@@ -1,7 +1,9 @@
+import type { TMenuItemOptions } from "@/iink"
+import { CanvasTool, CanvasWriteTool, IIMenuStyle } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../__mocks__/createCanvasMock"
 import { LeftClickEventMock } from "../__mocks__/EventMock"
-import { createCanvasMock, asCanvas } from "../__mocks__/createCanvasMock"
 import { buildIICircle, buildIIStroke, StubMenuItem } from "../helpers"
-import { CanvasTool, IIMenuStyle, CanvasWriteTool, TMenuItemOptions } from "@/iink"
 
 describe("IIMenuStyle.ts", () => {
   test("should create", () => {
@@ -305,7 +307,7 @@ describe("IIMenuStyle.ts", () => {
       })
     })
 
-    describe("when tool == select and shape selected", () => {
+    describe("when tool == move", () => {
       beforeAll(() => {
         canvas.tool = CanvasTool.Move
         menu.update()

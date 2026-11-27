@@ -1,4 +1,5 @@
-import { Circle2d, DefaultStyle, MatrixTransform, OBBOps, ShapeUtil, TBox, TPoint, TStyle } from "@/iink"
+import type { TBox, TPoint, TStyle } from "@/iink"
+import { Circle2d, DefaultStyle, MatrixTransform, OBBOps, ShapeUtil } from "@/iink"
 
 describe("ShapeUtil circle statics", () => {
   describe("create", () => {

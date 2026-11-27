@@ -1,4 +1,4 @@
-import { extractEdgeEndpoints, JIIXEdgeKind, convertMillimeterToPixel } from "@/iink"
+import { convertMillimeterToPixel, extractEdgeEndpoints, JIIXEdgeKind } from "@/iink"
 
 describe("extractEdgeEndpoints", () => {
   test("Line edge → x1,y1 / x2,y2 converted to pixels", () => {

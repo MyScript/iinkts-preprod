@@ -1,4 +1,4 @@
-import { createUUID, mergeDeep, isDeepEqual } from "../../src/iink"
+import { createUUID, isDeepEqual, mergeDeep } from "../../src/iink"
 
 describe("Performance Benchmarks", () => {
   describe("UUID Generation", () => {
@@ -25,8 +25,10 @@ describe("Performance Benchmarks", () => {
   })
 
   describe("Object Merge Performance", () => {
-    const createDeepObject = (depth: number): Record<string, any> => {
-      if (depth === 0) return { value: Math.random() }
+    const createDeepObject = (depth: number): Record<string, unknown> => {
+      if (depth === 0) {
+        return { value: Math.random() }
+      }
       return { nested: createDeepObject(depth - 1) }
     }
 
@@ -78,8 +80,10 @@ describe("Performance Benchmarks", () => {
   })
 
   describe("Deep Equality Check Performance", () => {
-    const createDeepObject = (depth: number): Record<string, any> => {
-      if (depth === 0) return { value: "test" }
+    const createDeepObject = (depth: number): Record<string, unknown> => {
+      if (depth === 0) {
+        return { value: "test" }
+      }
       return { nested: createDeepObject(depth - 1) }
     }
 

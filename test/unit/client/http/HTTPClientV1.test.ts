@@ -1,6 +1,14 @@
 import fetchMock from "jest-fetch-mock"
-import { HTTPClientV1DiagramConfiguration, HTTPClientV1MathConfiguration, HTTPClientV1RawContentConfiguration, HTTPClientV1TextConfiguration } from "../../__dataset__/configuration.dataset"
-import { HTTPClientV1, DefaultPenStyle, Model, TPointer, TRecognitionTypeV1, THTTPClientV1Configuration, DefaultHTTPClientV1Configuration } from "@/iink"
+
+import type { THTTPClientV1Configuration, TPointer, TRecognitionTypeV1 } from "@/iink"
+import { DefaultHTTPClientV1Configuration, DefaultPenStyle, HTTPClientV1, Model } from "@/iink"
+
+import {
+  HTTPClientV1DiagramConfiguration,
+  HTTPClientV1MathConfiguration,
+  HTTPClientV1RawContentConfiguration,
+  HTTPClientV1TextConfiguration,
+} from "../../__dataset__/configuration.dataset"
 
 describe("HTTPClientV1.ts", () => {
   const height = 100,
@@ -50,7 +58,7 @@ describe("HTTPClientV1.ts", () => {
       const rr = new HTTPClientV1(newConf)
       const newModel = await rr.export(model)
 
-      let mimeTypes = []
+      let mimeTypes: string[]
       switch (type) {
         case "TEXT":
           mimeTypes = config.recognition.text!.mimeTypes

@@ -1,5 +1,6 @@
-import { buildStroke } from "../helpers"
 import { CanvasRendererStroke } from "@/iink"
+
+import { buildStroke } from "../helpers"
 
 describe("CanvasRendererStroke.ts", () => {
   test("should instanciate CanvasRendererStroke", () => {

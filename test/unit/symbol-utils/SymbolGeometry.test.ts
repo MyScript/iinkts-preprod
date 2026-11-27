@@ -1,5 +1,13 @@
-import { MatrixTransform, PointSet2d, StrokeUtil, SymbolGeometry, SymbolStore, registerBuiltinSymbolUtils, symbolRegistry } from "@/iink"
 import type { TStroke } from "@/iink"
+import {
+  MatrixTransform,
+  PointSet2d,
+  registerBuiltinSymbolUtils,
+  StrokeUtil,
+  SymbolGeometry,
+  symbolRegistry,
+  SymbolStore,
+} from "@/iink"
 
 describe("SymbolGeometry", () => {
   beforeAll(() => registerBuiltinSymbolUtils())

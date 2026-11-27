@@ -1,4 +1,5 @@
-import { CanvasRendererText, DefaultPenStyle, MatrixTransform, TCanvasTextSymbol, TCanvasTextUnderlineSymbol } from "@/iink"
+import type { TCanvasTextSymbol, TCanvasTextUnderlineSymbol } from "@/iink"
+import { CanvasRendererText, DefaultPenStyle, MatrixTransform } from "@/iink"
 
 describe("CanvasRendererText.ts", () => {
   const canvas: HTMLCanvasElement = document.createElement("canvas")
@@ -61,7 +62,7 @@ describe("CanvasRendererText.ts", () => {
     )
   })
 
-  test("should draw text type string", () => {
+  test("should draw underlined text type string", () => {
     const text: TCanvasTextUnderlineSymbol = {
       creationTime: Date.now(),
       id: "id",

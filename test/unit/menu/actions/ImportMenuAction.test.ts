@@ -1,5 +1,6 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
 import { ImportMenuAction } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 
 const setInputFiles = (input: HTMLInputElement, files: File[]): void => {
   Object.defineProperty(input, "files", { value: files, configurable: true })

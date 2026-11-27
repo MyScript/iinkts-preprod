@@ -1,5 +1,7 @@
+import type { TInteractiveInkCanvasOptions } from "@/iink"
+import { DefaultInteractiveInkCanvasConfiguration, InteractiveInkCanvas } from "@/iink"
+
 import { buildIIStroke } from "../../helpers"
-import { DefaultInteractiveInkCanvasConfiguration, InteractiveInkCanvas, TInteractiveInkCanvasOptions } from "@/iink"
 
 describe("ExportManager.ts", () => {
   const CanvasOptions: TInteractiveInkCanvasOptions = {
@@ -30,11 +32,9 @@ describe("ExportManager.ts", () => {
    * HTMLImageElement, which the canvas mock requires to accept it in `drawImage`.
    */
   const stubImageLoading = (): void => {
-    jest
-      .spyOn(window.HTMLImageElement.prototype, "src", "set")
-      .mockImplementation(function (this: HTMLImageElement) {
-        setTimeout(() => this.dispatchEvent(new Event("load")), 0)
-      })
+    jest.spyOn(window.HTMLImageElement.prototype, "src", "set").mockImplementation(function (this: HTMLImageElement) {
+      setTimeout(() => this.dispatchEvent(new Event("load")), 0)
+    })
   }
 
   /** Hands out a distinct object URL per call so revocations can be told apart */
@@ -211,7 +211,7 @@ describe("ExportManager.ts", () => {
     })
   })
 
-  describe("download(\"pdf\")", () => {
+  describe('download("pdf")', () => {
     test("should open the export dialog when no PDF setting is given", async () => {
       const canvas = buildCanvas()
       canvas.model.addSymbol(buildIIStroke())

@@ -1,7 +1,9 @@
-import { describe, test, expect, beforeAll, beforeEach } from "@jest/globals"
-import { buildIIDecorator } from "../../helpers"
+import { beforeAll, beforeEach, describe, expect, test } from "@jest/globals"
+
 import type { TDecorator } from "@/iink"
-import { DecoratorUtil, DecoratorKind, OBBOps, SymbolType, MatrixTransform, registerBuiltinSymbolUtils } from "@/iink"
+import { DecoratorKind, DecoratorUtil, MatrixTransform, OBBOps, registerBuiltinSymbolUtils, SymbolType } from "@/iink"
+
+import { buildIIDecorator } from "../../helpers"
 
 describe("DecoratorUtil", () => {
   let util: DecoratorUtil
@@ -148,7 +150,8 @@ describe("DecoratorUtil", () => {
   })
 
   describe("getSVGElement", () => {
-    const buildUnderline = () => DecoratorUtil.createDecorator(DecoratorKind.Underline, {}, [], { x: 0, y: 0, width: 20, height: 10 })
+    const buildUnderline = () =>
+      DecoratorUtil.createDecorator(DecoratorKind.Underline, {}, [], { x: 0, y: 0, width: 20, height: 10 })
 
     test("emits no transform attribute for a decorator that was never moved", () => {
       expect(util.getSVGElement(buildUnderline())?.getAttribute("transform")).toBeNull()
@@ -181,7 +184,13 @@ describe("DecoratorUtil", () => {
     const symbolStyle = { width: 2, color: "#111111" }
 
     const render = (kind: DecoratorKind, baseline?: number, xHeight?: number) =>
-      DecoratorUtil.renderFromBounds(buildIIDecorator(kind, { color: "#ff0000", width: 4 }), bounds, baseline, xHeight, symbolStyle)
+      DecoratorUtil.renderFromBounds(
+        buildIIDecorator(kind, { color: "#ff0000", width: 4 }),
+        bounds,
+        baseline,
+        xHeight,
+        symbolStyle
+      )
 
     describe.each([DecoratorKind.Highlight, DecoratorKind.Surround])("%s, drawn as a rect", (kind) => {
       test("should inflate the bounds by one symbol stroke width on every side", () => {

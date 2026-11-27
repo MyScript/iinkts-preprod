@@ -8,12 +8,27 @@ describe("assets/js/connection", () => {
   })
 
   test("should hold the verdicts while the ink waits for the server", () => {
-    expect(connectionView("offline")).toEqual({ label: CONNECTION.offline, tone: "warn", hold: true, message: CONNECTION.waiting })
-    expect(connectionView("syncing")).toEqual({ label: CONNECTION.syncing, tone: "warn", hold: true, message: CONNECTION.waiting })
+    expect(connectionView("offline")).toEqual({
+      label: CONNECTION.offline,
+      tone: "warn",
+      hold: true,
+      message: CONNECTION.waiting,
+    })
+    expect(connectionView("syncing")).toEqual({
+      label: CONNECTION.syncing,
+      tone: "warn",
+      hold: true,
+      message: CONNECTION.waiting,
+    })
     expect(connectionView("initializing").hold).toBe(true)
   })
 
   test("should tell the student when the ink is lost", () => {
-    expect(connectionView("error")).toEqual({ label: CONNECTION.error, tone: "error", hold: true, message: CONNECTION.lost })
+    expect(connectionView("error")).toEqual({
+      label: CONNECTION.error,
+      tone: "error",
+      hold: true,
+      message: CONNECTION.lost,
+    })
   })
 })

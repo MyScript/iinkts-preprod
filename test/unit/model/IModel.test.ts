@@ -1,5 +1,7 @@
+import type { TExportV2 } from "@/iink"
+import { DefaultPenStyle, IModel, StrokeUtil } from "@/iink"
+
 import { buildStrokeV2 } from "../helpers"
-import { DefaultPenStyle, IModel, StrokeUtil, TExportV2 } from "@/iink"
 
 describe("IModel.ts", () => {
   const width = 100,

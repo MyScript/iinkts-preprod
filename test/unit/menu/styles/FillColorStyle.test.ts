@@ -1,6 +1,7 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
+import { DefaultStyle, FillColorStyle } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 import { buildIIStroke } from "../../helpers"
-import { FillColorStyle, DefaultStyle } from "@/iink"
 
 describe("FillColorStyle.ts", () => {
   afterEach(() => {

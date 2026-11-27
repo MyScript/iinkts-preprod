@@ -1,6 +1,5 @@
 import { diagnose, hintFor } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/hints.js"
 import { HINTS } from "../../../../../examples/interactive-canvas/interactive_canvas_math_tutor/strings.js"
-
 import { add, eq, mul, neg, num, sqrt, sub, sup, twoXPlusThreeEqualsSeven, v } from "../../assets/js/math/fixtures"
 
 describe("interactive_canvas_math_tutor/hints", () => {

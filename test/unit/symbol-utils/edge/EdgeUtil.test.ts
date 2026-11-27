@@ -1,9 +1,9 @@
-import { edgeGeometry, buildIILine } from "../../helpers"
 import { beforeEach, describe, expect, test } from "@jest/globals"
 
+import type { TEdge, TEdgeArc, TEdgeLine, TEdgePolyLine, TOBB, TPartialDeep, TPoint } from "@/iink"
+import { EdgeDecoration, EdgeKind, EdgeUtil, MatrixTransform, registerBuiltinSymbolUtils, SymbolType } from "@/iink"
 
-import type { TEdge, TOBB, TPartialDeep } from "@/iink"
-import { EdgeDecoration, registerBuiltinSymbolUtils, EdgeKind, EdgeUtil, MatrixTransform, SymbolType, TPoint, TEdgeLine, TEdgePolyLine, TEdgeArc } from "@/iink"
+import { buildIILine, edgeGeometry } from "../../helpers"
 
 /**
  * `EdgeUtil` resolved a kind with a `switch` in each of four methods until IIC-2002 replaced them
@@ -18,7 +18,6 @@ import { EdgeDecoration, registerBuiltinSymbolUtils, EdgeKind, EdgeUtil, MatrixT
 // `overlaps` reads through `SymbolGeometry`, which resolves the util from the registry — that is
 // what buys it the per-symbol geometry cache, and a bare `new EdgeUtil()` cannot exercise it.
 registerBuiltinSymbolUtils()
-
 
 /**
  * Each kind's own bounds computation. This is a *dispatch* oracle: it proves `EdgeUtil` routes an
@@ -185,7 +184,11 @@ describe("EdgeUtil", () => {
     })
 
     test("getGeometry should stay tolerant too, describing nothing rather than throwing", () => {
-      const unknown = { type: SymbolType.Edge, kind: "spline", transform: MatrixTransform.identity() } as unknown as TEdge
+      const unknown = {
+        type: SymbolType.Edge,
+        kind: "spline",
+        transform: MatrixTransform.identity(),
+      } as unknown as TEdge
       const geometry = util.getGeometry(unknown)
 
       expect(geometry.vertices).toEqual([])

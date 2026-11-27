@@ -1,4 +1,11 @@
-import { applyInverseMatrixToPoint, applyMatrixToPoint, applyMatrixToPoints, convertDegreeToRadian, MatrixTransform, TPoint } from "@/iink"
+import type { TPoint } from "@/iink"
+import {
+  applyInverseMatrixToPoint,
+  applyMatrixToPoint,
+  applyMatrixToPoints,
+  convertDegreeToRadian,
+  MatrixTransform,
+} from "@/iink"
 
 describe("MatrixTransform.ts", () => {
   test("should create", () => {

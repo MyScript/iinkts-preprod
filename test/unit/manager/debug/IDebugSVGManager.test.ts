@@ -1,4 +1,5 @@
-import { DefaultInkCanvasConfiguration, IDebugSVGManager, InkCanvas, TBox, TInkCanvasOptions } from "@/iink"
+import type { TBox, TInkCanvasOptions } from "@/iink"
+import { DefaultInkCanvasConfiguration, IDebugSVGManager, InkCanvas } from "@/iink"
 
 class TestableIDebugSVGManager extends IDebugSVGManager {
   callDrawRecognitionBox(box: TBox, infos: string[], color: string, debugAttr: string): void {

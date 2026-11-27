@@ -1,5 +1,6 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
 import { IIAbstractManager, LoggerCategory } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 
 class TestManager extends IIAbstractManager {
   protected managerName = "TestManager"

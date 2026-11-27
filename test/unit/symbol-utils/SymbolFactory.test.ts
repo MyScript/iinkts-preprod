@@ -1,4 +1,18 @@
-import { createSymbolFromPartial, createSymbolsFromPartial, EdgeKind, registerBuiltinSymbolUtils, ShapeKind, symbolRegistry, SymbolType } from "@/iink"
+import {
+  createSymbolFromPartial,
+  createSymbolsFromPartial,
+  EdgeKind,
+  registerBuiltinSymbolUtils,
+  ShapeKind,
+  symbolRegistry,
+  SymbolType,
+  type TPartialDeep,
+  type TSymbol,
+} from "@/iink"
+
+// The factory is fed deserialized JSON: these partials are plain data, some of them invalid on purpose
+type TJSONPartial = Record<string, unknown>
+const fromJSON = (partial: TJSONPartial) => partial as TPartialDeep<TSymbol>
 
 // The factory asks the registry which util owns a type, so the built-ins have to be registered
 // first. Before IIC-2001 this file passed without registering anything, because the factory carried
@@ -9,27 +23,32 @@ beforeAll(() => {
 
 describe("createSymbolFromPartial", () => {
   it("should build stroke symbol", () => {
-    const partial: any = { type: SymbolType.Stroke, id: "stroke-1", pointers: [{ t: 0, p: 1, x: 0, y: 0 }], style: {} }
-    const symbol = createSymbolFromPartial(partial)
+    const partial: TJSONPartial = {
+      type: SymbolType.Stroke,
+      id: "stroke-1",
+      pointers: [{ t: 0, p: 1, x: 0, y: 0 }],
+      style: {},
+    }
+    const symbol = createSymbolFromPartial(fromJSON(partial))
     expect(symbol.type).toBe(SymbolType.Stroke)
     expect(symbol.id).toBe("stroke-1")
   })
 
   it("should build text symbol", () => {
-    const partial: any = {
+    const partial: TJSONPartial = {
       type: SymbolType.Text,
       id: "text-1",
       chars: [{ label: "A", fontSize: 12, fontWeight: "normal" }],
       point: { x: 0, y: 0 },
       bounds: { x: 0, y: 0, width: 10, height: 10 },
     }
-    const symbol = createSymbolFromPartial(partial)
+    const symbol = createSymbolFromPartial(fromJSON(partial))
     expect(symbol.type).toBe(SymbolType.Text)
     expect(symbol.id).toBe("text-1")
   })
 
   it("should build math symbol", () => {
-    const partial: any = {
+    const partial: TJSONPartial = {
       type: SymbolType.Math,
       id: "math-1",
       elements: [
@@ -46,7 +65,7 @@ describe("createSymbolFromPartial", () => {
       point: { x: 0, y: 0 },
       bounds: { x: 0, y: 0, width: 10, height: 10 },
     }
-    const symbol = createSymbolFromPartial(partial)
+    const symbol = createSymbolFromPartial(fromJSON(partial))
     expect(symbol.type).toBe(SymbolType.Math)
     expect(symbol.id).toBe("math-1")
   })
@@ -57,25 +76,30 @@ describe("createSymbolFromPartial", () => {
   // only caller, so they are gone. The coverage stays, now exercising the path production uses.
   describe("shape kinds", () => {
     it("should build a circle", () => {
-      const partial: any = { type: SymbolType.Shape, kind: ShapeKind.Circle, center: { x: 50, y: 50 }, radius: 25 }
-      const symbol = createSymbolFromPartial(partial)
+      const partial: TJSONPartial = {
+        type: SymbolType.Shape,
+        kind: ShapeKind.Circle,
+        center: { x: 50, y: 50 },
+        radius: 25,
+      }
+      const symbol = createSymbolFromPartial(fromJSON(partial))
       expect(symbol.type).toBe(SymbolType.Shape)
-      expect((symbol as any).kind).toBe(ShapeKind.Circle)
+      expect(symbol).toHaveProperty("kind", ShapeKind.Circle)
     })
 
     it("should build an ellipse", () => {
-      const partial: any = {
+      const partial: TJSONPartial = {
         type: SymbolType.Shape,
         kind: ShapeKind.Ellipse,
         center: { x: 50, y: 50 },
         radiusX: 30,
         radiusY: 20,
       }
-      expect((createSymbolFromPartial(partial) as any).kind).toBe(ShapeKind.Ellipse)
+      expect(createSymbolFromPartial(fromJSON(partial))).toHaveProperty("kind", ShapeKind.Ellipse)
     })
 
     it("should build a polygon", () => {
-      const partial: any = {
+      const partial: TJSONPartial = {
         type: SymbolType.Shape,
         kind: ShapeKind.Polygon,
         points: [
@@ -84,18 +108,18 @@ describe("createSymbolFromPartial", () => {
           { x: 10, y: 10 },
         ],
       }
-      expect((createSymbolFromPartial(partial) as any).kind).toBe(ShapeKind.Polygon)
+      expect(createSymbolFromPartial(fromJSON(partial))).toHaveProperty("kind", ShapeKind.Polygon)
     })
 
     it("should throw for an unknown shape kind", () => {
-      const partial: any = { type: SymbolType.Shape, kind: "Unknown" }
-      expect(() => createSymbolFromPartial(partial)).toThrow("Unable to create shape")
+      const partial: TJSONPartial = { type: SymbolType.Shape, kind: "Unknown" }
+      expect(() => createSymbolFromPartial(fromJSON(partial))).toThrow("Unable to create shape")
     })
   })
 
   describe("edge kinds", () => {
     it("should build an arc", () => {
-      const partial: any = {
+      const partial: TJSONPartial = {
         type: SymbolType.Edge,
         kind: EdgeKind.Arc,
         center: { x: 50, y: 50 },
@@ -105,21 +129,21 @@ describe("createSymbolFromPartial", () => {
         sweepAngle: Math.PI,
         phi: 0,
       }
-      expect((createSymbolFromPartial(partial) as any).kind).toBe(EdgeKind.Arc)
+      expect(createSymbolFromPartial(fromJSON(partial))).toHaveProperty("kind", EdgeKind.Arc)
     })
 
     it("should build a line", () => {
-      const partial: any = {
+      const partial: TJSONPartial = {
         type: SymbolType.Edge,
         kind: EdgeKind.Line,
         start: { x: 0, y: 0 },
         end: { x: 10, y: 10 },
       }
-      expect((createSymbolFromPartial(partial) as any).kind).toBe(EdgeKind.Line)
+      expect(createSymbolFromPartial(fromJSON(partial))).toHaveProperty("kind", EdgeKind.Line)
     })
 
     it("should build a polyline", () => {
-      const partial: any = {
+      const partial: TJSONPartial = {
         type: SymbolType.Edge,
         kind: EdgeKind.PolyEdge,
         points: [
@@ -128,18 +152,18 @@ describe("createSymbolFromPartial", () => {
           { x: 20, y: 0 },
         ],
       }
-      expect((createSymbolFromPartial(partial) as any).kind).toBe(EdgeKind.PolyEdge)
+      expect(createSymbolFromPartial(fromJSON(partial))).toHaveProperty("kind", EdgeKind.PolyEdge)
     })
 
     it("should throw for an unknown edge kind", () => {
-      const partial: any = { type: SymbolType.Edge, kind: "Unknown" }
-      expect(() => createSymbolFromPartial(partial)).toThrow("Unable to create edge")
+      const partial: TJSONPartial = { type: SymbolType.Edge, kind: "Unknown" }
+      expect(() => createSymbolFromPartial(fromJSON(partial))).toThrow("Unable to create edge")
     })
   })
 
   describe("when no util owns the type", () => {
     it("should name the type it could not resolve", () => {
-      expect(() => createSymbolFromPartial({ type: "sticky-note" } as any)).toThrow(
+      expect(() => createSymbolFromPartial(fromJSON({ type: "sticky-note" }))).toThrow(
         /no util is registered for type "sticky-note"/
       )
     })
@@ -149,7 +173,7 @@ describe("createSymbolFromPartial", () => {
       // ran" produce the same failure otherwise, and the second is the one that bites at startup.
       let message = ""
       try {
-        createSymbolFromPartial({ type: "sticky-note" } as any)
+        createSymbolFromPartial(fromJSON({ type: "sticky-note" }))
       } catch (error) {
         message = (error as Error).message
       }
@@ -157,7 +181,7 @@ describe("createSymbolFromPartial", () => {
     })
 
     it("should report the kind too when the partial carries one", () => {
-      expect(() => createSymbolFromPartial({ type: "sticky-note", kind: "small" } as any)).toThrow(/kind "small"/)
+      expect(() => createSymbolFromPartial(fromJSON({ type: "sticky-note", kind: "small" }))).toThrow(/kind "small"/)
     })
 
     it("should not throw a TypeError when nothing is registered at all", () => {
@@ -167,7 +191,7 @@ describe("createSymbolFromPartial", () => {
       const spy = jest.spyOn(symbolRegistry, "getUtil").mockImplementation(empty.getUtil)
       const types = jest.spyOn(symbolRegistry, "registeredTypes").mockImplementation(empty.registeredTypes)
       try {
-        expect(() => createSymbolFromPartial({ type: SymbolType.Stroke } as any)).toThrow(
+        expect(() => createSymbolFromPartial(fromJSON({ type: SymbolType.Stroke }))).toThrow(
           /no util is registered for type "stroke".*Registered types: none/s
         )
       } finally {
@@ -180,25 +204,25 @@ describe("createSymbolFromPartial", () => {
 
 describe("createSymbolsFromPartial", () => {
   it("should build multiple symbols", () => {
-    const partials: any[] = [
+    const partials: TJSONPartial[] = [
       { type: SymbolType.Stroke, id: "stroke-1", pointers: [{ t: 0, p: 1, x: 0, y: 0 }], style: {} },
       { type: SymbolType.Edge, kind: EdgeKind.Line, id: "line-1", start: { x: 0, y: 0 }, end: { x: 10, y: 10 } },
     ]
-    const symbols = createSymbolsFromPartial(partials)
+    const symbols = createSymbolsFromPartial(partials.map(fromJSON))
     expect(symbols).toHaveLength(2)
     expect(symbols[0].type).toBe(SymbolType.Stroke)
     expect(symbols[1].type).toBe(SymbolType.Edge)
   })
 
   it("should accumulate errors for failed symbols", () => {
-    const partials: any[] = [
-      { type: "Invalid1" as any },
+    const partials: TJSONPartial[] = [
+      { type: "Invalid1" },
       { type: SymbolType.Stroke, id: "stroke-1", pointers: [{ t: 0, p: 1, x: 0, y: 0 }], style: {} },
-      { type: "Invalid2" as any },
+      { type: "Invalid2" },
     ]
-    expect(() => createSymbolsFromPartial(partials)).toThrow(/Failed to create 2 symbol/)
-    expect(() => createSymbolsFromPartial(partials)).toThrow(/Symbol 0:/)
-    expect(() => createSymbolsFromPartial(partials)).toThrow(/Symbol 2:/)
+    expect(() => createSymbolsFromPartial(partials.map(fromJSON))).toThrow(/Failed to create 2 symbol/)
+    expect(() => createSymbolsFromPartial(partials.map(fromJSON))).toThrow(/Symbol 0:/)
+    expect(() => createSymbolsFromPartial(partials.map(fromJSON))).toThrow(/Symbol 2:/)
   })
 
   it("should return empty array for empty input", () => {

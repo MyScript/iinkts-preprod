@@ -1,6 +1,7 @@
-import { round } from "../../helpers"
+import type { TPoint, TSegment } from "@/iink"
+import { findIntersectBetweenSegmentAndCircle, findIntersectionBetween2Segment } from "@/iink"
 
-import { TPoint, TSegment, findIntersectBetweenSegmentAndCircle, findIntersectionBetween2Segment } from "@/iink"
+import { round } from "../../helpers"
 
 describe("findIntersectionBetween2Segment", () => {
   const testDatas: { seg1: TSegment; seg2: TSegment; expected?: TPoint }[] = [

@@ -1,5 +1,7 @@
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { IIOverlayManager, JIIXElementType, TJIIXMathElement } from "@/iink"
+import type { TJIIXMathElement } from "@/iink"
+import { IIOverlayManager, JIIXElementType } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 
 function buildMathElement(id: string): TJIIXMathElement {
   return {
@@ -20,7 +22,12 @@ describe("IIOverlayManager.ts", () => {
     test("creates a hover zone for an unselected math block", () => {
       const canvas = createCanvasMock()
       canvas.model.mergeExport({
-        "application/vnd.myscript.jiix": { type: "Text", id: "root", version: "3", elements: [buildMathElement("block-1")] },
+        "application/vnd.myscript.jiix": {
+          type: "Text",
+          id: "root",
+          version: "3",
+          elements: [buildMathElement("block-1")],
+        },
       })
       canvas.selector.isMathBlockSelected = jest.fn().mockReturnValue(false)
       const manager = new IIOverlayManager(asCanvas(canvas))
@@ -33,7 +40,12 @@ describe("IIOverlayManager.ts", () => {
     test("skips the hover zone for an already-selected math block, so it doesn't cover the selection's translate handle", () => {
       const canvas = createCanvasMock()
       canvas.model.mergeExport({
-        "application/vnd.myscript.jiix": { type: "Text", id: "root", version: "3", elements: [buildMathElement("block-1")] },
+        "application/vnd.myscript.jiix": {
+          type: "Text",
+          id: "root",
+          version: "3",
+          elements: [buildMathElement("block-1")],
+        },
       })
       canvas.selector.isMathBlockSelected = jest.fn().mockReturnValue(true)
       const manager = new IIOverlayManager(asCanvas(canvas))

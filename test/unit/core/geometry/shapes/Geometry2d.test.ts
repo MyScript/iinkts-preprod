@@ -1,5 +1,7 @@
-import { describe, test, expect } from "@jest/globals"
-import { Geometry2d, MatrixTransform, OBBOps, TBox, TGeometry2dOptions, TMatrixTransform, TPoint } from "@/iink"
+import { describe, expect, test } from "@jest/globals"
+
+import type { TBox, TGeometry2dOptions, TMatrixTransform, TPoint } from "@/iink"
+import { Geometry2d, MatrixTransform, OBBOps } from "@/iink"
 
 /**
  * A concrete shape whose vertices are handed to it, so the base class can be exercised without

@@ -42,9 +42,9 @@ describe("runtime npm dependency boundary", () => {
   })
 
   test("should declare no other runtime dependency in package.json", () => {
-    const manifest = JSON.parse(
-      readFileSync(join(__dirname, "..", "..", "..", "package.json"), "utf-8")
-    ) as { dependencies?: Record<string, string> }
+    const manifest = JSON.parse(readFileSync(join(__dirname, "..", "..", "..", "package.json"), "utf-8")) as {
+      dependencies?: Record<string, string>
+    }
     expect(Object.keys(manifest.dependencies ?? {})).toEqual(["json-css"])
   })
 

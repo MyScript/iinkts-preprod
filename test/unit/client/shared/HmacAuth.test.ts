@@ -1,4 +1,5 @@
-import { resolveHmac, computeHmac, TServerHTTPConfiguration } from "@/iink"
+import type { TServerHTTPConfiguration } from "@/iink"
+import { computeHmac, resolveHmac } from "@/iink"
 
 describe("HmacAuth.ts", () => {
   const baseServer: TServerHTTPConfiguration = {
@@ -9,7 +10,7 @@ describe("HmacAuth.ts", () => {
   }
 
   test("should return undefined when no hmacKey is configured", async () => {
-    const result = await resolveHmac({ ...baseServer, hmacKey: "" },"data")
+    const result = await resolveHmac({ ...baseServer, hmacKey: "" }, "data")
     expect(result).toBeUndefined()
   })
 
@@ -46,6 +47,8 @@ describe("HmacAuth.ts", () => {
 
   test("should throw when hmacKey is not a string", async () => {
     const server = { ...baseServer, hmacKey: async () => "key" } as unknown as TServerHTTPConfiguration
-    await expect(resolveHmac(server, "data")).rejects.toThrow("server.hmacKey must be a string, use server.sign to sign on a server")
+    await expect(resolveHmac(server, "data")).rejects.toThrow(
+      "server.hmacKey must be a string, use server.sign to sign on a server"
+    )
   })
 })

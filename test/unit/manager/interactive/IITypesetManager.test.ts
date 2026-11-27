@@ -1,6 +1,8 @@
+import type { TBaseSymbol, TSymbol, TSymbolChar } from "@/iink"
+import { IITypesetManager, OBBOps, SVGBuilder } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../__mocks__/createCanvasMock"
 import { buildIICircle, buildIIStroke, buildIIText } from "../../helpers"
-import { createCanvasMock, asCanvas } from "../../__mocks__/createCanvasMock"
-import { IITypesetManager, OBBOps, TSymbolChar, SVGBuilder, TBaseSymbol, TSymbol } from "@/iink"
 
 describe("IITypesetManager.ts", () => {
   const chars: TSymbolChar[] = [
@@ -173,7 +175,11 @@ describe("IITypesetManager.ts", () => {
 
       // Order and row come from the stored `bounds` — a typeset symbol's box is a DOM
       // measurement, so `SymbolGeometry` reports it as-is and `point` does not place it.
-      const moved = buildIIText({ point: { x: 10, y: 100 }, boundingBox: { x: 10, y: 90, width: 20, height: 20 }, chars })
+      const moved = buildIIText({
+        point: { x: 10, y: 100 },
+        boundingBox: { x: 10, y: 90, width: 20, height: 20 },
+        chars,
+      })
       const following = buildIIText({
         point: { x: 200, y: 100 },
         boundingBox: { x: 200, y: 90, width: 20, height: 20 },
@@ -198,7 +204,11 @@ describe("IITypesetManager.ts", () => {
       const canvas = createCanvasMock()
       const manager = new IITypesetManager(asCanvas(canvas))
 
-      const moved = buildIIText({ point: { x: 200, y: 100 }, boundingBox: { x: 200, y: 90, width: 20, height: 20 }, chars })
+      const moved = buildIIText({
+        point: { x: 200, y: 100 },
+        boundingBox: { x: 200, y: 90, width: 20, height: 20 },
+        chars,
+      })
       const preceding = buildIIText({
         point: { x: 10, y: 100 },
         boundingBox: { x: 10, y: 90, width: 20, height: 20 },

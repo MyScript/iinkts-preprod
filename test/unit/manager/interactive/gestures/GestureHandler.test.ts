@@ -1,6 +1,8 @@
+import type { TGestureType, TSymbol } from "@/iink"
+import { DecoratorKind, DecoratorUtil, GestureHandler, GestureHelpers } from "@/iink"
+
+import { asCanvas, createCanvasMock } from "../../../__mocks__/createCanvasMock"
 import { buildIIStroke } from "../../../helpers"
-import { createCanvasMock, asCanvas } from "../../../__mocks__/createCanvasMock"
-import { DecoratorKind, DecoratorUtil, GestureHandler, GestureHelpers, TGestureType, TSymbol } from "@/iink"
 
 class TestGestureHandler extends GestureHandler {
   readonly gestureType: TGestureType = "JOIN"
@@ -43,50 +45,35 @@ describe("GestureHandler.ts", () => {
     const s21 = buildIIStroke({ box: { height: rowHeight * 2, width: 5, x: 5, y: rowHeight } })
     const s22 = buildIIStroke({ box: { height: rowHeight * 2, width: 5, x: 50, y: rowHeight } })
 
-    test("above should return false", () => {
-      expect(handler.testIsSymbolAbove(s11, s12)).toEqual(false)
+    const strokes = { s11, s12, s21, s22 }
+    type TPair = [keyof typeof strokes, keyof typeof strokes, boolean]
+
+    test.each<TPair>([
+      ["s11", "s12", false],
+      ["s11", "s21", false],
+      ["s12", "s21", false],
+      ["s21", "s12", true],
+      ["s21", "s22", false],
+    ])("%s above %s should return %s", (a, b, expected) => {
+      expect(handler.testIsSymbolAbove(strokes[a], strokes[b])).toEqual(expected)
     })
-    test("above should return false", () => {
-      expect(handler.testIsSymbolAbove(s11, s21)).toEqual(false)
+    test.each<TPair>([
+      ["s11", "s12", true],
+      ["s11", "s21", false],
+      ["s12", "s21", false],
+      ["s21", "s12", false],
+      ["s21", "s22", true],
+    ])("%s in row %s should return %s", (a, b, expected) => {
+      expect(handler.testIsSymbolInRow(strokes[a], strokes[b])).toEqual(expected)
     })
-    test("above should return false", () => {
-      expect(handler.testIsSymbolAbove(s12, s21)).toEqual(false)
-    })
-    test("above should return true", () => {
-      expect(handler.testIsSymbolAbove(s21, s12)).toEqual(true)
-    })
-    test("above should return false", () => {
-      expect(handler.testIsSymbolAbove(s21, s22)).toEqual(false)
-    })
-    test("in row should return false", () => {
-      expect(handler.testIsSymbolInRow(s11, s12)).toEqual(true)
-    })
-    test("in row should return false", () => {
-      expect(handler.testIsSymbolInRow(s11, s21)).toEqual(false)
-    })
-    test("in row should return false", () => {
-      expect(handler.testIsSymbolInRow(s12, s21)).toEqual(false)
-    })
-    test("in row should return true", () => {
-      expect(handler.testIsSymbolInRow(s21, s12)).toEqual(false)
-    })
-    test("in row should return false", () => {
-      expect(handler.testIsSymbolInRow(s21, s22)).toEqual(true)
-    })
-    test("below should return false", () => {
-      expect(handler.testIsSymbolBelow(s11, s12)).toEqual(false)
-    })
-    test("below should return false", () => {
-      expect(handler.testIsSymbolBelow(s11, s21)).toEqual(true)
-    })
-    test("below should return false", () => {
-      expect(handler.testIsSymbolBelow(s12, s21)).toEqual(true)
-    })
-    test("below should return true", () => {
-      expect(handler.testIsSymbolBelow(s21, s12)).toEqual(false)
-    })
-    test("below should return false", () => {
-      expect(handler.testIsSymbolBelow(s21, s22)).toEqual(false)
+    test.each<TPair>([
+      ["s11", "s12", false],
+      ["s11", "s21", true],
+      ["s12", "s21", true],
+      ["s21", "s12", false],
+      ["s21", "s22", false],
+    ])("%s below %s should return %s", (a, b, expected) => {
+      expect(handler.testIsSymbolBelow(strokes[a], strokes[b])).toEqual(expected)
     })
   })
 
